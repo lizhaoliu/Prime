@@ -1,12 +1,12 @@
 package prime.physics;
 
-import prime.math.Vector;
+import prime.math.Vec3;
 
-public final class IdealSpecularModel extends BSDF {
+public class IdealSpecularModel extends BSDF {
 
     @Override
-    public float samplingReflectionDirection(Vector origin, Vector normal,
-	    Vector inDir, Vector dest) {
+    public float samplingReflectionDirection(Vec3 origin, Vec3 normal,
+	    Vec3 inDir, Vec3 dest) {
 	// TODO Auto-generated method stub
 	float cos = 2 * cosThetaAbsoluteValue(normal, inDir);
 	dest.set(normal.x * cos + inDir.x, normal.y * cos + inDir.y, normal.z
@@ -15,25 +15,25 @@ public final class IdealSpecularModel extends BSDF {
     }
 
     @Override
-    public final float samplingTransmissionDirection(Vector origin,
-	    Vector normal, Vector inDir, Vector dest) {
+    public float samplingTransmissionDirection(Vec3 origin,
+	    Vec3 normal, Vec3 inDir, Vec3 dest) {
 	// TODO Auto-generated method stub
 	return 1.0f;
     }
 
     @Override
-    public final void brdf(Vector origin, Vector normal, Vector inDir,
-	    Vector outDir, Spectrum dest) {
+    public void brdf(Vec3 origin, Vec3 normal, Vec3 inDir,
+	    Vec3 outDir, Spectrum dest) {
 	// TODO Auto-generated method stub
-	Vector buf = new Vector();
+	Vec3 buf = new Vec3();
 
-	Vector.add(inDir, outDir, buf);
-	if (Math.abs(Vector.dot(buf, normal)) > 0.01) {
+	Vec3.add(inDir, outDir, buf);
+	if (Math.abs(Vec3.dot(buf, normal)) > 0.01) {
 	    dest.set(0, 0, 0);
 	}
 
-	Vector.cross(inDir, outDir, buf);
-	if (Math.abs(Vector.dot(buf, normal)) > 0.01) {
+	Vec3.cross(inDir, outDir, buf);
+	if (Math.abs(Vec3.dot(buf, normal)) > 0.01) {
 	    dest.set(0, 0, 0);
 	}
 
@@ -42,8 +42,8 @@ public final class IdealSpecularModel extends BSDF {
     }
 
     @Override
-    public final void btdf(Vector origin, Vector normal, Vector inDir,
-	    Vector outDir, Spectrum dest) {
+    public void btdf(Vec3 origin, Vec3 normal, Vec3 inDir,
+	    Vec3 outDir, Spectrum dest) {
 	// TODO Auto-generated method stub
 
     }

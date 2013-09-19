@@ -10,7 +10,7 @@ import java.util.List;
 
 import prime.gui.MainGUI;
 import prime.math.Tuple3;
-import prime.math.Vector;
+import prime.math.Vec3;
 import prime.model.TriangleMesh;
 
 /**
@@ -18,14 +18,14 @@ import prime.model.TriangleMesh;
  * @author lizhaoliu
  *
  */
-public final class ModelFileLoader {
+public class ModelFileLoader {
     private MainGUI mainGUI;
 
     public ModelFileLoader(MainGUI mainGUI) {
 	this.mainGUI = mainGUI;
     }
 
-    public final TriangleMesh[] load(File file) throws IOException {
+    public TriangleMesh[] load(File file) throws IOException {
 	mainGUI.addSystemLog("--importing from '" + file.getName() + "'.--");
 	TriangleMesh[] result = null;
 	String extName = file.getName();
@@ -47,10 +47,10 @@ public final class ModelFileLoader {
      * @return
      * @throws IOException
      */
-    private final TriangleMesh[] loadOBJFile(File file) throws IOException {
-	List<Vector> vList = new ArrayList<Vector>();
-	List<Vector> nList = new ArrayList<Vector>();
-	List<Vector> tList = new ArrayList<Vector>();
+    private TriangleMesh[] loadOBJFile(File file) throws IOException {
+	List<Vec3> vList = new ArrayList<Vec3>();
+	List<Vec3> nList = new ArrayList<Vec3>();
+	List<Vec3> tList = new ArrayList<Vec3>();
 
 	BufferedReader reader = new BufferedReader(new FileReader(file));
 	String line;
@@ -67,7 +67,7 @@ public final class ModelFileLoader {
 	    } else if (buf0 == 'v') {
 		String[] ss = line.split(" ");
 		int len = ss.length;
-		Vector v = new Vector(Float.parseFloat(ss[len - 3]), Float
+		Vec3 v = new Vec3(Float.parseFloat(ss[len - 3]), Float
 			.parseFloat(ss[len - 2]), Float.parseFloat(ss[len - 1]));
 		char buf1 = line.charAt(1);
 		if (buf1 == ' ') // vertex

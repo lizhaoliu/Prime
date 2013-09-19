@@ -9,9 +9,9 @@ import javax.media.opengl.glu.GLU;
 
 import prime.core.Camera;
 import prime.core.Drawable;
-import prime.math.MathTools;
+import prime.math.MathUtils;
 import prime.math.Tuple3;
-import prime.math.Vector;
+import prime.math.Vec3;
 import prime.physics.BSDF;
 import prime.physics.Ray;
 import prime.physics.Spectrum;
@@ -22,7 +22,7 @@ import prime.physics.Spectrum;
  * @author lizhaoliu
  * 
  */
-public final class TriangleMesh implements Drawable, Serializable {
+public class TriangleMesh implements Drawable, Serializable {
 	private static final long serialVersionUID = 6079627240260644846L;
 
 	private static int numMeshes = 0; // help to generate OpenGL display list
@@ -33,13 +33,9 @@ public final class TriangleMesh implements Drawable, Serializable {
 	private int nTriangles; // number of triangles
 	private float area; // the area of triangle meshs
 
-	private List<Vector> vertexBuffer = new ArrayList<Vector>(); // vertices
-	// array
-	private List<Vector> normalBuffer = new ArrayList<Vector>(); // normals
-	// array
-	private List<Vector> textureBuffer = new ArrayList<Vector>(); // texture
-	// coordinates
-	// array
+	private List<Vec3> vertexBuffer = new ArrayList<Vec3>(); // vertices array
+	private List<Vec3> normalBuffer = new ArrayList<Vec3>(); // normals array
+	private List<Vec3> textureBuffer = new ArrayList<Vec3>(); // texture coordinates array
 
 	private List<Tuple3> vertexIndexBuffer = new ArrayList<Tuple3>(); // vertices
 	// index
@@ -65,54 +61,54 @@ public final class TriangleMesh implements Drawable, Serializable {
 		thisNum = ++numMeshes;
 	}
 
-	public final void addVertex(Vector v) {
-		this.vertexBuffer.add(new Vector(v));
+	public void addVertex(Vec3 v) {
+		this.vertexBuffer.add(new Vec3(v));
 	}
 
-	public final void addNormal(Vector n) {
-		this.normalBuffer.add(new Vector(n));
+	public void addNormal(Vec3 n) {
+		this.normalBuffer.add(new Vec3(n));
 	}
 
-	public final void addTexCoord(Vector t) {
-		this.textureBuffer.add(new Vector(t));
+	public void addTexCoord(Vec3 t) {
+		this.textureBuffer.add(new Vec3(t));
 	}
 
-	public final void addVertexIndex(Tuple3 vi) {
+	public void addVertexIndex(Tuple3 vi) {
 		vertexIndexBuffer.add(vi);
 	}
 
-	public final void addNormalIndex(Tuple3 ni) {
+	public void addNormalIndex(Tuple3 ni) {
 		normalIndexBuffer.add(ni);
 	}
 
-	public final void addTexCoordIndex(Tuple3 ti) {
+	public void addTexCoordIndex(Tuple3 ti) {
 		textureIndexBuffer.add(ti);
 	}
 
-	public final void setVertexList(List<Vector> v) {
+	public void setVertexList(List<Vec3> v) {
 		this.vertexBuffer.clear();
 		this.vertexBuffer.addAll(v);
 	}
 
-	public final void setNormalList(List<Vector> n) {
+	public void setNormalList(List<Vec3> n) {
 		this.normalBuffer.clear();
 		this.normalBuffer.addAll(n);
 	}
 
-	public final void setTexCoordList(List<Vector> t) {
+	public void setTexCoordList(List<Vec3> t) {
 		this.textureBuffer.clear();
 		this.textureBuffer.addAll(t);
 	}
 
-	public final void setSharedVertexList(List<Vector> v) {
+	public void setSharedVertexList(List<Vec3> v) {
 		this.vertexBuffer = v;
 	}
 
-	public final void setSharedNormalList(List<Vector> n) {
+	public void setSharedNormalList(List<Vec3> n) {
 		this.normalBuffer = n;
 	}
 
-	public final void setSharedTexCoordList(List<Vector> t) {
+	public void setSharedTexCoordList(List<Vec3> t) {
 		this.textureBuffer = t;
 	}
 
@@ -120,7 +116,7 @@ public final class TriangleMesh implements Drawable, Serializable {
 	 * 
 	 * @return
 	 */
-	public final Triangle[] getTriangleArray() {
+	public Triangle[] getTriangleArray() {
 		Triangle[] triArray = new Triangle[nTriangles];
 		for (int i = 0; i < nTriangles; i++) {
 			Triangle t = new Triangle();
@@ -135,7 +131,7 @@ public final class TriangleMesh implements Drawable, Serializable {
 	 * 
 	 * @param name
 	 */
-	public final void setName(String name) {
+	public void setName(String name) {
 		this.name = name;
 	}
 
@@ -143,7 +139,7 @@ public final class TriangleMesh implements Drawable, Serializable {
 	 * 
 	 * @return
 	 */
-	public final String getName() {
+	public String getName() {
 		return name;
 	}
 
@@ -153,7 +149,7 @@ public final class TriangleMesh implements Drawable, Serializable {
 	 * @param iV
 	 * @return
 	 */
-	public final Vector getVertex(int index, int iV) {
+	public Vec3 getVertex(int index, int iV) {
 		return vertexBuffer.get(vertexIndexBuffer.get(index).get(iV));
 	}
 
@@ -163,7 +159,7 @@ public final class TriangleMesh implements Drawable, Serializable {
 	 * @param iN
 	 * @return
 	 */
-	public final Vector getNormal(int index, int iN) {
+	public Vec3 getNormal(int index, int iN) {
 		return normalBuffer.get(normalIndexBuffer.get(index).get(iN));
 	}
 
@@ -173,7 +169,7 @@ public final class TriangleMesh implements Drawable, Serializable {
 	 * @param iT
 	 * @return
 	 */
-	public final Vector getTexCoord(int index, int iT) {
+	public Vec3 getTexCoord(int index, int iT) {
 		return textureBuffer.get(textureIndexBuffer.get(index).get(iT));
 	}
 
@@ -181,8 +177,8 @@ public final class TriangleMesh implements Drawable, Serializable {
 	 * 
 	 * @param gl
 	 */
-	private final void genList(GL2 gl) {
-		Vector buf;
+	private void genList(GL2 gl) {
+		Vec3 buf;
 		gl.glNewList(thisNum, GL2.GL_COMPILE);
 		gl.glBegin(GL2.GL_TRIANGLES);
 		for (int i = 0; i < nTriangles; i++) // iterate all faces, the ith faces
@@ -233,7 +229,7 @@ public final class TriangleMesh implements Drawable, Serializable {
 	 * draw by OpenGL
 	 */
 	@Override
-	public final void draw(GL2 gl, GLU glu, Camera camera) {
+	public void draw(GL2 gl, GLU glu, Camera camera) {
 		if (isToGenList) {
 			genList(gl);
 			isToGenList = false;
@@ -259,7 +255,7 @@ public final class TriangleMesh implements Drawable, Serializable {
 	/**
 	 * finish adding info to this mesh and do some ending job
 	 */
-	public final void finish() {
+	public void finish() {
 		nTriangles = vertexIndexBuffer.size();
 		isToGenList = true;
 		calculateArea();
@@ -269,14 +265,14 @@ public final class TriangleMesh implements Drawable, Serializable {
 	 * 
 	 * @return
 	 */
-	public final float getArea() {
+	public float getArea() {
 		return area;
 	}
 
 	/**
 	 * 
 	 */
-	private final void calculateArea() {
+	private void calculateArea() {
 		area = 0.0f;
 		for (int i = 0; i < nTriangles; i++) {
 			area += Triangle.getArea(getVertex(i, 0), getVertex(i, 1),
@@ -290,7 +286,7 @@ public final class TriangleMesh implements Drawable, Serializable {
 	 * @param glu
 	 * @param camera
 	 */
-	public final void drawBoundingBox(GL2 gl, GLU glu, Camera camera) {
+	public void drawBoundingBox(GL2 gl, GLU glu, Camera camera) {
 		bb.draw(gl, glu, camera);
 	}
 
@@ -298,7 +294,7 @@ public final class TriangleMesh implements Drawable, Serializable {
 	 * 
 	 * @param mat
 	 */
-	public final void setBSDF(BSDF mat) {
+	public void setBSDF(BSDF mat) {
 		bsdf = mat;
 	}
 
@@ -306,7 +302,7 @@ public final class TriangleMesh implements Drawable, Serializable {
 	 * 
 	 * @return
 	 */
-	public final BSDF getBSDF() {
+	public BSDF getBSDF() {
 		return bsdf;
 	}
 
@@ -315,7 +311,7 @@ public final class TriangleMesh implements Drawable, Serializable {
 	 * @param dst
 	 * @return
 	 */
-	public final Vector randomPoint(Vector dst) {
+	public Vec3 randomPoint(Vec3 dst) {
 		int base = (int) (Math.random() * nTriangles);
 		Triangle.getRandomPoint(getVertex(base, 0), getVertex(base, 1),
 				getVertex(base, 2), dst);
@@ -327,7 +323,7 @@ public final class TriangleMesh implements Drawable, Serializable {
 	 * @param dst
 	 * @return
 	 */
-	public final Vector randomNormal(Vector dst) {
+	public Vec3 randomNormal(Vec3 dst) {
 		int base = (int) (Math.random() * nTriangles);
 		Triangle.getRandomPoint(getNormal(base, 0), getNormal(base, 1),
 				getNormal(base, 2), dst);
@@ -338,14 +334,14 @@ public final class TriangleMesh implements Drawable, Serializable {
 	 * 
 	 * @param dst
 	 */
-	public final void emitRandomRay(Ray dst) {
-		Vector origin = new Vector();
+	public void emitRandomRay(Ray dst) {
+		Vec3 origin = new Vec3();
 		randomPoint(origin);
 		dst.setOrigin(origin);
-		Vector n = new Vector();
+		Vec3 n = new Vec3();
 		randomNormal(n);
-		Vector normal = new Vector();
-		MathTools.randomDirectionInHemisphere(n, normal);
+		Vec3 normal = new Vec3();
+		MathUtils.randomDirectionInHemisphere(n, normal);
 		dst.setDirection(normal);
 		dst.setLength(Float.MAX_VALUE);
 		dst.setSpectrum(bsdf.getEmittance());
@@ -355,11 +351,11 @@ public final class TriangleMesh implements Drawable, Serializable {
 	 * 
 	 * @return
 	 */
-	public final int getTrianglesNum() {
+	public int getTrianglesNum() {
 		return vertexIndexBuffer.size() - 2;
 	}
 
-	public final String toString() {
+	public String toString() {
 		return name;
 	}
 }

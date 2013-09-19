@@ -13,7 +13,7 @@ import prime.physics.Ray;
  * @author lizhaoliu
  *
  */
-public final class UniformGrid extends SpatialStructure {
+public class UniformGrid extends SpatialStructure {
     private int xDiv, yDiv, zDiv;
     
     private BoundingBox[][][] grids;

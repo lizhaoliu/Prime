@@ -77,7 +77,7 @@ import prime.math.ConeFilter;
 import prime.math.Filter;
 import prime.math.GaussianFilter;
 import prime.math.LHCoordinateSystem;
-import prime.math.Vector;
+import prime.math.Vec3;
 import prime.model.TriangleMesh;
 import prime.physics.BSDF;
 import prime.physics.IdealDiffuseModel;
@@ -458,7 +458,7 @@ public class MainGUI extends JFrame {
 		if (o == bStop) {
 		    camera.stopRendering();
 		} else if (o == bStartRendering) {
-		    sceneGraph.getSky().setDirection(new Vector(Float.parseFloat(skyDirTFs[0].getText()), 
+		    sceneGraph.getSky().setDirection(new Vec3(Float.parseFloat(skyDirTFs[0].getText()), 
 			    Float.parseFloat(skyDirTFs[1].getText()), 
 			    Float.parseFloat(skyDirTFs[2].getText())));
 		    selectedRenderer = (Renderer) cRenders.getSelectedItem();
@@ -1203,15 +1203,15 @@ public class MainGUI extends JFrame {
 	}
 
 	public void relocateCamera() {
-	    cam.lookAt(new Vector(30, 0, 30), new Vector(0, 0, 0),
-		    new Vector(0, 1, 0));
+	    cam.lookAt(new Vec3(30, 0, 30), new Vec3(0, 0, 0),
+		    new Vec3(0, 1, 0));
 	}
 
 	private void drawGrids(float d, GL2 gl) {
 	    int n = 8;
 	    float x, z, beg = -d * n, end = d * n;
 	    LHCoordinateSystem coSys = cam.getCoordinateSystem();
-	    Vector v0 = new Vector(), v1 = new Vector();
+	    Vec3 v0 = new Vec3(), v1 = new Vec3();
 	    gl.glDisable(GL2.GL_LIGHTING);
 	    gl.glBegin(GL2.GL_LINES);
 	    gl.glColor3f(0.4f, 0.4f, 0.4f);
@@ -1246,8 +1246,8 @@ public class MainGUI extends JFrame {
 	private int oldX, oldY;
 	@SuppressWarnings("unused")
 	private boolean isKeyPressing = false;
-	private Vector dv = new Vector(), n = new Vector();
-	private Vector v1 = new Vector(), v2 = new Vector();
+	private Vec3 dv = new Vec3(), n = new Vec3();
+	private Vec3 v1 = new Vec3(), v2 = new Vec3();
 	private Cursor moveCursor = new Cursor(Cursor.MOVE_CURSOR);
 
 	public void mouseWheelMoved(MouseWheelEvent e) {
@@ -1256,7 +1256,7 @@ public class MainGUI extends JFrame {
 	    }
 	    setCursor(new Cursor(Cursor.N_RESIZE_CURSOR));
 	    int ticks = e.getWheelRotation();
-	    cam.translate(new Vector(0, 0, -ticks * 3));
+	    cam.translate(new Vec3(0, 0, -ticks * 3));
 	    display();
 	}
 
@@ -1316,7 +1316,7 @@ public class MainGUI extends JFrame {
 	    cam.getLocalPointFromViewport(oldX, oldY, v1);
 	    v2.z = cam.getZNear();
 	    v1.z = cam.getZNear();
-	    Vector.sub(v1, v2, dv);
+	    Vec3.sub(v1, v2, dv);
 	    dv.normalize();
 	    switch (button) {
 	    case MouseEvent.BUTTON1:
@@ -1353,7 +1353,7 @@ public class MainGUI extends JFrame {
 		case ROTATE_MODE:
 		    v1.normalize();
 		    v2.normalize();
-		    float angle = (float) (3 * Math.acos(Vector.dot(v1, v2)) * 180 / Math.PI);
+		    float angle = (float) (3 * Math.acos(Vec3.dot(v1, v2)) * 180 / Math.PI);
 		    if (selectedMesh != null) {
 			switch (lockAxis) {
 			case AXIS_X:
@@ -1396,8 +1396,8 @@ public class MainGUI extends JFrame {
 	    case MouseEvent.BUTTON3:
 		v1.normalize();
 		v2.normalize();
-		float angle = (float) (3 * Math.acos(Vector.dot(v1, v2)) * 180 / Math.PI);
-		Vector.cross(v1, v2, n);
+		float angle = (float) (3 * Math.acos(Vec3.dot(v1, v2)) * 180 / Math.PI);
+		Vec3.cross(v1, v2, n);
 		n.normalize();
 		cam.rotate(n, angle);
 		display();

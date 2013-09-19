@@ -2,7 +2,7 @@ package prime.physics;
 
 import java.io.Serializable;
 
-import prime.math.Vector;
+import prime.math.Vec3;
 
 /**
  * 
@@ -12,8 +12,8 @@ import prime.math.Vector;
 public final class Ray implements Serializable {
     private static final long serialVersionUID = -406076263164160604L;
 
-    private Vector origin = new Vector(); //
-    private Vector direction = new Vector(); //
+    private Vec3 origin = new Vec3(); //
+    private Vec3 direction = new Vec3(); //
     private Spectrum spectrum = new Spectrum(); //
     private float length = Float.MAX_VALUE; //
     private float n = 1.0f; //
@@ -28,7 +28,7 @@ public final class Ray implements Serializable {
      * 
      * @param v
      */
-    public final void setOrigin(Vector v) {
+    public final void setOrigin(Vec3 v) {
 	origin.set(v);
     }
 
@@ -46,7 +46,7 @@ public final class Ray implements Serializable {
      * 
      * @param v
      */
-    public final void setDirection(Vector v) {
+    public final void setDirection(Vec3 v) {
 	direction.set(v);
 	direction.normalize();
     }
@@ -96,7 +96,7 @@ public final class Ray implements Serializable {
      * 
      * @param dst
      */
-    public final void getOrigin(Vector dst) {
+    public final void getOrigin(Vec3 dst) {
 	dst.set(origin);
     }
 
@@ -104,7 +104,7 @@ public final class Ray implements Serializable {
      * 
      * @param dst
      */
-    public final void getDirection(Vector dst) {
+    public final void getDirection(Vec3 dst) {
 	dst.set(direction);
     }
 

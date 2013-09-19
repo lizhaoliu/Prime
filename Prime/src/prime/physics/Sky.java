@@ -3,7 +3,7 @@
  */
 package prime.physics;
 
-import prime.math.Vector;
+import prime.math.Vec3;
 
 /**
  * @author Alan Liu
@@ -11,17 +11,17 @@ import prime.math.Vector;
  */
 public final class Sky {
     private Spectrum spectrum = new Spectrum();
-    private Vector direction = new Vector(0, -1, 0);
+    private Vec3 direction = new Vec3(0, -1, 0);
     
     public Sky() {
 	
     }
     
-    public Vector getDirection() {
+    public Vec3 getDirection() {
 	return direction;
     }
     
-    public void setDirection(Vector direction) {
+    public void setDirection(Vec3 direction) {
 	this.direction.set(direction);
 	this.direction.normalize();
     }

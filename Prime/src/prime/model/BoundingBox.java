@@ -10,7 +10,7 @@ import javax.media.opengl.glu.GLU;
 
 import prime.core.Camera;
 import prime.core.Drawable;
-import prime.math.Vector;
+import prime.math.Vec3;
 import prime.physics.Ray;
 
 /**
@@ -18,16 +18,16 @@ import prime.physics.Ray;
  * 
  * @author lizhaoliu
  */
-public final class BoundingBox implements Drawable, Iterable<Triangle>,
+public class BoundingBox implements Drawable, Iterable<Triangle>,
 		Serializable {
 	private static final long serialVersionUID = -8072891542252256281L;
-	private Vector min = new Vector(), max = new Vector();
+	private Vec3 min = new Vec3(), max = new Vec3();
 	private List<Triangle> triangleList = new ArrayList<Triangle>();
 
 	public BoundingBox() {
 	}
 
-	public BoundingBox(Vector minV, Vector maxV) {
+	public BoundingBox(Vec3 minV, Vec3 maxV) {
 		min.set(minV);
 		max.set(maxV);
 	}
@@ -41,12 +41,12 @@ public final class BoundingBox implements Drawable, Iterable<Triangle>,
 	/**
 	 * to tighten the box
 	 */
-	public final void adjustSize() {
+	public void adjustSize() {
 		min.set(Float.POSITIVE_INFINITY, Float.POSITIVE_INFINITY,
 				Float.POSITIVE_INFINITY);
 		max.set(Float.NEGATIVE_INFINITY, Float.NEGATIVE_INFINITY,
 				Float.NEGATIVE_INFINITY);
-		Vector buf;
+		Vec3 buf;
 		for (Triangle t : triangleList) {
 			for (int j = 0; j < 3; j++) {
 				buf = t.getVertex(j);
@@ -66,7 +66,7 @@ public final class BoundingBox implements Drawable, Iterable<Triangle>,
 	 * 
 	 * @param p
 	 */
-	public final void add(Triangle p) {
+	public void add(Triangle p) {
 		triangleList.add(p);
 	}
 
@@ -79,7 +79,7 @@ public final class BoundingBox implements Drawable, Iterable<Triangle>,
 	 * @param maxY
 	 * @param maxZ
 	 */
-	public final void set(float minX, float minY, float minZ, float maxX,
+	public void set(float minX, float minY, float minZ, float maxX,
 			float maxY, float maxZ) {
 		min.set(minX, minY, minZ);
 		max.set(maxX, maxY, maxZ);
@@ -90,7 +90,7 @@ public final class BoundingBox implements Drawable, Iterable<Triangle>,
 	 * @param min
 	 * @param max
 	 */
-	public final void set(Vector min, Vector max) {
+	public void set(Vec3 min, Vec3 max) {
 		this.min.set(min);
 		this.max.set(max);
 	}
@@ -98,7 +98,7 @@ public final class BoundingBox implements Drawable, Iterable<Triangle>,
 	/**
 	 * 
 	 */
-	public final void clear() {
+	public void clear() {
 		triangleList.clear();
 	}
 
@@ -107,7 +107,7 @@ public final class BoundingBox implements Drawable, Iterable<Triangle>,
 	 * @param index
 	 * @return
 	 */
-	public final Triangle getTriangle(int index) {
+	public Triangle getTriangle(int index) {
 		return triangleList.get(index);
 	}
 
@@ -115,7 +115,7 @@ public final class BoundingBox implements Drawable, Iterable<Triangle>,
 	 * 
 	 * @return
 	 */
-	public final int getTriangleNum() {
+	public int getTriangleNum() {
 		return triangleList.size();
 	}
 
@@ -124,7 +124,7 @@ public final class BoundingBox implements Drawable, Iterable<Triangle>,
 	 * @param box
 	 * @return
 	 */
-	public final boolean intersect(BoundingBox box) {
+	public boolean intersect(BoundingBox box) {
 		for (int i = 0; i < 3; i++) {
 			if (max.get(i) < box.min.get(i) || box.max.get(i) < min.get(i)) {
 				return false;
@@ -138,11 +138,11 @@ public final class BoundingBox implements Drawable, Iterable<Triangle>,
 	 * @param ray
 	 * @return
 	 */
-	public final boolean intersect(Ray ray) {
+	public boolean intersect(Ray ray) {
 		float tNear = Float.NEGATIVE_INFINITY, tFar = Float.POSITIVE_INFINITY, t1, t2;
-		Vector o = new Vector();
+		Vec3 o = new Vec3();
 		ray.getOrigin(o);
-		Vector d = new Vector();
+		Vec3 d = new Vec3();
 		ray.getDirection(d);
 		for (int i = 0; i < 3; i++) {
 			t1 = (min.get(i) - o.get(i)) / d.get(i);
@@ -171,9 +171,9 @@ public final class BoundingBox implements Drawable, Iterable<Triangle>,
 	 * @param v2
 	 * @return
 	 */
-	public final boolean intersect(Vector v1, Vector v2) {
+	public boolean intersect(Vec3 v1, Vec3 v2) {
 		float tNear = Float.NEGATIVE_INFINITY, tFar = Float.POSITIVE_INFINITY, t1, t2;
-		Vector o = v1, d = new Vector(v2.x - v1.x, v2.y - v1.y, v2.z - v1.z);
+		Vec3 o = v1, d = new Vec3(v2.x - v1.x, v2.y - v1.y, v2.z - v1.z);
 		for (int i = 0; i < 3; i++) {
 			t1 = (min.get(i) - o.get(i)) / d.get(i);
 			t2 = (max.get(i) - o.get(i)) / d.get(i);
@@ -200,7 +200,7 @@ public final class BoundingBox implements Drawable, Iterable<Triangle>,
 	 * @param ray
 	 * @param dst
 	 */
-	public final void intersect(Ray ray, RayIntersectionInfo dst) {
+	public void intersect(Ray ray, RayIntersectionInfo dst) {
 		RayIntersectionInfo tmp = new RayIntersectionInfo();
 		for (int i = 0; i < triangleList.size(); i++) {
 			triangleList.get(i).intersect(ray, tmp);
@@ -215,7 +215,7 @@ public final class BoundingBox implements Drawable, Iterable<Triangle>,
 	 * @param v
 	 * @return
 	 */
-	public final boolean contains(Vector v) {
+	public boolean contains(Vec3 v) {
 		for (int i = 0; i < 3; i++) {
 			if (v.get(i) > max.get(i) || v.get(i) < min.get(i)) {
 				return false;
@@ -228,7 +228,7 @@ public final class BoundingBox implements Drawable, Iterable<Triangle>,
 	 * 
 	 * @param dst
 	 */
-	public final void getMidPoint(Vector dst) {
+	public void getMidPoint(Vec3 dst) {
 		dst.set((min.x + max.x) / 2, (min.y + max.y) / 2, (min.z + max.z) / 2);
 	}
 
@@ -236,7 +236,7 @@ public final class BoundingBox implements Drawable, Iterable<Triangle>,
 	 * 
 	 * @param dst
 	 */
-	public final void getMinPoint(Vector dst) {
+	public void getMinPoint(Vec3 dst) {
 		dst.set(min);
 	}
 
@@ -244,7 +244,7 @@ public final class BoundingBox implements Drawable, Iterable<Triangle>,
 	 * 
 	 * @param dst
 	 */
-	public final void getMaxPoint(Vector dst) {
+	public void getMaxPoint(Vec3 dst) {
 		dst.set(max);
 	}
 
@@ -252,7 +252,7 @@ public final class BoundingBox implements Drawable, Iterable<Triangle>,
 	 * 
 	 * @return
 	 */
-	public final int maxLengthAxis() {
+	public int maxLengthAxis() {
 		float dx = max.x - min.x, dy = max.y - min.y, dz = max.z - min.z;
 		int axle = 0;
 		if (dy > dx) {
@@ -275,7 +275,7 @@ public final class BoundingBox implements Drawable, Iterable<Triangle>,
 	 * @param i
 	 * @return
 	 */
-	public final float getLength(int i) {
+	public float getLength(int i) {
 		switch (i) {
 		case 0:
 			return max.x - min.x;
@@ -295,14 +295,14 @@ public final class BoundingBox implements Drawable, Iterable<Triangle>,
 	 * 
 	 * @return
 	 */
-	public final boolean isEmpty() {
+	public boolean isEmpty() {
 		return (triangleList.isEmpty());
 	}
 
 	/**
 	 * 
 	 */
-	public final void draw(GL2 gl, GLU glu, Camera camera) {
+	public void draw(GL2 gl, GLU glu, Camera camera) {
 		float[] s = new float[16];
 		gl.glPushMatrix();
 		gl.glLoadIdentity();
@@ -343,7 +343,8 @@ public final class BoundingBox implements Drawable, Iterable<Triangle>,
 		gl.glPopMatrix();
 	}
 
-	public final String toString() {
+	@Override
+	public String toString() {
 		String s = "min : " + min + "; max : " + max + "\n" + "dx = "
 				+ (max.x - min.x) + ", dy = " + (max.y - min.y) + ", dz = "
 				+ (max.z - min.z);

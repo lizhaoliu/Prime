@@ -5,12 +5,12 @@ package prime.model;
  * @author lizhaoliu
  *
  */
-public final class RayIntersectionInfo {
+public class RayIntersectionInfo {
     private boolean isIntersected;
     private Triangle hitTriangle;
     private float u, v;
 
-    public final void assign(RayIntersectionInfo conf) {
+    public void assign(RayIntersectionInfo conf) {
 	isIntersected = conf.isIntersected;
 	hitTriangle = conf.hitTriangle;
 	u = conf.u;
@@ -21,7 +21,7 @@ public final class RayIntersectionInfo {
      * 
      * @param flag
      */
-    public final void setIsIntersected(boolean flag) {
+    public void setIsIntersected(boolean flag) {
 	isIntersected = flag;
     }
 
@@ -29,7 +29,7 @@ public final class RayIntersectionInfo {
      * 
      * @param t
      */
-    public final void setHitTriangle(Triangle t) {
+    public void setHitTriangle(Triangle t) {
 	hitTriangle = t;
     }
 
@@ -40,16 +40,16 @@ public final class RayIntersectionInfo {
      * @param u
      * @param v
      */
-    public final void setUV(float u, float v) {
+    public void setUV(float u, float v) {
 	this.u = u;
 	this.v = v;
     }
 
-    public final float getU() {
+    public float getU() {
 	return u;
     }
 
-    public final float getV() {
+    public float getV() {
 	return v;
     }
 
@@ -57,7 +57,7 @@ public final class RayIntersectionInfo {
      * 
      * @return
      */
-    public final boolean isIntersected() {
+    public boolean isIntersected() {
 	return isIntersected;
     }
 
@@ -65,7 +65,7 @@ public final class RayIntersectionInfo {
      * 
      * @return
      */
-    public final Triangle getTriangle() {
+    public Triangle getTriangle() {
 	return hitTriangle;
     }
 }

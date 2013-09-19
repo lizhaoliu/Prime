@@ -5,15 +5,15 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 
-import prime.math.Vector;
+import prime.math.Vec3;
 import prime.model.BoundingBox;
 
 /**
- * a kd-tree implementation which stores photons
+ * a kd-tree implementation to store photons
  * @author lizhaoliu
  *
  */
-public final class KDTree {
+public class KDTree {
 	private KDNode head;
 
 	public KDTree(List<Photon> pList) {
@@ -21,11 +21,11 @@ public final class KDTree {
 		subdivide(head);
 	}
 
-	public final void query(BoundingBox region, List<Photon> resList) {
+	public void query(BoundingBox region, List<Photon> resList) {
 		query1(region, head, resList);
 	}
 
-	public final void query(Vector center, float r, List<Photon> resList) {
+	public void query(Vec3 center, float r, List<Photon> resList) {
 		query2(center, r, head, resList);
 	}
 
@@ -36,7 +36,7 @@ public final class KDTree {
 	 * @param n
 	 * @param resList
 	 */
-	public final float nearestNeighbors(Vector p, float initR, int n,
+	public float nearestNeighbors(Vec3 p, float initR, int n,
 			List<Photon> resList) {
 		query(p, initR, resList);
 		while (resList.size() < n) {
@@ -45,10 +45,10 @@ public final class KDTree {
 			query(p, initR, resList);
 		}
 		Collections.sort(resList, new DistanceComparator(p));
-		return Vector.distance(p, resList.get(n - 1).location);
+		return Vec3.distance(p, resList.get(n - 1).location);
 	}
 
-	private final void query2(Vector center, float r, KDNode currNode,
+	private void query2(Vec3 center, float r, KDNode currNode,
 			List<Photon> resList) {
 		int axis = currNode.subdivisionAxis;
 		float midValue = currNode.midValue;
@@ -57,7 +57,7 @@ public final class KDTree {
 			List<Photon> pList = currNode.pList;
 			for (int i = 0; i < pList.size(); i++) {
 				p = pList.get(i);
-				if (Vector.distance(p.location, center) < r) {
+				if (Vec3.distance(p.location, center) < r) {
 					resList.add(p);
 				}
 			}
@@ -73,11 +73,11 @@ public final class KDTree {
 		}
 	}
 
-	private final void query1(BoundingBox region, KDNode currNode,
+	private void query1(BoundingBox region, KDNode currNode,
 			List<Photon> resList) {
-		Vector min = new Vector();
+		Vec3 min = new Vec3();
 		region.getMinPoint(min);
-		Vector max = new Vector();
+		Vec3 max = new Vec3();
 		region.getMaxPoint(max);
 		int axis = currNode.subdivisionAxis;
 		float midValue = currNode.midValue;
@@ -102,7 +102,7 @@ public final class KDTree {
 		}
 	}
 
-	private final void subdivide(KDNode currNode) {
+	private void subdivide(KDNode currNode) {
 		List<Photon> pList = currNode.pList;
 		int axis = currNode.subdivisionAxis;
 		if (pList.size() <= 1) {
@@ -128,7 +128,7 @@ public final class KDTree {
 	}
 }
 
-final class KDNode {
+class KDNode {
 	List<Photon> pList;
 	int subdivisionAxis;
 	float midValue;
@@ -139,20 +139,20 @@ final class KDNode {
 		subdivisionAxis = axis;
 	}
 
-	public final boolean isLeaf() {
+	public boolean isLeaf() {
 		return (left == null && right == null);
 	}
 }
 
-final class DistanceComparator implements Comparator<Photon> {
-	private Vector center;
+class DistanceComparator implements Comparator<Photon> {
+	private Vec3 center;
 
-	public DistanceComparator(Vector center) {
+	public DistanceComparator(Vec3 center) {
 		this.center = center;
 	}
 
-	public final int compare(Photon o1, Photon o2) {
-		float d1 = Vector.distanceSqr(o1.location, center), d2 = Vector
+	public int compare(Photon o1, Photon o2) {
+		float d1 = Vec3.distanceSqr(o1.location, center), d2 = Vec3
 				.distanceSqr(o2.location, center);
 		if (d1 < d2) {
 			return -1;
@@ -164,14 +164,14 @@ final class DistanceComparator implements Comparator<Photon> {
 	}
 }
 
-final class AxisComparator implements Comparator<Photon> {
+class AxisComparator implements Comparator<Photon> {
 	private int axis;
 
 	public AxisComparator(int axis) {
 		this.axis = axis;
 	}
 
-	public final int compare(Photon o1, Photon o2) {
+	public int compare(Photon o1, Photon o2) {
 		if (o1.location.get(axis) < o2.location.get(axis)) {
 			return -1;
 		}

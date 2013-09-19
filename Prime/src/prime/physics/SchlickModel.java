@@ -1,38 +1,38 @@
 package prime.physics;
 
-import prime.math.Vector;
+import prime.math.Vec3;
 
-public final class SchlickModel extends BSDF {
+public class SchlickModel extends BSDF {
     private float f0; // specular reflection at normal incidence
     private float sigma; // roughness factor(0 : perfectly smooth; 1 : ideal
 			 // diffuse
     private float psi; // isotropy factor(0 : perfect anisotropic; 1 : isotropic
 
     @Override
-    public final float samplingReflectionDirection(Vector origin,
-	    Vector normal, Vector inDir, Vector dest) {
+    public float samplingReflectionDirection(Vec3 origin,
+	    Vec3 normal, Vec3 inDir, Vec3 dest) {
 	// TODO Auto-generated method stub
 	return 1.0f;
     }
 
     @Override
-    public final float samplingTransmissionDirection(Vector origin,
-	    Vector normal, Vector inDir, Vector dest) {
+    public float samplingTransmissionDirection(Vec3 origin,
+	    Vec3 normal, Vec3 inDir, Vec3 dest) {
 	// TODO Auto-generated method stub
 	return 1.0f;
     }
 
     @Override
-    public final void brdf(Vector origin, Vector normal, Vector inDir,
-	    Vector outDir, Spectrum dest) {
+    public void brdf(Vec3 origin, Vec3 normal, Vec3 inDir,
+	    Vec3 outDir, Spectrum dest) {
 	// TODO Auto-generated method stub
-	Vector H = new Vector();
-	Vector.add(inDir, outDir, H);
+	Vec3 H = new Vec3();
+	Vec3.add(inDir, outDir, H);
 	H.normalize();
-	float u = Vector.dot(outDir, H);
-	float t = Vector.dot(normal, H);
-	float v = Vector.dot(outDir, normal);
-	float vdot = -Vector.dot(inDir, normal);
+	float u = Vec3.dot(outDir, H);
+	float t = Vec3.dot(normal, H);
+	float v = Vec3.dot(outDir, normal);
+	float vdot = -Vec3.dot(inDir, normal);
 	float w = (float) (Math.random());
 	float g = 4 * sigma * (1 - sigma);
 	float d = (sigma < 0.5f ? 0.0f : 1 - g);
@@ -42,31 +42,31 @@ public final class SchlickModel extends BSDF {
 	dest.set(factor, factor, factor);
     }
 
-    private final float S(float u) {
+    private float S(float u) {
 	return f0 + (float) ((1 - f0) * Math.pow(1 - u, 5));
     }
 
-    private final float Z(float t) {
+    private float Z(float t) {
 	float div = (1 - sigma * t - t * t);
 	return sigma / (div * div);
     }
 
-    private final float D(float t, float v, float vdot, float w) {
+    private float D(float t, float v, float vdot, float w) {
 	return (float) ((G(v) * G(vdot) * Z(t) * A(w) + 1 - G(v) * G(vdot)) / (4
 		* Math.PI * v * vdot));
     }
 
-    private final float A(float w) {
+    private float A(float w) {
 	return (float) (Math.sqrt(psi / (psi * psi * (1 - w * w) + w * w)));
     }
 
-    private final float G(float v) {
+    private float G(float v) {
 	return (v / (sigma - sigma * v + v));
     }
 
     @Override
-    public void btdf(Vector origin, Vector normal, Vector inDir,
-	    Vector outDir, Spectrum dest) {
+    public void btdf(Vec3 origin, Vec3 normal, Vec3 inDir,
+	    Vec3 outDir, Spectrum dest) {
 	// TODO Auto-generated method stub
 
     }

@@ -5,9 +5,9 @@ import java.io.Serializable;
 /**
  * 3-dimension vector to represent a point or direction in space
  * 
- * @author Alan Liu
+ * @author lizhaoliu
  */
-public final class Vector implements Serializable, Cloneable {
+public class Vec3 implements Serializable, Cloneable {
 	private static final long serialVersionUID = 7314440075896007971L;
 
 	private static float[] xDir, yDir, zDir;
@@ -42,10 +42,10 @@ public final class Vector implements Serializable, Cloneable {
 	/**
 	 * 
 	 */
-	public Vector() {
+	public Vec3() {
 	}
 
-	public Vector(int code) {
+	public Vec3(int code) {
 		z = zDir[code & 0x000000ff];
 		code >>= 8;
 		y = zDir[code & 0x0000ff];
@@ -60,7 +60,7 @@ public final class Vector implements Serializable, Cloneable {
 	 * @param y
 	 * @param z
 	 */
-	public Vector(float x, float y, float z) {
+	public Vec3(float x, float y, float z) {
 		this.x = x;
 		this.y = y;
 		this.z = z;
@@ -70,7 +70,7 @@ public final class Vector implements Serializable, Cloneable {
 	 * 
 	 * @param v
 	 */
-	public Vector(Vector v) {
+	public Vec3(Vec3 v) {
 		x = v.x;
 		y = v.y;
 		z = v.z;
@@ -80,7 +80,7 @@ public final class Vector implements Serializable, Cloneable {
 	 * 
 	 * @return
 	 */
-	public final float getLength() {
+	public float getLength() {
 		return (float) Math.sqrt(x * x + y * y + z * z);
 	}
 
@@ -89,7 +89,7 @@ public final class Vector implements Serializable, Cloneable {
 	 * @param i
 	 * @return
 	 */
-	public final float get(int i) {
+	public float get(int i) {
 		switch (i) {
 		case 0:
 			return x;
@@ -104,7 +104,7 @@ public final class Vector implements Serializable, Cloneable {
 	 * 
 	 * @param v
 	 */
-	public final void set(Vector v) {
+	public void set(Vec3 v) {
 		x = v.x;
 		y = v.y;
 		z = v.z;
@@ -117,7 +117,7 @@ public final class Vector implements Serializable, Cloneable {
 	 * @param z
 	 * @return
 	 */
-	public final Vector set(float x, float y, float z) {
+	public Vec3 set(float x, float y, float z) {
 		this.x = x;
 		this.y = y;
 		this.z = z;
@@ -130,26 +130,25 @@ public final class Vector implements Serializable, Cloneable {
 	 * @param val
 	 * @return
 	 */
-	public final Vector set(int i, float val) {
+	public Vec3 set(int i, float val) {
 		switch (i) {
 		case 0:
 			x = val;
-			break;
+			return this;
 		case 1:
 			y = val;
-			break;
+			return this;
 		default:
 			z = val;
-			break;
+			return this;
 		}
-		return this;
 	}
 
 	/**
 	 * 
 	 * @return
 	 */
-	public final Vector normalize() {
+	public Vec3 normalize() {
 		float invLen = 1.0f / (float) Math.sqrt(x * x + y * y + z * z);
 		x *= invLen;
 		y *= invLen;
@@ -162,7 +161,7 @@ public final class Vector implements Serializable, Cloneable {
 	 * @param v
 	 * @return
 	 */
-	public final Vector add(Vector v) {
+	public Vec3 add(Vec3 v) {
 		x += v.x;
 		y += v.y;
 		z += v.z;
@@ -176,7 +175,7 @@ public final class Vector implements Serializable, Cloneable {
 	 * @param z
 	 * @return
 	 */
-	public final Vector add(float x, float y, float z) {
+	public Vec3 add(float x, float y, float z) {
 		this.x += x;
 		this.y += y;
 		this.z += z;
@@ -190,7 +189,7 @@ public final class Vector implements Serializable, Cloneable {
 	 * @param dst
 	 * @return
 	 */
-	public static final Vector add(Vector v1, Vector v2, Vector dst) {
+	public static Vec3 add(Vec3 v1, Vec3 v2, Vec3 dst) {
 		return dst.set(v1.x + v2.x, v1.y + v2.y, v1.z + v2.z);
 	}
 
@@ -199,7 +198,7 @@ public final class Vector implements Serializable, Cloneable {
 	 * @param v
 	 * @return
 	 */
-	public final Vector sub(Vector v) {
+	public Vec3 sub(Vec3 v) {
 		x -= v.x;
 		y -= v.y;
 		z -= v.z;
@@ -213,7 +212,7 @@ public final class Vector implements Serializable, Cloneable {
 	 * @param z
 	 * @return
 	 */
-	public final Vector sub(float x, float y, float z) {
+	public Vec3 sub(float x, float y, float z) {
 		this.x -= x;
 		this.y -= y;
 		this.z -= z;
@@ -227,7 +226,7 @@ public final class Vector implements Serializable, Cloneable {
 	 * @param dst
 	 * @return
 	 */
-	public static final Vector sub(Vector v1, Vector v2, Vector dst) {
+	public static Vec3 sub(Vec3 v1, Vec3 v2, Vec3 dst) {
 		dst.set(v1.x - v2.x, v1.y - v2.y, v1.z - v2.z);
 		return dst;
 	}
@@ -237,7 +236,7 @@ public final class Vector implements Serializable, Cloneable {
 	 * @param a
 	 * @return
 	 */
-	public final Vector mul(float a) {
+	public Vec3 mul(float a) {
 		x *= a;
 		y *= a;
 		z *= a;
@@ -251,7 +250,7 @@ public final class Vector implements Serializable, Cloneable {
 	 * @param dst
 	 * @return
 	 */
-	public static final Vector mul(float a, Vector v, Vector dst) {
+	public static Vec3 mul(float a, Vec3 v, Vec3 dst) {
 		dst.set(a * v.x, a * v.y, a * v.z);
 		return dst;
 	}
@@ -263,7 +262,7 @@ public final class Vector implements Serializable, Cloneable {
 	 * @param dst
 	 * @return
 	 */
-	public static final Vector mul(Vector v, float a, Vector dst) {
+	public static Vec3 mul(Vec3 v, float a, Vec3 dst) {
 		dst.set(a * v.x, a * v.y, a * v.z);
 		return dst;
 	}
@@ -275,7 +274,7 @@ public final class Vector implements Serializable, Cloneable {
 	 * @param dst
 	 * @return
 	 */
-	public static final Vector mul(Matrix m, Vector v, Vector dst) {
+	public static Vec3 mul(Mat3 m, Vec3 v, Vec3 dst) {
 		dst.set(m.m00 * v.x + m.m01 * v.y + m.m02 * v.z, m.m10 * v.x + m.m11
 				* v.y + m.m12 * v.z, m.m20 * v.x + m.m21 * v.y + m.m22 * v.z);
 		return dst;
@@ -288,7 +287,7 @@ public final class Vector implements Serializable, Cloneable {
 	 * @param dst
 	 * @return
 	 */
-	public static final Vector mul(Vector v, Matrix m, Vector dst) {
+	public static Vec3 mul(Vec3 v, Mat3 m, Vec3 dst) {
 		dst.set(m.m00 * v.x + m.m10 * v.y + m.m20 * v.z, m.m01 * v.x + m.m11
 				* v.y + m.m21 * v.z, m.m02 * v.x + m.m12 * v.y + m.m22 * v.z);
 		return dst;
@@ -301,7 +300,7 @@ public final class Vector implements Serializable, Cloneable {
 	 * @param dst
 	 * @return
 	 */
-	public static final Vector cross(Vector v1, Vector v2, Vector dst) {
+	public static Vec3 cross(Vec3 v1, Vec3 v2, Vec3 dst) {
 		return dst.set(v1.y * v2.z - v1.z * v2.y, v1.z * v2.x - v1.x * v2.z,
 				v1.x * v2.y - v1.y * v2.x);
 	}
@@ -310,7 +309,7 @@ public final class Vector implements Serializable, Cloneable {
 	 * 
 	 * @return
 	 */
-	public final Vector negate() {
+	public Vec3 negate() {
 		x = -x;
 		y = -y;
 		z = -z;
@@ -323,7 +322,7 @@ public final class Vector implements Serializable, Cloneable {
 	 * @param v2
 	 * @return
 	 */
-	public static final float dot(Vector v1, Vector v2) {
+	public static float dot(Vec3 v1, Vec3 v2) {
 		return (v1.x * v2.x + v1.y * v2.y + v1.z * v2.z);
 	}
 
@@ -333,7 +332,7 @@ public final class Vector implements Serializable, Cloneable {
 	 * @param v2
 	 * @return
 	 */
-	public static final float distance(Vector v1, Vector v2) {
+	public static float distance(Vec3 v1, Vec3 v2) {
 		float dx = v1.x - v2.x, dy = v1.y - v2.y, dz = v1.z - v2.z;
 		return (float) Math.sqrt(dx * dx + dy * dy + dz * dz);
 	}
@@ -344,7 +343,7 @@ public final class Vector implements Serializable, Cloneable {
 	 * @param v2
 	 * @return
 	 */
-	public static final float distanceSqr(Vector v1, Vector v2) {
+	public static float distanceSqr(Vec3 v1, Vec3 v2) {
 		float dx = v1.x - v2.x, dy = v1.y - v2.y, dz = v1.z - v2.z;
 		return (dx * dx + dy * dy + dz * dz);
 	}
@@ -356,7 +355,7 @@ public final class Vector implements Serializable, Cloneable {
 	 * @param v3
 	 * @return
 	 */
-	public static final float mixproduction(Vector v1, Vector v2, Vector v3) {
+	public static float mixproduction(Vec3 v1, Vec3 v2, Vec3 v3) {
 		return ((v1.y * v2.z - v1.z * v2.y) * v3.x
 				+ (v1.z * v2.x - v1.x * v2.z) * v3.y + (v1.x * v2.y - v1.y
 				* v2.x)
@@ -366,7 +365,7 @@ public final class Vector implements Serializable, Cloneable {
 	/**
 	 * 
 	 */
-	public final String toString() {
+	public String toString() {
 		return "x = " + x + ", y = " + y + ", z = " + z;
 	}
 }

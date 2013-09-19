@@ -1,28 +1,28 @@
 package prime.physics;
 
-import prime.math.Vector;
+import prime.math.Vec3;
 
 /**
  * 
  * @author lizhaoliu
  *
  */
-public final class PhongModel extends BSDF {
+public class PhongModel extends BSDF {
     private float exponent = 20;
 
-    public final void setSpecularExponent(float exponent) {
+    public void setSpecularExponent(float exponent) {
 	this.exponent = exponent;
     }
 
     @Override
-    public final void brdf(Vector origin, Vector normal, Vector inDir,
-	    Vector outDir, Spectrum dest) {
+    public void brdf(Vec3 origin, Vec3 normal, Vec3 inDir,
+	    Vec3 outDir, Spectrum dest) {
 	// TODO Auto-generated method stub
     }
 
     @Override
-    public final float samplingReflectionDirection(Vector origin,
-	    Vector normal, Vector inDir, Vector dest) {
+    public float samplingReflectionDirection(Vec3 origin,
+	    Vec3 normal, Vec3 inDir, Vec3 dest) {
 	// TODO Auto-generated method stub
 	float zx = inDir.x, zy = inDir.y, zz = inDir.z;
 	float xx = zy, xy = -zx, xz = 0;
@@ -42,15 +42,15 @@ public final class PhongModel extends BSDF {
     }
 
     @Override
-    public final float samplingTransmissionDirection(Vector origin,
-	    Vector normal, Vector inDir, Vector dest) {
+    public float samplingTransmissionDirection(Vec3 origin,
+	    Vec3 normal, Vec3 inDir, Vec3 dest) {
 	// TODO Auto-generated method stub
 	return 0;
     }
 
     @Override
-    public final void btdf(Vector origin, Vector normal, Vector inDir,
-	    Vector outDir, Spectrum dest) {
+    public void btdf(Vec3 origin, Vec3 normal, Vec3 inDir,
+	    Vec3 outDir, Spectrum dest) {
 	// TODO Auto-generated method stub
 
     }

@@ -13,7 +13,7 @@ import prime.physics.Ray;
  * @author lizhaoliu
  *
  */
-public final class NaiveStructure extends SpatialStructure {
+public class NaiveStructure extends SpatialStructure {
     public NaiveStructure(BoundingBox box) {
 	super(box);
     }

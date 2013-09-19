@@ -7,7 +7,7 @@ import java.io.Serializable;
  * 
  * @author lizhaoliu
  */
-public final class Matrix implements Serializable {
+public class Mat3 implements Serializable {
 	private static final long serialVersionUID = 7865171386308719777L;
 
 	/**
@@ -18,7 +18,7 @@ public final class Matrix implements Serializable {
 	/**
      * 
      */
-	public Matrix() {
+	public Mat3() {
 		m00 = 1;
 		m11 = 1;
 		m22 = 1;
@@ -36,7 +36,7 @@ public final class Matrix implements Serializable {
 	 * @param t21
 	 * @param t22
 	 */
-	public Matrix(float t00, float t01, float t02, float t10, float t11,
+	public Mat3(float t00, float t01, float t02, float t10, float t11,
 			float t12, float t20, float t21, float t22) {
 		m00 = t00;
 		m01 = t01;
@@ -53,7 +53,7 @@ public final class Matrix implements Serializable {
 	 * 
 	 * @param mat
 	 */
-	public Matrix(Matrix mat) {
+	public Mat3(Mat3 mat) {
 		m00 = mat.m00;
 		m00 = mat.m01;
 		m02 = mat.m02;
@@ -70,7 +70,7 @@ public final class Matrix implements Serializable {
 	 * @param m
 	 * @return
 	 */
-	public final Matrix set(float[] m) {
+	public Mat3 set(float[] m) {
 		m00 = m[0];
 		m01 = m[1];
 		m02 = m[2];
@@ -88,7 +88,7 @@ public final class Matrix implements Serializable {
 	 * @param mat
 	 * @return
 	 */
-	public final Matrix set(Matrix mat) {
+	public Mat3 set(Mat3 mat) {
 		m00 = mat.m00;
 		m01 = mat.m01;
 		m02 = mat.m02;
@@ -114,7 +114,7 @@ public final class Matrix implements Serializable {
 	 * @param t22
 	 * @return
 	 */
-	public final Matrix set(float t00, float t01, float t02, float t10,
+	public Mat3 set(float t00, float t01, float t02, float t10,
 			float t11, float t12, float t20, float t21, float t22) {
 		m00 = t00;
 		m01 = t01;
@@ -135,8 +135,8 @@ public final class Matrix implements Serializable {
 	 * @param dst
 	 * @return
 	 */
-	public static final Matrix multiply(Matrix matLeft, Matrix matRight,
-			Matrix dst) {
+	public static Mat3 multiply(Mat3 matLeft, Mat3 matRight,
+			Mat3 dst) {
 		dst.set(matLeft.m00 * matRight.m00 + matLeft.m01 * matRight.m10
 				+ matLeft.m02 * matRight.m20, matLeft.m00 * matRight.m01
 				+ matLeft.m01 * matRight.m11 + matLeft.m02 * matRight.m21,
@@ -161,22 +161,8 @@ public final class Matrix implements Serializable {
 	 * 
 	 * @return
 	 */
-	public final Matrix transpose() {
+	public Mat3 transpose() {
 		return set(m00, m10, m20, m01, m11, m21, m02, m12, m22);
-		// float
-		// t00 = m00,
-		// t01 = m01,
-		// t02 = m02,
-		// t10 = m10,
-		// t11 = m11,
-		// t12 = m12,
-		// t20 = m20,
-		// t21 = m21,
-		// t22 = m22;
-		// m00 = t00; m01 = t10; m02 = t20;
-		// m10 = t01; m11 = t11; m12 = t21;
-		// m20 = t02; m21 = t12; m22 = t22;
-		// return this;
 	}
 
 	/**
@@ -185,8 +171,9 @@ public final class Matrix implements Serializable {
 	 * @param dest
 	 * @return
 	 */
-	public static final Matrix transpose(Matrix m, Matrix dest) {
-		return dest.set(m.m00, m.m10, m.m20, m.m01, m.m11, m.m21, m.m02, m.m12,
-				m.m22);
+	public static Mat3 transpose(Mat3 m, Mat3 dest) {
+		return dest.set(m.m00, m.m10, m.m20, 
+				m.m01, m.m11, m.m21, 
+				m.m02, m.m12, m.m22);
 	}
 }

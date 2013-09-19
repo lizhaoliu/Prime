@@ -1,6 +1,6 @@
 package prime.physics;
 
-import prime.math.Vector;
+import prime.math.Vec3;
 
 /**
  * Bidirectional Scattering Distribution Function (BSDF) which describes a physical surface
@@ -19,63 +19,63 @@ public abstract class BSDF {
     public static final float INV_PI = (float) (1.0f / Math.PI);
     public static final float INV_2PI = (float) (1.0f / (2 * Math.PI));
 
-    public final void setEmittance(Spectrum emittance) {
+    public void setEmittance(Spectrum emittance) {
 	this.emittance.set(emittance);
     }
 
-    public final Spectrum getEmittance() {
+    public Spectrum getEmittance() {
 	return emittance;
     }
 
-    public final void setReflectance(Spectrum reflectance) {
+    public void setReflectance(Spectrum reflectance) {
 	this.reflectance.set(reflectance);
     }
 
-    public final Spectrum getReflectance() {
+    public Spectrum getReflectance() {
 	return reflectance;
     }
 
-    public final void setTransmission(Spectrum transmission) {
+    public void setTransmission(Spectrum transmission) {
 	this.transmission.set(transmission);
     }
 
-    public final Spectrum getTransmission() {
+    public Spectrum getTransmission() {
 	return transmission;
     }
 
-    public final void setAbsorption(Spectrum absorption) {
+    public void setAbsorption(Spectrum absorption) {
 	this.absorption.set(absorption);
     }
 
-    public final Spectrum getAbsorption() {
+    public Spectrum getAbsorption() {
 	return absorption;
     }
 
-    public final void setRefractiveIndex(float refractiveIndex) {
+    public void setRefractiveIndex(float refractiveIndex) {
 	this.refractiveIndex = refractiveIndex;
     }
 
-    public final float getRefractiveIndex() {
+    public float getRefractiveIndex() {
 	return refractiveIndex;
     }
 
-    public final void setIsLight(boolean isLight) {
+    public void setIsLight(boolean isLight) {
 	this.isLight = isLight;
     }
 
-    public final boolean isLight() {
+    public boolean isLight() {
 	return isLight;
     }
 
-    public final void setName(String name) {
+    public void setName(String name) {
 	this.name = name.toString();
     }
 
-    public final String getName() {
+    public String getName() {
 	return name;
     }
 
-    public final String toString() {
+    public String toString() {
 	return name;
     }
 
@@ -86,8 +86,8 @@ public abstract class BSDF {
      * @param dir
      * @return
      */
-    protected final float sinTheta(Vector normal, Vector dir) {
-	float cos = Vector.dot(normal, dir);
+    protected float sinTheta(Vec3 normal, Vec3 dir) {
+	float cos = Vec3.dot(normal, dir);
 	return (float) (Math.sqrt(1 - cos * cos));
     }
 
@@ -98,8 +98,8 @@ public abstract class BSDF {
      * @param dir
      * @return
      */
-    protected final float cosThetaAbsoluteValue(Vector normal, Vector dir) {
-	return (float) (Math.abs(Vector.dot(normal, dir)));
+    protected float cosThetaAbsoluteValue(Vec3 normal, Vec3 dir) {
+	return (float) (Math.abs(Vec3.dot(normal, dir)));
     }
 
     /**
@@ -111,8 +111,8 @@ public abstract class BSDF {
      * @param outDir
      * @param dest
      */
-    public abstract void brdf(Vector origin, Vector normal, Vector inDir,
-	    Vector outDir, Spectrum dest);
+    public abstract void brdf(Vec3 origin, Vec3 normal, Vec3 inDir,
+	    Vec3 outDir, Spectrum dest);
 
     /**
      * 
@@ -122,8 +122,8 @@ public abstract class BSDF {
      * @param outDir
      * @param dest
      */
-    public abstract void btdf(Vector origin, Vector normal, Vector inDir,
-	    Vector outDir, Spectrum dest);
+    public abstract void btdf(Vec3 origin, Vec3 normal, Vec3 inDir,
+	    Vec3 outDir, Spectrum dest);
 
     /**
      * importance sampling reflection direction according to BSDF
@@ -134,8 +134,8 @@ public abstract class BSDF {
      * @param dest
      * @return the probability of sampling direction
      */
-    public abstract float samplingReflectionDirection(Vector origin,
-	    Vector normal, Vector inDir, Vector dest);
+    public abstract float samplingReflectionDirection(Vec3 origin,
+	    Vec3 normal, Vec3 inDir, Vec3 dest);
 
     /**
      * importance sampling transmission direction according to BSDF
@@ -146,6 +146,6 @@ public abstract class BSDF {
      * @param dest
      * @return the probability of sampling direction
      */
-    public abstract float samplingTransmissionDirection(Vector origin,
-	    Vector normal, Vector inDir, Vector dest);
+    public abstract float samplingTransmissionDirection(Vec3 origin,
+	    Vec3 normal, Vec3 inDir, Vec3 dest);
 }

@@ -2,12 +2,12 @@ package prime.math;
 
 
 /**
- * The gaussian filter
+ * The Gaussian filter
  * 
- * @author Alan Liu
+ * @author lizhaoliu
  * 
  */
-public final class GaussianFilter implements Filter {
+public class GaussianFilter implements Filter {
 	private float alpha = 0.918f, beta = 1.953f;
 	private float coefficient = 1f / (float) (1 - Math.exp(-beta));
 
@@ -15,7 +15,7 @@ public final class GaussianFilter implements Filter {
 	}
 
 	@Override
-	public final float filter(float d, float r) {
+	public float filter(float d, float r) {
 		return (float) (alpha * (1 - ((1 - Math.exp(-beta * d * d / (2 * r * r)))) * coefficient));
 	}
 

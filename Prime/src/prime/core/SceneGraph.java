@@ -5,8 +5,8 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
-import prime.math.MathTools;
-import prime.math.Vector;
+import prime.math.MathUtils;
+import prime.math.Vec3;
 import prime.model.BoundingBox;
 import prime.model.RayIntersectionInfo;
 import prime.model.Triangle;
@@ -21,7 +21,7 @@ import prime.spatial.KdTree;
  * 
  * @author lizhaoliu
  */
-public final class SceneGraph implements Serializable, Iterable<TriangleMesh> {
+public class SceneGraph implements Serializable, Iterable<TriangleMesh> {
 	private static final long serialVersionUID = 4945947837143837173L;
 
 	private List<TriangleMesh> meshList = new ArrayList<TriangleMesh>();
@@ -34,7 +34,7 @@ public final class SceneGraph implements Serializable, Iterable<TriangleMesh> {
 
 	private Sky sky = new Sky();
 
-	public final void addMesh(TriangleMesh c) {
+	public void addMesh(TriangleMesh c) {
 		meshList.add(c);
 	}
 
@@ -44,51 +44,51 @@ public final class SceneGraph implements Serializable, Iterable<TriangleMesh> {
 	 * @param i
 	 * @return
 	 */
-	public final TriangleMesh getMesh(int i) {
+	public TriangleMesh getMesh(int i) {
 		return meshList.get(i);
 	}
 
-	public final TriangleMesh getLight(int index) {
+	public TriangleMesh getLight(int index) {
 		return meshLightList.get(index);
 	}
 
-	public final void clearScene() {
+	public void clearScene() {
 		meshList.clear();
 		meshLightList.clear();
 	}
 
-	public final void removeMesh(TriangleMesh c) {
+	public void removeMesh(TriangleMesh c) {
 		meshList.remove(c);
 		if (c.getBSDF().isLight()) {
 			meshLightList.remove(c);
 		}
 	}
 
-	public final int getMeshNum() {
+	public int getMeshNum() {
 		return meshList.size();
 	}
 
-	public final int getLightNum() {
+	public int getLightNum() {
 		return meshLightList.size();
 	}
 
-	public final void setMaxBSPDivisionDepth(int bspDepth) {
+	public void setMaxBSPDivisionDepth(int bspDepth) {
 		this.bspDepth = bspDepth;
 	}
 
-	public final int getMaxBSPDivisionDepth() {
+	public int getMaxBSPDivisionDepth() {
 		return bspDepth;
 	}
 
-	public final void setMaxTrianglesPerBSPNode(int maxTrianglePerNode) {
+	public void setMaxTrianglesPerBSPNode(int maxTrianglePerNode) {
 		this.maxTrianglesPerNode = maxTrianglePerNode;
 	}
 
-	public final int getMaxTrianglesPerBSPNode() {
+	public int getMaxTrianglesPerBSPNode() {
 		return maxTrianglesPerNode;
 	}
 
-	private final void genLightList() {
+	private void genLightList() {
 		meshLightList.clear();
 		for (TriangleMesh t : meshList) {
 			if (t.getBSDF().isLight()) {
@@ -97,21 +97,21 @@ public final class SceneGraph implements Serializable, Iterable<TriangleMesh> {
 		}
 	}
 
-	boolean isVisible(Vector p0, Vector p1) {
+	boolean isVisible(Vec3 p0, Vec3 p1) {
 		Ray ray = new Ray();
 		ray.setLengthToMax();
-		Vector d = new Vector();
-		Vector.sub(p1, p0, d);
+		Vec3 d = new Vec3();
+		Vec3.sub(p1, p0, d);
 		d.normalize();
 		ray.setDirection(d);
-		ray.setOrigin(p0.x + d.x * MathTools.EPSILON, p0.y + d.y
-				* MathTools.EPSILON, p0.z + d.z * MathTools.EPSILON);
+		ray.setOrigin(p0.x + d.x * MathUtils.EPSILON, p0.y + d.y
+				* MathUtils.EPSILON, p0.z + d.z * MathUtils.EPSILON);
 		RayIntersectionInfo ir = new RayIntersectionInfo();
 		bSPTree.intersect(ray, ir);
 		return ir.isIntersected();
 	}
 
-	public final int getTrianglesNum() {
+	public int getTrianglesNum() {
 		return triangleList.size();
 	}
 
@@ -119,7 +119,7 @@ public final class SceneGraph implements Serializable, Iterable<TriangleMesh> {
 	 * 
 	 * @return
 	 */
-	public final Sky getSky() {
+	public Sky getSky() {
 		return sky;
 	}
 
@@ -128,11 +128,11 @@ public final class SceneGraph implements Serializable, Iterable<TriangleMesh> {
 	 * @param ray
 	 * @param dest
 	 */
-	public final void intersect(Ray ray, RayIntersectionInfo dest) {
+	public void intersect(Ray ray, RayIntersectionInfo dest) {
 		bSPTree.intersect(ray, dest);
 	}
 
-	public final void finish() {
+	public void finish() {
 		genLightList();
 
 		triangleList.clear();

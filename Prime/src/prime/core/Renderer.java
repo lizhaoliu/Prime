@@ -1,8 +1,8 @@
 package prime.core;
 
 import prime.math.Filter;
-import prime.math.MathTools;
-import prime.math.Vector;
+import prime.math.MathUtils;
+import prime.math.Vec3;
 import prime.model.RayIntersectionInfo;
 import prime.model.Triangle;
 import prime.model.TriangleMesh;
@@ -29,19 +29,19 @@ public abstract class Renderer {
 		this.sceneGraph = sceneGraph;
 	}
 
-	public final void setCamera(Camera camera) {
+	public void setCamera(Camera camera) {
 		this.camera = camera;
 	}
 
-	public final void setBackgroundColor(Spectrum backgroundColor) {
+	public void setBackgroundColor(Spectrum backgroundColor) {
 		this.backgroundSpectrum = backgroundColor;
 	}
 
-	public final void setBouncingDepth(int maxDepth) {
+	public void setBouncingDepth(int maxDepth) {
 		this.maxDepth = maxDepth;
 	}
 
-	public final void setSceneGraph(SceneGraph sceneGraph) {
+	public void setSceneGraph(SceneGraph sceneGraph) {
 		this.sceneGraph = sceneGraph;
 	}
 
@@ -53,11 +53,11 @@ public abstract class Renderer {
 	 * @param bsdf
 	 * @param destColor
 	 */
-	protected final void directIllumination(Ray srcRay, Vector hitPoint,
-			Vector normal, BSDF bsdf, Spectrum destColor) {
+	protected void directIllumination(Ray srcRay, Vec3 hitPoint,
+			Vec3 normal, BSDF bsdf, Spectrum destColor) {
 		RayIntersectionInfo ir = new RayIntersectionInfo();
 		Ray newRay = new Ray();
-		Vector newDir = new Vector();
+		Vec3 newDir = new Vec3();
 		newRay.getDirection(newDir);
 		Spectrum spectrum = newRay.getSpectrum();
 
@@ -70,27 +70,27 @@ public abstract class Renderer {
 			meshLight.randomPoint(newDir);
 			newDir.sub(hitPoint);
 			newDir.normalize();
-			newRay.setOrigin(hitPoint.x + MathTools.EPSILON * newDir.x,
-					hitPoint.y + MathTools.EPSILON * newDir.y, hitPoint.z
-							+ MathTools.EPSILON * newDir.z); //
+			newRay.setOrigin(hitPoint.x + MathUtils.EPSILON * newDir.x,
+					hitPoint.y + MathUtils.EPSILON * newDir.y, hitPoint.z
+							+ MathUtils.EPSILON * newDir.z); //
 			newRay.setLengthToMax();
 			sceneGraph.intersect(newRay, ir);
 			triangleLight = ir.getTriangle();
-			float cos = Vector.dot(newDir, normal);
+			float cos = Vec3.dot(newDir, normal);
 			if (ir.isIntersected()
 					&& triangleLight.getTriangleMesh() == meshLight && cos > 0) {
 				float u = ir.getU(), v = ir.getV();
-				Vector normalLight = new Vector();
+				Vec3 normalLight = new Vec3();
 				triangleLight.interpolateNormal(u, v, normalLight);
 
 				spectrum.set(meshLight.getBSDF().getEmittance());
 				spectrum.multiply(cos
-						* Math.abs(Vector.dot(newDir, normalLight)) * nLights);// *
+						* Math.abs(Vec3.dot(newDir, normalLight)) * nLights);// *
 																				// meshLight.getArea());
 				spectrum.blend(bsdf.getReflectance());
 
 				Spectrum tmp = new Spectrum();
-				Vector srcDir = new Vector();
+				Vec3 srcDir = new Vec3();
 				srcRay.getDirection(srcDir);
 				bsdf.brdf(hitPoint, normal, srcDir, newDir, tmp);
 				spectrum.blend(tmp);

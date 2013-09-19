@@ -8,7 +8,7 @@ package prime.math;
  * @author lizhaoliu
  *
  */
-public final class Tuple3 {
+public class Tuple3 {
     public int i0, i1, i2;
     
     /**

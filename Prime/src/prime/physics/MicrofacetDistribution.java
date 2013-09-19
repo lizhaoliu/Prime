@@ -1,7 +1,7 @@
 package prime.physics;
 
-import prime.math.Vector;
+import prime.math.Vec3;
 
 public abstract class MicrofacetDistribution {
-    public abstract float d(Vector normal, Vector inDir, Vector outDir);
+    public abstract float d(Vec3 normal, Vec3 inDir, Vec3 outDir);
 }

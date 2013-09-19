@@ -1,8 +1,8 @@
 package prime.core;
 
 //import org.llz.rt.photonmap.Photon;
-import prime.math.MathTools;
-import prime.math.Vector;
+import prime.math.MathUtils;
+import prime.math.Vec3;
 import prime.model.RayIntersectionInfo;
 import prime.model.Triangle;
 import prime.physics.BSDF;
@@ -14,13 +14,13 @@ import prime.physics.Spectrum;
  * @author lizhaoliu
  *
  */
-public final class PathTracer extends Renderer {
+public class PathTracer extends Renderer {
 	// private Photon photon;
 
-	public final void prepareForRendering() {
+	public void prepareForRendering() {
 	}
 
-	public final void render(Ray srcRay) {
+	public void render(Ray srcRay) {
 		// tracePhoton(1);
 		tracePath(srcRay, 1);
 	}
@@ -30,7 +30,7 @@ public final class PathTracer extends Renderer {
 	 * @param srcRay
 	 * @param depth
 	 */
-	private final void tracePath(Ray srcRay, int depth) {
+	private void tracePath(Ray srcRay, int depth) {
 		Spectrum destSpectrum = srcRay.getSpectrum();
 		// �󽻲���
 		srcRay.setLengthToMax();
@@ -52,13 +52,13 @@ public final class PathTracer extends Renderer {
 
 		// �����ֵ
 		Ray newRay = new Ray();
-		Vector newDir = new Vector();
+		Vec3 newDir = new Vec3();
 		newRay.getDirection(newDir);
 		float u = intResult.getU(), v = intResult.getV();
-		Vector hitPoint = new Vector(), normal = new Vector();// , texCoord =
+		Vec3 hitPoint = new Vec3(), normal = new Vec3();// , texCoord =
 		// new
 		// Vector3();
-		Vector srcDir = new Vector();
+		Vec3 srcDir = new Vec3();
 		srcRay.getDirection(srcDir);
 		intTriangle.interpolateVertex(u, v, hitPoint);
 		intTriangle.interpolateNormal(u, v, normal);
@@ -105,9 +105,9 @@ public final class PathTracer extends Renderer {
 			// directIllumination(srcRay, hitPoint, normal, bsdf, destSpectrum);
 			return;
 		}
-		factor *= (float) (Math.abs(Vector.dot(normal, newDir)));
-		newRay.setOrigin(hitPoint.x + MathTools.EPSILON * newDir.x, hitPoint.y
-				+ MathTools.EPSILON * newDir.y, hitPoint.z + MathTools.EPSILON
+		factor *= (float) (Math.abs(Vec3.dot(normal, newDir)));
+		newRay.setOrigin(hitPoint.x + MathUtils.EPSILON * newDir.x, hitPoint.y
+				+ MathUtils.EPSILON * newDir.y, hitPoint.z + MathUtils.EPSILON
 				* newDir.z);
 		newRay.setDirection(newDir);
 		newRay.setLengthToMax();
@@ -125,7 +125,7 @@ public final class PathTracer extends Renderer {
 	 * @param ray
 	 * @param depth
 	 */
-	// private final void tracePhoton(int depth)
+	// private void tracePhoton(int depth)
 	// {
 	// int nLightMesh = sceneGraph.getLightNum();
 	// int i = (int)(Math.random() * nLightMesh);
@@ -220,7 +220,7 @@ public final class PathTracer extends Renderer {
 	// photon = new Photon(hitPoint, normal, dir, bsdf, srcSpectrum);
 	// }
 	//
-	// private final void connect(Vector3 hitPoint, Vector3 normal, BSDF bsdf,
+	// private void connect(Vector3 hitPoint, Vector3 normal, BSDF bsdf,
 	// Spectrum destSpectrum)
 	// {
 	// if (sceneGraph.isVisible(hitPoint, photon.location))
@@ -236,7 +236,8 @@ public final class PathTracer extends Renderer {
 	// }
 	// }
 	//
-	public final String toString() {
+	@Override
+	public String toString() {
 		return "Path Tracer";
 	}
 }
