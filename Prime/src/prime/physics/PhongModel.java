@@ -4,8 +4,6 @@ import prime.math.Vec3f;
 
 /**
  * 
- * @author lizhaoliu
- *
  */
 public class PhongModel extends Material {
     private float exponent = 20;

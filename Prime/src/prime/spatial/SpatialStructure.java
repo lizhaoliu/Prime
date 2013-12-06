@@ -3,14 +3,13 @@
  */
 package prime.spatial;
 
+import prime.core.Scene;
 import prime.model.BoundingBox;
 import prime.model.RayTriIntInfo;
 import prime.physics.Ray;
 
 /**
- * provides an interface for scene-ray intersection
- * @author lizhaoliu
- *
+ * 
  */
 public abstract class SpatialStructure {
 	protected BoundingBox box;
@@ -19,5 +18,11 @@ public abstract class SpatialStructure {
 		this.box = box;
 	}
 
+	/**
+	 * Perform {@link Ray} and {@link Scene} intersection test
+	 * 
+	 * @param ray
+	 * @param dst
+	 */
 	public abstract void intersect(Ray ray, RayTriIntInfo dst);
 }

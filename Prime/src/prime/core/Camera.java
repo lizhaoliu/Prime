@@ -18,8 +18,6 @@ import prime.physics.Color3f;
 
 /**
  * 
- * @author lizhaoliu
- *
  */
 public class Camera extends Observable implements Serializable,
 		Transformable, Drawable {
@@ -32,10 +30,10 @@ public class Camera extends Observable implements Serializable,
 	private float maxY;
 	private float dX; 
 	private float dY; 
-	private float zNear; //
-	private float zFar; //
-	private float lens; //
-	private LHCoordinateSystem coordSys; //
+	private float zNear; 
+	private float zFar; 
+	private float lens; 
+	private LHCoordinateSystem coordSys; 
 	private Scene sceneGraph; 
 	private Color3f backgroundColor; 
 	private Vec3f origin = new Vec3f(0f, 0f, 0f);

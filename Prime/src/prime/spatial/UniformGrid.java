@@ -10,8 +10,6 @@ import prime.physics.Ray;
 
 /**
  * 
- * @author lizhaoliu
- *
  */
 public class UniformGrid extends SpatialStructure {
     private int xDiv, yDiv, zDiv;

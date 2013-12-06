@@ -1,5 +1,7 @@
 package prime.math;
 
+import java.util.Random;
+
 /**
  * provides some common math operations
  * @author lizhaoliu
@@ -14,6 +16,8 @@ public final class MathUtils {
 	public static float PI_DOUBLE = 2.0f * (float) Math.PI;
 	public static float PI_INV = 1.0f / (float) Math.PI;
 	public static float PI_DOUBLE_INV = 1.0f / (float) (Math.PI * 2.0);
+	
+	private static final Random RANDOM = new Random(); 
 
 	/**
 	 * 
@@ -53,8 +57,8 @@ public final class MathUtils {
 		xy *= invLen;
 		float yx = xy * zz - xz * zy, yy = xz * zx - xx * zz, yz = xx * zy - xy
 				* zx;
-		double phy = 2 * Math.PI * Math.random();
-		float costh = (float) Math.pow(1 - Math.random(), 1.0 / (n + 1)), sinth = (float) Math
+		double phy = 2 * Math.PI * random();
+		float costh = (float) Math.pow(1 - random(), 1.0 / (n + 1)), sinth = (float) Math
 				.sqrt(1 - costh * costh), cosphy = (float) Math.cos(phy), sinphy = (float) Math
 				.sin(phy);
 		float sincos = sinth * cosphy, sinsin = sinth * sinphy;
@@ -97,7 +101,7 @@ public final class MathUtils {
 	 * @return
 	 */
 	public static float stratifiedRandom(int i, int n) {
-		return (float) (i + Math.random()) / n;
+		return (float) (i + random()) / n;
 	}
 
 	/**
@@ -157,28 +161,38 @@ public final class MathUtils {
 	 * @param normal
 	 * @param dest
 	 */
-	public static void randomDirectionInHemisphere(Vec3f normal,
-			Vec3f dest) {
-		randomDirectionInSphere(dest);
-		if (Vec3f.dot(normal, dest) < 0) {
-			dest.negate();
+	public static Vec3f randomDirectionInHemisphere(Vec3f normal) {
+		Vec3f ret = randomDirectionInSphere();
+		if (Vec3f.dot(normal, ret) < 0) {
+			ret.negate();
 		}
+		return ret;
+	}
+	
+	/**
+	 * 
+	 * @return
+	 */
+	public static float random() {
+		return RANDOM.nextFloat();
 	}
 
 	/**
 	 * 
 	 * @param dest
 	 */
-	public static void randomDirectionInSphere(Vec3f dest) {
-		// float phy = (float)(2 * Math.PI * Math.random());
-		// float costh = 1 - 2 * (float)Math.random(), sinth =
+	public static Vec3f randomDirectionInSphere() {
+		// float phy = (float)(2 * Math.PI * random());
+		// float costh = 1 - 2 * (float)random(), sinth =
 		// (float)Math.sqrt(1 - costh * costh), cosphy = (float)Math.cos(phy),
 		// sinphy = (float)Math.sin(phy);
 		// dest.set(sinth * cosphy, sinth * sinphy, costh);
-		float x = (float) (1 - 2 * Math.random()), y = (float) (1 - 2 * Math
-				.random()), z = (float) (1 - 2 * Math.random());
-		dest.set(x, y, z);
-		dest.normalize();
+		float x = (float) (1 - 2 * random()), y = (float) (1 - 2 * random()), z = (float) (1 - 2 * random());
+		Vec3f ret = new Vec3f((float) (1 - 2 * random()), 
+				(float) (1 - 2 * random()),
+				(float) (1 - 2 * random()));
+		ret.normalize();
+		return ret;
 	}
 
 	/**

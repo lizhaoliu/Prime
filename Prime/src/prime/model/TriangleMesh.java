@@ -11,9 +11,9 @@ import prime.core.Drawable;
 import prime.math.MathUtils;
 import prime.math.Vec3f;
 import prime.math.Vec3i;
+import prime.physics.Color3f;
 import prime.physics.Material;
 import prime.physics.Ray;
-import prime.physics.Color3f;
 
 import com.google.common.collect.Lists;
 
@@ -302,7 +302,7 @@ public class TriangleMesh implements Drawable, Serializable {
 	 * @return
 	 */
 	public Vec3f randomPoint(Vec3f dst) {
-		int base = (int) (Math.random() * nTriangles);
+		int base = (int) (MathUtils.random() * nTriangles);
 		Triangle.getRandomPoint(getVertex(base, 0), getVertex(base, 1),
 				getVertex(base, 2), dst);
 		return dst;
@@ -314,7 +314,7 @@ public class TriangleMesh implements Drawable, Serializable {
 	 * @return
 	 */
 	public Vec3f randomNormal(Vec3f dst) {
-		int base = (int) (Math.random() * nTriangles);
+		int base = (int) (MathUtils.random() * nTriangles);
 		Triangle.getRandomPoint(getNormal(base, 0), getNormal(base, 1),
 				getNormal(base, 2), dst);
 		return dst;
@@ -330,8 +330,7 @@ public class TriangleMesh implements Drawable, Serializable {
 		dst.setOrigin(origin);
 		Vec3f n = new Vec3f();
 		randomNormal(n);
-		Vec3f normal = new Vec3f();
-		MathUtils.randomDirectionInHemisphere(n, normal);
+		Vec3f normal = MathUtils.randomDirectionInHemisphere(n);
 		dst.setDirection(normal);
 		dst.setLength(Float.MAX_VALUE);
 		dst.setSpectrum(material.getEmittance());

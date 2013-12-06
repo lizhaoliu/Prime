@@ -41,9 +41,9 @@ public class PathTracer extends Renderer {
 		}
 
 		Triangle intTriangle = intRes.getTriangle();
-		Material bsdf = intTriangle.getMaterial();
-		if (bsdf.isLight()) {
-			dstSpectrum.add(bsdf.getEmittance());
+		Material material = intTriangle.getMaterial();
+		if (material.isLight()) {
+			dstSpectrum.add(material.getEmittance());
 			return;
 		}
 
@@ -61,16 +61,16 @@ public class PathTracer extends Renderer {
 		if (depth >= maxDepth)	//
 		{
 			// connect(hitPoint, normal, bsdf, destSpectrum);
-			 directIllumination(srcRay, hitPoint, normal, bsdf, dstSpectrum);
+			 directIllumination(srcRay, hitPoint, normal, material, dstSpectrum);
 			return;
 		}
 
 		Color3f reflectance, transmission, absorption;
 		float refAvg, transAvg, abspAvg;
 
-		reflectance = bsdf.getReflectance();
-		transmission = bsdf.getTransmission();
-		absorption = bsdf.getAbsorption();
+		reflectance = material.getReflectance();
+		transmission = material.getTransmission();
+		absorption = material.getAbsorption();
 
 		refAvg = reflectance.average();
 		transAvg = transmission.average();
@@ -79,19 +79,19 @@ public class PathTracer extends Renderer {
 		Color3f resSpectrum = newRay.getSpectrum();
 		Color3f tmpSpectrum = new Color3f();
 
-		directIllumination(srcRay, hitPoint, normal, bsdf, dstSpectrum);
+		directIllumination(srcRay, hitPoint, normal, material, dstSpectrum);
 
 		//
 		float roulette = (float) (Math.random() * (refAvg + transAvg + abspAvg));
 		float factor;
 		if (roulette < refAvg) // reflection
 		{
-			factor = 1.0f / bsdf.samplingReflectionDirection(hitPoint, normal,
+			factor = 1.0f / material.samplingReflectionDirection(hitPoint, normal,
 					srcDir, newDir);
 			factor /= refAvg;
 		} else if (roulette >= refAvg && roulette < (refAvg + transAvg)) // transmit
 		{
-			factor = 1.0f / bsdf.samplingTransmissionDirection(hitPoint,
+			factor = 1.0f / material.samplingTransmissionDirection(hitPoint,
 					normal, srcDir, newDir);
 			factor /= transAvg;
 		} else {
@@ -108,7 +108,7 @@ public class PathTracer extends Renderer {
 		newRay.setLengthToMax();
 		newRay.getSpectrum().zeroAll();
 		render(newRay, depth + 1);
-		bsdf.brdf(hitPoint, normal, srcDir, newDir, tmpSpectrum);
+		material.brdf(hitPoint, normal, srcDir, newDir, tmpSpectrum);
 		resSpectrum.blend(tmpSpectrum);
 		resSpectrum.multiply(factor);
 		dstSpectrum.add(resSpectrum);

@@ -213,11 +213,11 @@ public class LHCoordinateSystem implements Drawable, Transformable,
 				.cos(angle), sint = (float) Math.sin(angle), xsint = axis.x
 				* sint, ysint = axis.y * sint, zsint = axis.z * sint, cost1 = 1 - cost, cost1xy = cost1
 				* xy, cost1yz = cost1 * yz, cost1xz = cost1 * xz;
-		Mat3 buf = new Mat3(
+		Mat3 rot = new Mat3(
 				(1 - x2) * cost + x2, cost1xy + zsint, cost1xz - ysint, 
 				cost1xy - zsint, (1 - y2) * cost + y2, cost1yz + xsint,
 				cost1xz + ysint, cost1yz - xsint, (1 - z2) * cost + z2);
-		parentToThisMat = Mat3.multiply(parentToThisMat, buf);
+		parentToThisMat = Mat3.multiply(parentToThisMat, rot);
 	}
 
 	/**
