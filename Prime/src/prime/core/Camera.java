@@ -456,7 +456,7 @@ public class Camera extends Observable implements Serializable,
 
 		public void run() {
 			Ray ray = new Ray();
-			Color3f rayColor = ray.getSpectrum();
+			Color3f rayColor = ray.getColor();
 			Vec3f d = ray.getDirection();
 			Vec3f c = ray.getOrigin();
 			Vec3f buf = new Vec3f();

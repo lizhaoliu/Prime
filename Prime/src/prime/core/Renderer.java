@@ -56,7 +56,7 @@ public abstract class Renderer {
 		RayTriIntInfo ir = new RayTriIntInfo();
 		Ray newRay = new Ray();
 		Vec3f newDir = newRay.getDirection();
-		Color3f spectrum = newRay.getSpectrum();
+		Color3f spectrum = newRay.getColor();
 
 		//
 		TriangleMesh meshLight;

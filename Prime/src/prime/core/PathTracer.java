@@ -29,7 +29,7 @@ public class PathTracer extends Renderer {
 	 * @param depth
 	 */
 	private void render(Ray srcRay, int depth) {
-		Color3f dstSpectrum = srcRay.getSpectrum();
+		Color3f dstSpectrum = srcRay.getColor();
 		//
 		srcRay.setLengthToMax();
 		RayTriIntInfo intRes = new RayTriIntInfo();
@@ -76,7 +76,7 @@ public class PathTracer extends Renderer {
 		transAvg = transmission.average();
 		abspAvg = absorption.average();
 
-		Color3f resSpectrum = newRay.getSpectrum();
+		Color3f resSpectrum = newRay.getColor();
 		Color3f tmpSpectrum = new Color3f();
 
 		directIllumination(srcRay, hitPoint, normal, material, dstSpectrum);
@@ -106,7 +106,7 @@ public class PathTracer extends Renderer {
 				hitPoint.z + MathUtils.EPSILON * newDir.z);
 		newRay.setDirection(newDir);
 		newRay.setLengthToMax();
-		newRay.getSpectrum().zeroAll();
+		newRay.getColor().zeroAll();
 		render(newRay, depth + 1);
 		material.brdf(hitPoint, normal, srcDir, newDir, tmpSpectrum);
 		resSpectrum.blend(tmpSpectrum);

@@ -14,7 +14,7 @@ public final class Ray implements Serializable {
 
 	private Vec3f origin = new Vec3f(); //
 	private Vec3f direction = new Vec3f(); //
-	private Color3f spectrum = new Color3f(); //
+	private Color3f color = new Color3f(); //
 	private float length = Float.MAX_VALUE; //
 	private float n = 1.0f; //
 
@@ -81,7 +81,7 @@ public final class Ray implements Serializable {
 	 * @param c
 	 */
 	public final void setSpectrum(Color3f c) {
-		spectrum.set(c);
+		color.set(c);
 	}
 
 	/**
@@ -128,8 +128,8 @@ public final class Ray implements Serializable {
 	 * 
 	 * @return
 	 */
-	public final Color3f getSpectrum() {
-		return spectrum;
+	public final Color3f getColor() {
+		return color;
 	}
 
 	public final String toString() {
