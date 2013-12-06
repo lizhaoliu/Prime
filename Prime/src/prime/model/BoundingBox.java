@@ -140,10 +140,8 @@ public class BoundingBox implements Drawable, Iterable<Triangle>,
 	 */
 	public boolean intersect(Ray ray) {
 		float tNear = Float.NEGATIVE_INFINITY, tFar = Float.POSITIVE_INFINITY, t1, t2;
-		Vec3 o = new Vec3();
-		ray.getOrigin(o);
-		Vec3 d = new Vec3();
-		ray.getDirection(d);
+		Vec3 o = ray.getOrigin();
+		Vec3 d = ray.getDirection();
 		for (int i = 0; i < 3; i++) {
 			t1 = (min.get(i) - o.get(i)) / d.get(i);
 			t2 = (max.get(i) - o.get(i)) / d.get(i);

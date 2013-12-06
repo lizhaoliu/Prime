@@ -100,8 +100,7 @@ public class SceneGraph implements Serializable, Iterable<TriangleMesh> {
 	boolean isVisible(Vec3 p0, Vec3 p1) {
 		Ray ray = new Ray();
 		ray.setLengthToMax();
-		Vec3 d = new Vec3();
-		Vec3.sub(p1, p0, d);
+		Vec3 d = Vec3.sub(p1, p0);
 		d.normalize();
 		ray.setDirection(d);
 		ray.setOrigin(p0.x + d.x * MathUtils.EPSILON, p0.y + d.y

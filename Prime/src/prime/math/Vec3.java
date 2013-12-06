@@ -189,8 +189,8 @@ public class Vec3 implements Serializable, Cloneable {
 	 * @param dst
 	 * @return
 	 */
-	public static Vec3 add(Vec3 v1, Vec3 v2, Vec3 dst) {
-		return dst.set(v1.x + v2.x, v1.y + v2.y, v1.z + v2.z);
+	public static Vec3 add(Vec3 v1, Vec3 v2) {
+		return new Vec3(v1.x + v2.x, v1.y + v2.y, v1.z + v2.z);
 	}
 
 	/**
@@ -226,9 +226,8 @@ public class Vec3 implements Serializable, Cloneable {
 	 * @param dst
 	 * @return
 	 */
-	public static Vec3 sub(Vec3 v1, Vec3 v2, Vec3 dst) {
-		dst.set(v1.x - v2.x, v1.y - v2.y, v1.z - v2.z);
-		return dst;
+	public static Vec3 sub(Vec3 v1, Vec3 v2) {
+		return new Vec3(v1.x - v2.x, v1.y - v2.y, v1.z - v2.z);
 	}
 
 	/**
@@ -250,9 +249,8 @@ public class Vec3 implements Serializable, Cloneable {
 	 * @param dst
 	 * @return
 	 */
-	public static Vec3 mul(float a, Vec3 v, Vec3 dst) {
-		dst.set(a * v.x, a * v.y, a * v.z);
-		return dst;
+	public static Vec3 mul(float a, Vec3 v) {
+		return new Vec3(a * v.x, a * v.y, a * v.z);
 	}
 
 	/**
@@ -262,9 +260,8 @@ public class Vec3 implements Serializable, Cloneable {
 	 * @param dst
 	 * @return
 	 */
-	public static Vec3 mul(Vec3 v, float a, Vec3 dst) {
-		dst.set(a * v.x, a * v.y, a * v.z);
-		return dst;
+	public static Vec3 mul(Vec3 v, float a) {
+		return new Vec3(a * v.x, a * v.y, a * v.z);
 	}
 
 	/**
@@ -274,10 +271,10 @@ public class Vec3 implements Serializable, Cloneable {
 	 * @param dst
 	 * @return
 	 */
-	public static Vec3 mul(Mat3 m, Vec3 v, Vec3 dst) {
-		dst.set(m.m00 * v.x + m.m01 * v.y + m.m02 * v.z, m.m10 * v.x + m.m11
-				* v.y + m.m12 * v.z, m.m20 * v.x + m.m21 * v.y + m.m22 * v.z);
-		return dst;
+	public static Vec3 mul(Mat3 m, Vec3 v) {
+		return new Vec3 (m.m00 * v.x + m.m01 * v.y + m.m02 * v.z, 
+				m.m10 * v.x + m.m11 * v.y + m.m12 * v.z, 
+				m.m20 * v.x + m.m21 * v.y + m.m22 * v.z);
 	}
 
 	/**
@@ -287,10 +284,9 @@ public class Vec3 implements Serializable, Cloneable {
 	 * @param dst
 	 * @return
 	 */
-	public static Vec3 mul(Vec3 v, Mat3 m, Vec3 dst) {
-		dst.set(m.m00 * v.x + m.m10 * v.y + m.m20 * v.z, m.m01 * v.x + m.m11
+	public static Vec3 mul(Vec3 v, Mat3 m) {
+		return new Vec3(m.m00 * v.x + m.m10 * v.y + m.m20 * v.z, m.m01 * v.x + m.m11
 				* v.y + m.m21 * v.z, m.m02 * v.x + m.m12 * v.y + m.m22 * v.z);
-		return dst;
 	}
 
 	/**
@@ -300,8 +296,8 @@ public class Vec3 implements Serializable, Cloneable {
 	 * @param dst
 	 * @return
 	 */
-	public static Vec3 cross(Vec3 v1, Vec3 v2, Vec3 dst) {
-		return dst.set(v1.y * v2.z - v1.z * v2.y, v1.z * v2.x - v1.x * v2.z,
+	public static Vec3 cross(Vec3 v1, Vec3 v2) {
+		return new Vec3(v1.y * v2.z - v1.z * v2.y, v1.z * v2.x - v1.x * v2.z,
 				v1.x * v2.y - v1.y * v2.x);
 	}
 
@@ -355,7 +351,7 @@ public class Vec3 implements Serializable, Cloneable {
 	 * @param v3
 	 * @return
 	 */
-	public static float mixproduction(Vec3 v1, Vec3 v2, Vec3 v3) {
+	public static float tripleProduct(Vec3 v1, Vec3 v2, Vec3 v3) {
 		return ((v1.y * v2.z - v1.z * v2.y) * v3.x
 				+ (v1.z * v2.x - v1.x * v2.z) * v3.y + (v1.x * v2.y - v1.y
 				* v2.x)

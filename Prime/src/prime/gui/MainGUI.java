@@ -1220,8 +1220,8 @@ public class MainGUI extends JFrame {
 	    for (int i = 0; i <= n; i++) {
 		v0.set(x, 0, beg);
 		v1.set(x, 0, end);
-		coSys.transPointToLocal(v0, v0);
-		coSys.transPointToLocal(v1, v1);
+		v0 = coSys.transPointToLocal(v0);
+		v1 = coSys.transPointToLocal(v1);
 		gl.glVertex3f(v0.x, v0.y, v0.z);
 		gl.glVertex3f(v1.x, v1.y, v1.z);
 		x += d;
@@ -1230,8 +1230,8 @@ public class MainGUI extends JFrame {
 	    for (int i = 0; i <= n; i++) {
 		v0.set(beg, 0, z);
 		v1.set(end, 0, z);
-		coSys.transPointToLocal(v0, v0);
-		coSys.transPointToLocal(v1, v1);
+		v0 = coSys.transPointToLocal(v0);
+		v1 = coSys.transPointToLocal(v1);
 		gl.glVertex3f(v0.x, v0.y, v0.z);
 		gl.glVertex3f(v1.x, v1.y, v1.z);
 		z += d;
@@ -1316,7 +1316,7 @@ public class MainGUI extends JFrame {
 	    cam.getLocalPointFromViewport(oldX, oldY, v1);
 	    v2.z = cam.getZNear();
 	    v1.z = cam.getZNear();
-	    Vec3.sub(v1, v2, dv);
+	    dv = Vec3.sub(v1, v2);
 	    dv.normalize();
 	    switch (button) {
 	    case MouseEvent.BUTTON1:
@@ -1397,7 +1397,7 @@ public class MainGUI extends JFrame {
 		v1.normalize();
 		v2.normalize();
 		float angle = (float) (3 * Math.acos(Vec3.dot(v1, v2)) * 180 / Math.PI);
-		Vec3.cross(v1, v2, n);
+		n = Vec3.cross(v1, v2);
 		n.normalize();
 		cam.rotate(n, angle);
 		display();

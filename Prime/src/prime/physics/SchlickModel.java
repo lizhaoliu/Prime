@@ -26,8 +26,7 @@ public class SchlickModel extends BSDF {
     public void brdf(Vec3 origin, Vec3 normal, Vec3 inDir,
 	    Vec3 outDir, Spectrum dest) {
 	// TODO Auto-generated method stub
-	Vec3 H = new Vec3();
-	Vec3.add(inDir, outDir, H);
+	Vec3 H = Vec3.add(inDir, outDir);
 	H.normalize();
 	float u = Vec3.dot(outDir, H);
 	float t = Vec3.dot(normal, H);

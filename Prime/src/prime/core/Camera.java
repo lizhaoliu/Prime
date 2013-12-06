@@ -149,8 +149,7 @@ public class Camera extends Observable implements Serializable,
 		d.normalize();
 		d.negate();
 		up.normalize();
-		Vec3 newX = new Vec3();
-		Vec3.cross(up, d, newX);
+		Vec3 newX = Vec3.cross(up, d);
 		coordSys.setParentToLocalMatrix(newX.x, up.x, d.x, newX.y, up.y, d.y,
 				newX.z, up.z, d.z);
 		coordSys.setOrigin(eye);
@@ -169,8 +168,8 @@ public class Camera extends Observable implements Serializable,
 	 * @param dest
 	 * @return
 	 */
-	public Vec3 transPointToLocal(Vec3 p, Vec3 dest) {
-		return coordSys.transPointToLocal(p, dest);
+	public Vec3 transPointToLocal(Vec3 p) {
+		return coordSys.transPointToLocal(p);
 	}
 
 	/**
@@ -179,8 +178,8 @@ public class Camera extends Observable implements Serializable,
 	 * @param dest
 	 * @return
 	 */
-	public Vec3 transVectorToLocal(Vec3 v, Vec3 dest) {
-		return coordSys.transVectorToLocal(v, dest);
+	public Vec3 transVectorToLocal(Vec3 v) {
+		return coordSys.transVectorToLocal(v);
 	}
 
 	/**
@@ -274,8 +273,7 @@ public class Camera extends Observable implements Serializable,
 	public Vec3 getWorldPointFromViewport(int x, int y, Vec3 dest) {
 		dest.set(((float) x / width * dX + minX), (maxY - (float) y / height
 				* dY), zNear);
-		coordSys.transPointToParent(dest, dest);
-		return dest;
+		return coordSys.transPointToParent(dest);
 	}
 
 	/**
@@ -285,7 +283,7 @@ public class Camera extends Observable implements Serializable,
 	 */
 	public int getXFromWorld(Vec3 p) {
 		float px = p.x, py = p.y, pz = p.z;
-		coordSys.transPointToLocal(p, p);
+		p = coordSys.transPointToLocal(p);
 		float x = p.x * zNear / (zNear + p.z);
 		p.set(px, py, pz);
 		return getXFromViewport(x);
@@ -298,7 +296,7 @@ public class Camera extends Observable implements Serializable,
 	 */
 	public int getYFromWorld(Vec3 p) {
 		float px = p.x, py = p.y, pz = p.z;
-		coordSys.transPointToLocal(p, p);
+		p = coordSys.transPointToLocal(p);
 		float y = p.y * zNear / (zNear + p.z);
 		p.set(px, py, pz);
 		return getYFromViewport(y);
@@ -426,8 +424,8 @@ public class Camera extends Observable implements Serializable,
 		d.x += xOffset;
 		d.y += yOffset;
 		d.normalize();
-		coordSys.transPointToParent(origin, o);
-		coordSys.transVectorToParent(d, d);
+		o = coordSys.transPointToParent(origin);
+		d = coordSys.transVectorToParent(d);
 		dest.setOrigin(o);
 		dest.setDirection(d);
 		return dest;
@@ -461,10 +459,8 @@ public class Camera extends Observable implements Serializable,
 		public void run() {
 			Ray ray = new Ray();
 			Spectrum rayColor = ray.getSpectrum();
-			Vec3 d = new Vec3();
-			ray.getDirection(d);
-			Vec3 c = new Vec3();
-			ray.getOrigin(c);
+			Vec3 d = ray.getDirection();
+			Vec3 c = ray.getOrigin();
 			Vec3 buf = new Vec3();
 			float sampleGap = getLocalPointFromViewport(0, 0, buf).x;
 			sampleGap = (sampleGap - getLocalPointFromViewport(1, 0, buf).x);
@@ -513,10 +509,10 @@ public class Camera extends Observable implements Serializable,
 						getLocalPointFromViewport(x, y, d);
 						d.x += xJittered[i][j];
 						d.y += yJittered[i][j];
-						Vec3.sub(d, c, d);
+						d = Vec3.sub(d, c);
 						d.normalize();
-						coordSys.transVectorToParent(d, d);
-						coordSys.transPointToParent(c, c);
+						d = coordSys.transVectorToParent(d);
+						c = coordSys.transPointToParent(c);
 						ray.setDirection(d);
 						ray.setOrigin(c);
 						ray.setLength(Float.MAX_VALUE);

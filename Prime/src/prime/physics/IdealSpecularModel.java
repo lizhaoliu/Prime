@@ -25,14 +25,12 @@ public class IdealSpecularModel extends BSDF {
     public void brdf(Vec3 origin, Vec3 normal, Vec3 inDir,
 	    Vec3 outDir, Spectrum dest) {
 	// TODO Auto-generated method stub
-	Vec3 buf = new Vec3();
-
-	Vec3.add(inDir, outDir, buf);
+	Vec3 buf = Vec3.add(inDir, outDir);
 	if (Math.abs(Vec3.dot(buf, normal)) > 0.01) {
 	    dest.set(0, 0, 0);
 	}
 
-	Vec3.cross(inDir, outDir, buf);
+	buf = Vec3.cross(inDir, outDir);
 	if (Math.abs(Vec3.dot(buf, normal)) > 0.01) {
 	    dest.set(0, 0, 0);
 	}

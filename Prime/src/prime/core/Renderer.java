@@ -57,8 +57,7 @@ public abstract class Renderer {
 			Vec3 normal, BSDF bsdf, Spectrum destColor) {
 		RayIntersectionInfo ir = new RayIntersectionInfo();
 		Ray newRay = new Ray();
-		Vec3 newDir = new Vec3();
-		newRay.getDirection(newDir);
+		Vec3 newDir = newRay.getDirection();
 		Spectrum spectrum = newRay.getSpectrum();
 
 		//
@@ -71,8 +70,8 @@ public abstract class Renderer {
 			newDir.sub(hitPoint);
 			newDir.normalize();
 			newRay.setOrigin(hitPoint.x + MathUtils.EPSILON * newDir.x,
-					hitPoint.y + MathUtils.EPSILON * newDir.y, hitPoint.z
-							+ MathUtils.EPSILON * newDir.z); //
+					hitPoint.y + MathUtils.EPSILON * newDir.y, 
+					hitPoint.z + MathUtils.EPSILON * newDir.z);
 			newRay.setLengthToMax();
 			sceneGraph.intersect(newRay, ir);
 			triangleLight = ir.getTriangle();
@@ -81,7 +80,7 @@ public abstract class Renderer {
 					&& triangleLight.getTriangleMesh() == meshLight && cos > 0) {
 				float u = ir.getU(), v = ir.getV();
 				Vec3 normalLight = new Vec3();
-				triangleLight.interpolateNormal(u, v, normalLight);
+				normalLight = triangleLight.interpolateNormal(u, v);
 
 				spectrum.set(meshLight.getBSDF().getEmittance());
 				spectrum.multiply(cos
@@ -90,8 +89,7 @@ public abstract class Renderer {
 				spectrum.blend(bsdf.getReflectance());
 
 				Spectrum tmp = new Spectrum();
-				Vec3 srcDir = new Vec3();
-				srcRay.getDirection(srcDir);
+				Vec3 srcDir = srcRay.getDirection();
 				bsdf.brdf(hitPoint, normal, srcDir, newDir, tmp);
 				spectrum.blend(tmp);
 			}

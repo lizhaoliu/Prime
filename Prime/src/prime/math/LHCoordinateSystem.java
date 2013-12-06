@@ -83,8 +83,7 @@ public class LHCoordinateSystem implements Drawable, Transformable,
 	 * @return
 	 */
 	public float[] getInversedMatrixArrayInColumnOrder(float[] data) {
-		Vec3 v = new Vec3();
-		Vec3.mul(origin, parentToThisMat, v);
+		Vec3 v = Vec3.mul(origin, parentToThisMat);
 		v.negate();
 		data[0] = parentToThisMat.m00;
 		data[1] = parentToThisMat.m01;
@@ -136,8 +135,7 @@ public class LHCoordinateSystem implements Drawable, Transformable,
 	 * @return
 	 */
 	public float[] getInversedMatrixArrayInRowOrder(float[] data) {
-		Vec3 v = new Vec3();
-		Vec3.mul(origin, parentToThisMat, v);
+		Vec3 v = Vec3.mul(origin, parentToThisMat);
 		v.negate();
 		data[0] = parentToThisMat.m00;
 		data[1] = parentToThisMat.m10;
@@ -197,7 +195,7 @@ public class LHCoordinateSystem implements Drawable, Transformable,
 	 */
 	public void translateInLocal(Vec3 v) {
 		float x = origin.x, y = origin.y, z = origin.z;
-		Vec3.mul(parentToThisMat, v, origin);
+		origin = Vec3.mul(parentToThisMat, v);
 		origin.add(x, y, z);
 	}
 
@@ -222,7 +220,7 @@ public class LHCoordinateSystem implements Drawable, Transformable,
 		buf.set((1 - x2) * cost + x2, cost1xy + zsint, cost1xz - ysint, cost1xy
 				- zsint, (1 - y2) * cost + y2, cost1yz + xsint,
 				cost1xz + ysint, cost1yz - xsint, (1 - z2) * cost + z2);
-		Mat3.multiply(parentToThisMat, buf, parentToThisMat);
+		parentToThisMat = Mat3.multiply(parentToThisMat, buf);
 	}
 
 	/**
@@ -231,8 +229,8 @@ public class LHCoordinateSystem implements Drawable, Transformable,
 	 * @param dest
 	 * @return
 	 */
-	public Vec3 transPointToParent(Vec3 v, Vec3 dest) {
-		Vec3.mul(parentToThisMat, v, dest);
+	public Vec3 transPointToParent(Vec3 v) {
+		Vec3 dest = Vec3.mul(parentToThisMat, v);
 		dest.add(origin);
 		return dest;
 	}
@@ -243,8 +241,8 @@ public class LHCoordinateSystem implements Drawable, Transformable,
 	 * @param dest
 	 * @return
 	 */
-	public Vec3 transVectorToParent(Vec3 d, Vec3 dest) {
-		return Vec3.mul(parentToThisMat, d, dest);
+	public Vec3 transVectorToParent(Vec3 d) {
+		return Vec3.mul(parentToThisMat, d);
 	}
 
 	/**
@@ -253,9 +251,9 @@ public class LHCoordinateSystem implements Drawable, Transformable,
 	 * @param dest
 	 * @return
 	 */
-	public Vec3 transPointToLocal(Vec3 v, Vec3 dest) {
-		Vec3.sub(v, origin, dest);
-		return Vec3.mul(dest, parentToThisMat, dest);
+	public Vec3 transPointToLocal(Vec3 v) {
+		Vec3 dest = Vec3.sub(v, origin);
+		return Vec3.mul(dest, parentToThisMat);
 	}
 
 	/**
@@ -264,8 +262,8 @@ public class LHCoordinateSystem implements Drawable, Transformable,
 	 * @param dest
 	 * @return
 	 */
-	public Vec3 transVectorToLocal(Vec3 d, Vec3 dest) {
-		return Vec3.mul(d, parentToThisMat, dest);
+	public Vec3 transVectorToLocal(Vec3 d) {
+		return Vec3.mul(d, parentToThisMat);
 	}
 
 	/**

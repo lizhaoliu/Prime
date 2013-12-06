@@ -135,9 +135,8 @@ public class Mat3 implements Serializable {
 	 * @param dst
 	 * @return
 	 */
-	public static Mat3 multiply(Mat3 matLeft, Mat3 matRight,
-			Mat3 dst) {
-		dst.set(matLeft.m00 * matRight.m00 + matLeft.m01 * matRight.m10
+	public static Mat3 multiply(Mat3 matLeft, Mat3 matRight) {
+		return new Mat3(matLeft.m00 * matRight.m00 + matLeft.m01 * matRight.m10
 				+ matLeft.m02 * matRight.m20, matLeft.m00 * matRight.m01
 				+ matLeft.m01 * matRight.m11 + matLeft.m02 * matRight.m21,
 				matLeft.m00 * matRight.m02 + matLeft.m01 * matRight.m12
@@ -154,7 +153,6 @@ public class Mat3 implements Serializable {
 						+ matLeft.m22 * matRight.m21, matLeft.m20
 						* matRight.m02 + matLeft.m21 * matRight.m12
 						+ matLeft.m22 * matRight.m22);
-		return dst;
 	}
 
 	/**
@@ -171,8 +169,8 @@ public class Mat3 implements Serializable {
 	 * @param dest
 	 * @return
 	 */
-	public static Mat3 transpose(Mat3 m, Mat3 dest) {
-		return dest.set(m.m00, m.m10, m.m20, 
+	public static Mat3 transpose(Mat3 m) {
+		return new Mat3(m.m00, m.m10, m.m20, 
 				m.m01, m.m11, m.m21, 
 				m.m02, m.m12, m.m22);
 	}

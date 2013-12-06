@@ -6,14 +6,14 @@ package prime.math;
  *
  */
 public final class MathUtils {
-	public static float EPSILON = 0.001f;
+	public static float EPSILON = 1e-6f;
 	public static float E = (float) Math.E;
 	public static float PI = (float) Math.PI;
-	public static float PI_OVER_2 = PI / 2;
-	public static float PI_OVER_3 = PI / 3;
-	public static float PI2 = 2.0f * (float) Math.PI;
-	public static float INV_PI = 1.0f / (float) Math.PI;
-	public static float INV_PI2 = 1.0f / (float) (Math.PI * 2.0);
+	public static float PI_HALF = PI / 2;
+	public static float PI_THIRD = PI / 3;
+	public static float PI_DOUBLE = 2.0f * (float) Math.PI;
+	public static float PI_INV = 1.0f / (float) Math.PI;
+	public static float PI_DOUBLE_INV = 1.0f / (float) (Math.PI * 2.0);
 
 	/**
 	 * 
@@ -45,8 +45,7 @@ public final class MathUtils {
 	 * @param n
 	 * @param dest
 	 */
-	public static void randomScatteredDirection(Vec3 srcDir, int n,
-			Vec3 dest) {
+	public static Vec3 randomScatteredDirection(Vec3 srcDir, int n) {
 		float zx = srcDir.x, zy = srcDir.y, zz = srcDir.z;
 		float xx = zy, xy = -zx, xz = 0;
 		float invLen = 1.0f / (float) Math.sqrt(xx * xx + xy * xy + xz * xz);
@@ -59,8 +58,9 @@ public final class MathUtils {
 				.sqrt(1 - costh * costh), cosphy = (float) Math.cos(phy), sinphy = (float) Math
 				.sin(phy);
 		float sincos = sinth * cosphy, sinsin = sinth * sinphy;
-		dest.set(sincos * xx + sinsin * yx + costh * zx, sincos * xy + sinsin
-				* yy + costh * zy, sincos * xz + sinsin * yz + costh * zz);
+		return new Vec3(sincos * xx + sinsin * yx + costh * zx, 
+				sincos * xy + sinsin * yy + costh * zy, 
+				sincos * xz + sinsin * yz + costh * zz);
 	}
 
 	/**

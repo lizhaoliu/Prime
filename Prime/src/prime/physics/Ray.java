@@ -7,132 +7,132 @@ import prime.math.Vec3;
 /**
  * 
  * @author lizhaoliu
- *
+ * 
  */
 public final class Ray implements Serializable {
-    private static final long serialVersionUID = -406076263164160604L;
+	private static final long serialVersionUID = -406076263164160604L;
 
-    private Vec3 origin = new Vec3(); //
-    private Vec3 direction = new Vec3(); //
-    private Spectrum spectrum = new Spectrum(); //
-    private float length = Float.MAX_VALUE; //
-    private float n = 1.0f; //
+	private Vec3 origin = new Vec3(); //
+	private Vec3 direction = new Vec3(); //
+	private Spectrum spectrum = new Spectrum(); //
+	private float length = Float.MAX_VALUE; //
+	private float n = 1.0f; //
 
-    /**
+	/**
      * 
      */
-    public Ray() {
-    }
+	public Ray() {
+	}
 
-    /**
+	/**
+	 * 
+	 * @param v
+	 */
+	public final void setOrigin(Vec3 v) {
+		origin.set(v);
+	}
+
+	/**
+	 * 
+	 * @param x
+	 * @param y
+	 * @param z
+	 */
+	public final void setOrigin(float x, float y, float z) {
+		origin.set(x, y, z);
+	}
+
+	/**
+	 * 
+	 * @param v
+	 */
+	public final void setDirection(Vec3 v) {
+		direction.set(v);
+		direction.normalize();
+	}
+
+	/**
+	 * 
+	 * @param x
+	 * @param y
+	 * @param z
+	 */
+	public final void setDirection(float x, float y, float z) {
+		direction.set(x, y, z);
+	}
+
+	/**
+	 * 
+	 * @param l
+	 */
+	public final void setLength(float l) {
+		length = l;
+	}
+
+	/**
      * 
-     * @param v
      */
-    public final void setOrigin(Vec3 v) {
-	origin.set(v);
-    }
+	public final void setLengthToMax() {
+		length = Float.MAX_VALUE;
+	}
 
-    /**
-     * 
-     * @param x
-     * @param y
-     * @param z
-     */
-    public final void setOrigin(float x, float y, float z) {
-	origin.set(x, y, z);
-    }
+	/**
+	 * 
+	 * @param c
+	 */
+	public final void setSpectrum(Spectrum c) {
+		spectrum.set(c);
+	}
 
-    /**
-     * 
-     * @param v
-     */
-    public final void setDirection(Vec3 v) {
-	direction.set(v);
-	direction.normalize();
-    }
+	/**
+	 * 
+	 * @param refrac
+	 */
+	public final void setRefrativeIndex(float refrac) {
+		n = refrac;
+	}
 
-    /**
-     * 
-     * @param x
-     * @param y
-     * @param z
-     */
-    public final void setDirection(float x, float y, float z) {
-	direction.set(x, y, z);
-    }
+	/**
+	 * 
+	 * @param dst
+	 */
+	public final Vec3 getOrigin() {
+		return new Vec3(origin);
+	}
 
-    /**
-     * 
-     * @param l
-     */
-    public final void setLength(float l) {
-	length = l;
-    }
+	/**
+	 * 
+	 * @param dst
+	 */
+	public final Vec3 getDirection() {
+		return new Vec3(direction);
+	}
 
-    /**
-     * 
-     */
-    public final void setLengthToMax() {
-	length = Float.MAX_VALUE;
-    }
+	/**
+	 * 
+	 * @return
+	 */
+	public final float getLength() {
+		return length;
+	}
 
-    /**
-     * 
-     * @param c
-     */
-    public final void setSpectrum(Spectrum c) {
-	spectrum.set(c);
-    }
+	/**
+	 * 
+	 * @return
+	 */
+	public final float getRefractiveIndex() {
+		return n;
+	}
 
-    /**
-     * 
-     * @param refrac
-     */
-    public final void setRefrativeIndex(float refrac) {
-	n = refrac;
-    }
+	/**
+	 * 
+	 * @return
+	 */
+	public final Spectrum getSpectrum() {
+		return spectrum;
+	}
 
-    /**
-     * 
-     * @param dst
-     */
-    public final void getOrigin(Vec3 dst) {
-	dst.set(origin);
-    }
-
-    /**
-     * 
-     * @param dst
-     */
-    public final void getDirection(Vec3 dst) {
-	dst.set(direction);
-    }
-
-    /**
-     * 
-     * @return
-     */
-    public final float getLength() {
-	return length;
-    }
-
-    /**
-     * 
-     * @return
-     */
-    public final float getRefractiveIndex() {
-	return n;
-    }
-
-    /**
-     * 
-     * @return
-     */
-    public final Spectrum getSpectrum() {
-	return spectrum;
-    }
-
-    public final String toString() {
-	return ("Origin: " + origin + ", Direction: " + direction);
-    }
+	public final String toString() {
+		return ("Origin: " + origin + ", Direction: " + direction);
+	}
 }

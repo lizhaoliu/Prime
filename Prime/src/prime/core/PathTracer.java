@@ -32,17 +32,16 @@ public class PathTracer extends Renderer {
 	 */
 	private void tracePath(Ray srcRay, int depth) {
 		Spectrum destSpectrum = srcRay.getSpectrum();
-		// �󽻲���
+		//
 		srcRay.setLengthToMax();
 		RayIntersectionInfo intResult = new RayIntersectionInfo();
 		sceneGraph.intersect(srcRay, intResult);
-		if (!intResult.isIntersected()) // �������û�к��κ������ཻ���򷵻�
+		if (!intResult.isIntersected())
 		{
 			destSpectrum.add(backgroundSpectrum);
 			return;
 		}
 
-		// ����ཻ��������ǹ�Դ
 		Triangle intTriangle = intResult.getTriangle();
 		BSDF bsdf = intTriangle.getBSDF();
 		if (bsdf.isLight()) {
@@ -50,21 +49,18 @@ public class PathTracer extends Renderer {
 			return;
 		}
 
-		// �����ֵ
 		Ray newRay = new Ray();
-		Vec3 newDir = new Vec3();
-		newRay.getDirection(newDir);
+		Vec3 newDir = newRay.getDirection();
 		float u = intResult.getU(), v = intResult.getV();
 		Vec3 hitPoint = new Vec3(), normal = new Vec3();// , texCoord =
 		// new
 		// Vector3();
-		Vec3 srcDir = new Vec3();
-		srcRay.getDirection(srcDir);
-		intTriangle.interpolateVertex(u, v, hitPoint);
-		intTriangle.interpolateNormal(u, v, normal);
+		Vec3 srcDir = srcRay.getDirection();
+		hitPoint = intTriangle.interpolateVertex(u, v);
+		normal = intTriangle.interpolateNormal(u, v);
 		// intTriangle.interpolateTexCoord(u, v, texCoord);
 
-		if (depth >= maxDepth) // ���ǰ��ȳ������׷����ȣ��˳�
+		if (depth >= maxDepth)	//
 		{
 			// connect(hitPoint, normal, bsdf, destSpectrum);
 			// directIllumination(srcRay, hitPoint, normal, bsdf, destSpectrum);
@@ -87,7 +83,7 @@ public class PathTracer extends Renderer {
 
 		directIllumination(srcRay, hitPoint, normal, bsdf, destSpectrum);
 
-		// ��ݲ��ʲ�����������Ҫ�����������
+		//
 		float roulette = (float) (Math.random() * (refAvg + transAvg + abspAvg));
 		float factor;
 		if (roulette < refAvg) // reflection
@@ -162,7 +158,7 @@ public class PathTracer extends Renderer {
 	// break;
 	// }
 	//
-	// //�н���
+	// //锟叫斤拷锟斤拷
 	// t = intResult.getTriangle();
 	// u = intResult.getU();
 	// v = intResult.getV();
@@ -195,7 +191,7 @@ public class PathTracer extends Renderer {
 	// else if (roulette >= refAvg && roulette < (refAvg + transAvg)) //transmit
 	// {
 	// // float refraT = 1f;
-	// // if (Vector3.dot(normal, dir) < 0) //�������
+	// // if (Vector3.dot(normal, dir) < 0) //锟斤拷锟斤拷锟斤拷锟�
 	// // {
 	// // refraT = bsdf.getRefractiveIndex();
 	// // }

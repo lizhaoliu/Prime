@@ -14,7 +14,8 @@ import prime.physics.Ray;
  *
  */
 public class KdTree extends SpatialStructure implements Serializable {
-	private static long serialVersionUID = 6185494279455270385L;
+	private static final long serialVersionUID = -6629508645189976660L;
+	
 	private KdNode root = null;
 	private int maxDivisionDepth = 10;
 	private int maxTrianglesPerNode = 5;
@@ -107,32 +108,32 @@ public class KdTree extends SpatialStructure implements Serializable {
 	 * 
 	 * @param ray
 	 * @param bSPNode
-	 * @param dest
+	 * @param dst
 	 */
 	private void intersect(Ray ray, KdNode bSPNode,
-			RayIntersectionInfo dest) {
+			RayIntersectionInfo dst) {
 		if (!bSPNode.box.intersect(ray)) {
-			dest.setIsIntersected(false);
+			dst.setIsIntersected(false);
 			return;
 		}
 		if (bSPNode.leftChild == null && bSPNode.rightChild == null) // a leaf
 		{
-			bSPNode.box.intersect(ray, dest);
+			bSPNode.box.intersect(ray, dst);
 			return;
 		}
 
 		RayIntersectionInfo intr = new RayIntersectionInfo();
-		intersect(ray, bSPNode.leftChild, dest);
+		intersect(ray, bSPNode.leftChild, dst);
 		float destLength = ray.getLength();
 		intersect(ray, bSPNode.rightChild, intr);
 		float intrLength = ray.getLength();
 		if (intr.isIntersected()) {
-			if (dest.isIntersected()) {
+			if (dst.isIntersected()) {
 				if (destLength > intrLength) {
-					dest.assign(intr);
+					dst.assign(intr);
 				}
 			} else {
-				dest.assign(intr);
+				dst.assign(intr);
 			}
 		}
 	}

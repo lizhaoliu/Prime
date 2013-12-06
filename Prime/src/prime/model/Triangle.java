@@ -43,63 +43,58 @@ public class Triangle implements Serializable {
 	}
 
 	/**
-	 * judge if ray intersects with triangle
+	 * ray triangle int test
 	 * 
 	 * @param ray
-	 * @param dest
+	 * @param dst
 	 */
-	public void intersect(Ray ray, RayIntersectionInfo dest) {
-		Vec3 d = new Vec3();
-		ray.getDirection(d);
-		Vec3 o = new Vec3();
-		ray.getOrigin(o);
+	public void intersect(Ray ray, RayIntersectionInfo dst) {
+		Vec3 d = ray.getDirection();
+		Vec3 o = ray.getOrigin();
 
 		Vec3 v0 = getVertex(0);
 		Vec3 v1 = getVertex(1);
 		Vec3 v2 = getVertex(2);
 
-		Vec3 v10 = new Vec3();
-		Vec3.sub(v1, v0, v10);
-		Vec3 v20 = new Vec3();
-		Vec3.sub(v2, v0, v20);
-		Vec3 vo0 = new Vec3();
-		Vec3.sub(o, v0, vo0);
+		Vec3 v10 = Vec3.sub(v1, v0);
+		Vec3 v20 = Vec3.sub(v2, v0);
+		Vec3 vo0 = Vec3.sub(o, v0);
 
 		float t, u, v;
-		float invProduct = 1.0f / -Vec3.mixproduction(v10, v20, d);
+		float invProduct = 1.0f / -Vec3.tripleProduct(v10, v20, d);
 
-		u = -Vec3.mixproduction(vo0, v20, d) * invProduct;
+		u = -Vec3.tripleProduct(vo0, v20, d) * invProduct;
 		if (u < 0 || u > 1) {
-			dest.setIsIntersected(false);
+			dst.setIsIntersected(false);
 			return;
 		}
 
-		v = -Vec3.mixproduction(v10, vo0, d) * invProduct;
+		v = -Vec3.tripleProduct(v10, vo0, d) * invProduct;
 		if (v < 0 || v > 1) {
-			dest.setIsIntersected(false);
+			dst.setIsIntersected(false);
 			return;
 		}
 
-		t = Vec3.mixproduction(v10, v20, vo0) * invProduct;
+		t = Vec3.tripleProduct(v10, v20, vo0) * invProduct;
 		if (t < 0 || t > ray.getLength()) {
-			dest.setIsIntersected(false);
+			dst.setIsIntersected(false);
 			return;
 		}
 
 		if (u + v > 1) {
-			dest.setIsIntersected(false);
+			dst.setIsIntersected(false);
 			return;
 		}
 
 		ray.setLength(t);
 
-		dest.setIsIntersected(true);
-		dest.setHitTriangle(this);
-		dest.setUV(u, v);
+		dst.setIsIntersected(true);
+		dst.setHitTriangle(this);
+		dst.setUV(u, v);
 	}
 
 	/**
-	 * judge if line segment p0-p1 intersects with triangle
+	 * line segment p0-p1 triangle int test
 	 * 
 	 * @param p0
 	 * @param p1
@@ -112,30 +107,26 @@ public class Triangle implements Serializable {
 		Vec3 v1 = getVertex(1);
 		Vec3 v2 = getVertex(2);
 
-		Vec3 d = new Vec3();
-		Vec3.sub(p1, p0, d);
+		Vec3 d = Vec3.sub(p1, p0);
 
-		Vec3 v10 = new Vec3();
-		Vec3.sub(v1, v0, v10);
-		Vec3 v20 = new Vec3();
-		Vec3.sub(v2, v0, v20);
-		Vec3 vo0 = new Vec3();
-		Vec3.sub(o, v0, vo0);
+		Vec3 v10 = Vec3.sub(v1, v0);
+		Vec3 v20 = Vec3.sub(v2, v0);
+		Vec3 vo0 = Vec3.sub(o, v0);
 
 		float t, u, v;
-		float invProduct = 1.0f / -Vec3.mixproduction(v10, v20, d);
+		float invProduct = 1.0f / -Vec3.tripleProduct(v10, v20, d);
 
-		u = -Vec3.mixproduction(vo0, v20, d) * invProduct;
+		u = -Vec3.tripleProduct(vo0, v20, d) * invProduct;
 		if (u < 0 || u > 1) {
 			return false;
 		}
 
-		v = -Vec3.mixproduction(v10, vo0, d) * invProduct;
+		v = -Vec3.tripleProduct(v10, vo0, d) * invProduct;
 		if (v < 0 || v > 1) {
 			return false;
 		}
 
-		t = Vec3.mixproduction(v10, v20, vo0) * invProduct;
+		t = Vec3.tripleProduct(v10, v20, vo0) * invProduct;
 		if (t < 0 || t > 1) {
 			return false;
 		}
@@ -154,12 +145,12 @@ public class Triangle implements Serializable {
 	 * @param dest
 	 * @return
 	 */
-	public Vec3 interpolateVertex(float u, float v, Vec3 dest) {
+	public Vec3 interpolateVertex(float u, float v) {
 		float w = 1 - u - v;
 		Vec3 v0 = getVertex(0);
 		Vec3 v1 = getVertex(1);
 		Vec3 v2 = getVertex(2);
-		return dest.set(w * v0.x + u * v1.x + v * v2.x, w * v0.y + u * v1.y + v
+		return new Vec3(w * v0.x + u * v1.x + v * v2.x, w * v0.y + u * v1.y + v
 				* v2.y, w * v0.z + u * v1.z + v * v2.z);
 	}
 
@@ -170,13 +161,14 @@ public class Triangle implements Serializable {
 	 * @param dest
 	 * @return
 	 */
-	public Vec3 interpolateNormal(float u, float v, Vec3 dest) {
+	public Vec3 interpolateNormal(float u, float v) {
 		float w = 1 - u - v;
 		Vec3 n0 = getNormal(0);
 		Vec3 n1 = getNormal(1);
 		Vec3 n2 = getNormal(2);
-		dest.set(w * n0.x + u * n1.x + v * n2.x,
-				w * n0.y + u * n1.y + v * n2.y, w * n0.z + u * n1.z + v * n2.z);
+		Vec3 dest = new Vec3(w * n0.x + u * n1.x + v * n2.x,
+				w * n0.y + u * n1.y + v * n2.y, 
+				w * n0.z + u * n1.z + v * n2.z);
 		dest.normalize();
 		return dest;
 	}
