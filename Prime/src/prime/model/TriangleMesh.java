@@ -23,7 +23,7 @@ import com.google.common.collect.Lists;
 public class TriangleMesh implements Drawable, Serializable {
 	private static final long serialVersionUID = 6079627240260644846L;
 
-	private static int numMeshes = 0; // OpenGL display list id
+	private static int globalMaxId = 0; // OpenGL display list id
 
 	private transient int id;
 	private transient boolean isToGenList = true;
@@ -49,7 +49,7 @@ public class TriangleMesh implements Drawable, Serializable {
 			maxY = Float.MIN_VALUE, maxZ = Float.MIN_VALUE;
 
 	public TriangleMesh() {
-		id = ++numMeshes;
+		id = ++globalMaxId;
 	}
 
 	public void addVertex(Vec3f v) {

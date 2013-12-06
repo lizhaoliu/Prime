@@ -82,7 +82,7 @@ import prime.model.TriangleMesh;
 import prime.physics.Material;
 import prime.physics.IdealDiffuseModel;
 import prime.physics.Color3f;
-import prime.util.ModelFileLoader;
+import prime.util.ContentLoader;
 
 /**
  * a hand-written gui
@@ -116,7 +116,7 @@ public class MainGUI extends JFrame {
     private List<Material> bsdfList = new ArrayList<Material>(10);
     private List<TriangleMesh> meshesList = new ArrayList<TriangleMesh>();
 
-    private ModelFileLoader loader = new ModelFileLoader(MainGUI.this);
+    private ContentLoader loader = new ContentLoader(MainGUI.this);
 
     public static void main(String[] args) {
 	new MainGUI();
@@ -1074,7 +1074,7 @@ public class MainGUI extends JFrame {
 		    if (ret == JFileChooser.APPROVE_OPTION) {
 			try {
 			    File file = chooser.getSelectedFile();
-			    TriangleMesh[] meshes = loader.load(file);
+			    TriangleMesh[] meshes = loader.loadModelFile(file);
 			    for (TriangleMesh mesh : meshes) {
 				mesh.setMaterial(bsdfList.get(0));
 				mesh.finish();

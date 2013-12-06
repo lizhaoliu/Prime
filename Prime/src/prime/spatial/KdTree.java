@@ -10,7 +10,7 @@ import prime.model.Triangle;
 import prime.physics.Ray;
 
 /**
- * a kd-tree implementation used to store 
+ * A kd-tree implementation
  * @author lizhaoliu
  *
  */
