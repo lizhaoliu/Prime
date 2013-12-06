@@ -2,80 +2,74 @@ package prime.model;
 
 import java.io.Serializable;
 
-import prime.math.Vec3;
-import prime.physics.BSDF;
+import prime.math.Vec3f;
+import prime.physics.Material;
 import prime.physics.Ray;
 
 /**
- * triangle is the primitive, which does not belong to interactive primitives
- * 
- * @author lizhaoliu
+ * Triangles are the atoms of 3D world
  */
 public class Triangle implements Serializable {
 	private static final long serialVersionUID = 6355696347468388740L;
 
-	private TriangleMesh mesh; // the triangle mesh where triangle belongs
-	private int index; // index in triangle mesh
+	private final TriangleMesh triangleMesh; // the triangle mesh where triangle belongs
+	private final int index; 	// index in triangle mesh
 
 	/**
-	 * empty constructor
-	 */
-	public Triangle() {
-	}
-
-	/**
-	 * set this triangle's index in its triangle mesh
 	 * 
-	 * @param index
+	 * 
+	 * @param triangleMesh the {@link TriangleMesh} this triangle belongs to
+	 * @param index	the index of this triangle in its triangle mesh
 	 */
-	public void setIndex(int index) {
+	public Triangle(TriangleMesh triangleMesh, int index) {
+		this.triangleMesh = triangleMesh;
 		this.index = index;
 	}
 
 	/**
-	 * get the vertex indexed i
+	 * Get the vertex indexed i
 	 * 
 	 * @param i
 	 * @return
 	 */
-	public Vec3 getVertex(int i) {
-		return mesh.getVertex(index, i);
+	public Vec3f getVertex(int i) {
+		return triangleMesh.getVertex(index, i);
 	}
 
 	/**
-	 * ray triangle int test
+	 * Ray triangle int test
 	 * 
 	 * @param ray
 	 * @param dst
 	 */
 	public void intersect(Ray ray, RayTriIntInfo dst) {
-		Vec3 d = ray.getDirection();
-		Vec3 o = ray.getOrigin();
+		Vec3f d = ray.getDirection();
+		Vec3f o = ray.getOrigin();
 
-		Vec3 v0 = getVertex(0);
-		Vec3 v1 = getVertex(1);
-		Vec3 v2 = getVertex(2);
+		Vec3f v0 = getVertex(0);
+		Vec3f v1 = getVertex(1);
+		Vec3f v2 = getVertex(2);
 
-		Vec3 v10 = Vec3.sub(v1, v0);
-		Vec3 v20 = Vec3.sub(v2, v0);
-		Vec3 vo0 = Vec3.sub(o, v0);
+		Vec3f v10 = Vec3f.sub(v1, v0);
+		Vec3f v20 = Vec3f.sub(v2, v0);
+		Vec3f vo0 = Vec3f.sub(o, v0);
 
 		float t, u, v;
-		float invProduct = 1.0f / -Vec3.tripleProduct(v10, v20, d);
+		float invProduct = 1.0f / -Vec3f.tripleProduct(v10, v20, d);
 
-		u = -Vec3.tripleProduct(vo0, v20, d) * invProduct;
+		u = -Vec3f.tripleProduct(vo0, v20, d) * invProduct;
 		if (u < 0 || u > 1) {
 			dst.setIsIntersected(false);
 			return;
 		}
 
-		v = -Vec3.tripleProduct(v10, vo0, d) * invProduct;
+		v = -Vec3f.tripleProduct(v10, vo0, d) * invProduct;
 		if (v < 0 || v > 1) {
 			dst.setIsIntersected(false);
 			return;
 		}
 
-		t = Vec3.tripleProduct(v10, v20, vo0) * invProduct;
+		t = Vec3f.tripleProduct(v10, v20, vo0) * invProduct;
 		if (t < 0 || t > ray.getLength()) {
 			dst.setIsIntersected(false);
 			return;
@@ -94,39 +88,39 @@ public class Triangle implements Serializable {
 	}
 
 	/**
-	 * line segment p0-p1 triangle int test
+	 * Line segment p0-p1 triangle intersection test
 	 * 
 	 * @param p0
 	 * @param p1
 	 * @return
 	 */
-	public boolean intersect(Vec3 p0, Vec3 p1) {
-		Vec3 o = p0;
+	public boolean intersect(Vec3f p0, Vec3f p1) {
+		Vec3f o = p0;
 
-		Vec3 v0 = getVertex(0);
-		Vec3 v1 = getVertex(1);
-		Vec3 v2 = getVertex(2);
+		Vec3f v0 = getVertex(0);
+		Vec3f v1 = getVertex(1);
+		Vec3f v2 = getVertex(2);
 
-		Vec3 d = Vec3.sub(p1, p0);
+		Vec3f d = Vec3f.sub(p1, p0);
 
-		Vec3 v10 = Vec3.sub(v1, v0);
-		Vec3 v20 = Vec3.sub(v2, v0);
-		Vec3 vo0 = Vec3.sub(o, v0);
+		Vec3f v10 = Vec3f.sub(v1, v0);
+		Vec3f v20 = Vec3f.sub(v2, v0);
+		Vec3f vo0 = Vec3f.sub(o, v0);
 
 		float t, u, v;
-		float invProduct = 1.0f / -Vec3.tripleProduct(v10, v20, d);
+		float invProduct = 1.0f / -Vec3f.tripleProduct(v10, v20, d);
 
-		u = -Vec3.tripleProduct(vo0, v20, d) * invProduct;
+		u = -Vec3f.tripleProduct(vo0, v20, d) * invProduct;
 		if (u < 0 || u > 1) {
 			return false;
 		}
 
-		v = -Vec3.tripleProduct(v10, vo0, d) * invProduct;
+		v = -Vec3f.tripleProduct(v10, vo0, d) * invProduct;
 		if (v < 0 || v > 1) {
 			return false;
 		}
 
-		t = Vec3.tripleProduct(v10, v20, vo0) * invProduct;
+		t = Vec3f.tripleProduct(v10, v20, vo0) * invProduct;
 		if (t < 0 || t > 1) {
 			return false;
 		}
@@ -139,34 +133,36 @@ public class Triangle implements Serializable {
 	}
 
 	/**
+	 * Bi-linearly interpolate a position vector given u, v
 	 * 
 	 * @param u
 	 * @param v
 	 * @param dest
 	 * @return
 	 */
-	public Vec3 interpolateVertex(float u, float v) {
+	public Vec3f interpolatePosition(float u, float v) {
 		float w = 1 - u - v;
-		Vec3 v0 = getVertex(0);
-		Vec3 v1 = getVertex(1);
-		Vec3 v2 = getVertex(2);
-		return new Vec3(w * v0.x + u * v1.x + v * v2.x, w * v0.y + u * v1.y + v
+		Vec3f v0 = getVertex(0);
+		Vec3f v1 = getVertex(1);
+		Vec3f v2 = getVertex(2);
+		return new Vec3f(w * v0.x + u * v1.x + v * v2.x, w * v0.y + u * v1.y + v
 				* v2.y, w * v0.z + u * v1.z + v * v2.z);
 	}
 
 	/**
+	 * Bi-linearly interpolate a normal vector given u, v
 	 * 
 	 * @param u
 	 * @param v
 	 * @param dest
 	 * @return
 	 */
-	public Vec3 interpolateNormal(float u, float v) {
+	public Vec3f interpolateNormal(float u, float v) {
 		float w = 1 - u - v;
-		Vec3 n0 = getNormal(0);
-		Vec3 n1 = getNormal(1);
-		Vec3 n2 = getNormal(2);
-		Vec3 dest = new Vec3(w * n0.x + u * n1.x + v * n2.x,
+		Vec3f n0 = getNormal(0);
+		Vec3f n1 = getNormal(1);
+		Vec3f n2 = getNormal(2);
+		Vec3f dest = new Vec3f(w * n0.x + u * n1.x + v * n2.x,
 				w * n0.y + u * n1.y + v * n2.y, 
 				w * n0.z + u * n1.z + v * n2.z);
 		dest.normalize();
@@ -174,30 +170,32 @@ public class Triangle implements Serializable {
 	}
 
 	/**
+	 * Bi-linearly interpolate a texture coordinate vector given u, v
 	 * 
 	 * @param u
 	 * @param v
 	 * @param dest
 	 * @return
 	 */
-	public Vec3 interpolateTexCoord(float u, float v, Vec3 dest) {
+	public Vec3f interpolateTexCoord(float u, float v, Vec3f dest) {
 		float w = 1 - u - v;
-		Vec3 t0 = getTexCoordinate(0);
-		Vec3 t1 = getTexCoordinate(1);
-		Vec3 t2 = getTexCoordinate(2);
+		Vec3f t0 = getTexCoordinate(0);
+		Vec3f t1 = getTexCoordinate(1);
+		Vec3f t2 = getTexCoordinate(2);
 		return dest.set(w * t0.x + u * t1.x + v * t2.x, w * t0.y + u * t1.y + v
 				* t2.y, w * t0.z + u * t1.z + v * t2.z);
 	}
 
 	/**
+	 * Triangle bounding box intersection test
 	 * 
 	 * @param box
 	 * @return
 	 */
 	public boolean intersect(BoundingBox box) {
-		Vec3 v0 = getVertex(0);
-		Vec3 v1 = getVertex(1);
-		Vec3 v2 = getVertex(2);
+		Vec3f v0 = getVertex(0);
+		Vec3f v1 = getVertex(1);
+		Vec3f v2 = getVertex(2);
 
 		if (box.contains(v0) || box.contains(v1) || box.contains(v2)) {
 			return true;
@@ -208,9 +206,9 @@ public class Triangle implements Serializable {
 			return true;
 		}
 
-		Vec3 min = box.getMinPoint();
-		Vec3 max = box.getMaxPoint();
-		Vec3 p0 = new Vec3(), p1 = new Vec3();
+		Vec3f min = box.getMinPoint();
+		Vec3f max = box.getMaxPoint();
+		Vec3f p0 = new Vec3f(), p1 = new Vec3f();
 
 		p0.set(min);
 		p1.set(max);
@@ -240,14 +238,15 @@ public class Triangle implements Serializable {
 	}
 
 	/**
+	 * Get a random position vector on the triangle
 	 * 
 	 * @param dest
 	 * @return
 	 */
-	public Vec3 getRandomPoint(Vec3 dest) {
-		Vec3 v0 = getVertex(0);
-		Vec3 v1 = getVertex(1);
-		Vec3 v2 = getVertex(2);
+	public Vec3f getRandomPoint(Vec3f dest) {
+		Vec3f v0 = getVertex(0);
+		Vec3f v1 = getVertex(1);
+		Vec3f v2 = getVertex(2);
 		float u = 1 - (float) Math.sqrt(1 - Math.random()), v = (1 - u)
 				* (float) Math.random(), w = 1 - u - v;
 		return dest.set(v0.x * w + v1.x * u + v2.x * v, v0.y * w + v1.y * u
@@ -262,8 +261,7 @@ public class Triangle implements Serializable {
 	 * @param dest
 	 * @return
 	 */
-	public static Vec3 getRandomPoint(Vec3 v0, Vec3 v1,
-			Vec3 v2, Vec3 dest) {
+	public static Vec3f getRandomPoint(Vec3f v0, Vec3f v1, Vec3f v2, Vec3f dest) {
 		float u = 1 - (float) Math.sqrt(1 - Math.random()), v = (1 - u)
 				* (float) Math.random(), w = 1 - u - v;
 		return dest.set(v0.x * w + v1.x * u + v2.x * v, v0.y * w + v1.y * u
@@ -271,13 +269,14 @@ public class Triangle implements Serializable {
 	}
 
 	/**
+	 * Calculate the area of this triangle
 	 * 
 	 * @param v0
 	 * @param v1
 	 * @param v2
 	 * @return
 	 */
-	public static float getArea(Vec3 v0, Vec3 v1, Vec3 v2) {
+	public static float getArea(Vec3f v0, Vec3f v1, Vec3f v2) {
 		float dx1 = v1.x - v0.x, dy1 = v1.y - v0.y, dz1 = v1.z - v0.z, dx2 = v2.x
 				- v0.x, dy2 = v2.y - v0.y, dz2 = v2.z - v0.z;
 		float x = dy1 * dz2 - dz1 * dy2, y = dz1 * dx2 - dx1 * dz2, z = dx1
@@ -286,48 +285,40 @@ public class Triangle implements Serializable {
 	}
 
 	/**
-	 * get texture coordinate indexed i
+	 * Get texture coordinate indexed i
 	 * 
 	 * @param i
 	 * @return
 	 */
-	public Vec3 getTexCoordinate(int i) {
-		return mesh.getTexCoord(index, i);
+	public Vec3f getTexCoordinate(int i) {
+		return triangleMesh.getTexCoord(index, i);
 	}
 
 	/**
+	 * Get the material of its {@link TriangleMesh}
 	 * 
 	 * @return
 	 */
-	public BSDF getBSDF() {
-		return mesh.getBSDF();
+	public Material getMaterial() {
+		return triangleMesh.getMaterial();
 	}
 
 	/**
-	 * get normal indexed i
+	 * Get normal vector indexed i
 	 * 
 	 * @param i
 	 * @return
 	 */
-	public Vec3 getNormal(int i) {
-		return mesh.getNormal(index, i);
+	public Vec3f getNormal(int i) {
+		return triangleMesh.getNormal(index, i);
 	}
 
 	/**
-	 * set the mesh to which triangle belong
-	 * 
-	 * @param mesh
-	 */
-	public void setTriangleMesh(TriangleMesh mesh) {
-		this.mesh = mesh;
-	}
-
-	/**
-	 * get the mesh to which triangle belong
+	 * Get the {@link TriangleMesh} to which triangle belong
 	 * 
 	 * @return
 	 */
 	public TriangleMesh getTriangleMesh() {
-		return mesh;
+		return triangleMesh;
 	}
 }

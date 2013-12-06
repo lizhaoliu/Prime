@@ -72,16 +72,16 @@ import javax.swing.tree.DefaultTreeModel;
 import prime.core.Camera;
 import prime.core.PathTracer;
 import prime.core.Renderer;
-import prime.core.SceneGraph;
+import prime.core.Scene;
 import prime.math.ConeFilter;
 import prime.math.Filter;
 import prime.math.GaussianFilter;
 import prime.math.LHCoordinateSystem;
-import prime.math.Vec3;
+import prime.math.Vec3f;
 import prime.model.TriangleMesh;
-import prime.physics.BSDF;
+import prime.physics.Material;
 import prime.physics.IdealDiffuseModel;
-import prime.physics.Spectrum;
+import prime.physics.Color3f;
 import prime.util.ModelFileLoader;
 
 /**
@@ -104,7 +104,7 @@ public class MainGUI extends JFrame {
     private ViewPanel viewPanel;
 
     private Camera camera;
-    private SceneGraph sceneGraph;
+    private Scene sceneGraph;
 
     private TriangleMesh selectedMesh;
 
@@ -113,7 +113,7 @@ public class MainGUI extends JFrame {
     // private TexEditorDialog texEditDialog;
     private WestPanel westPanel;
 
-    private List<BSDF> bsdfList = new ArrayList<BSDF>(10);
+    private List<Material> bsdfList = new ArrayList<Material>(10);
     private List<TriangleMesh> meshesList = new ArrayList<TriangleMesh>();
 
     private ModelFileLoader loader = new ModelFileLoader(MainGUI.this);
@@ -167,7 +167,7 @@ public class MainGUI extends JFrame {
     }
 
     private void init() {
-	sceneGraph = new SceneGraph();
+	sceneGraph = new Scene();
 	camera = new Camera(PANEL_WIDTH, PANEL_HEIGHT);
 	camera.setZNear(-1);
 	camera.setZFar(-1000);
@@ -175,7 +175,7 @@ public class MainGUI extends JFrame {
 	camera.setScene(sceneGraph);
 	sceneGraph.setMaxBSPDivisionDepth(15);
 
-	BSDF defaultMat = new IdealDiffuseModel();
+	Material defaultMat = new IdealDiffuseModel();
 	// BSDF defaultMat = new OrenNayerModel();
 	defaultMat.setName("default");
 	bsdfList.add(defaultMat);
@@ -458,7 +458,7 @@ public class MainGUI extends JFrame {
 		if (o == bStop) {
 		    camera.stopRendering();
 		} else if (o == bStartRendering) {
-		    sceneGraph.getSky().setDirection(new Vec3(Float.parseFloat(skyDirTFs[0].getText()), 
+		    sceneGraph.getSky().setDirection(new Vec3f(Float.parseFloat(skyDirTFs[0].getText()), 
 			    Float.parseFloat(skyDirTFs[1].getText()), 
 			    Float.parseFloat(skyDirTFs[2].getText())));
 		    selectedRenderer = (Renderer) cRenders.getSelectedItem();
@@ -754,7 +754,7 @@ public class MainGUI extends JFrame {
     private class BSDFEditorDialog extends SimpleDialog {
 	private static final long serialVersionUID = -1500497763671474467L;
 
-	private BSDF currentBSDF;
+	private Material currentBSDF;
 	// private BufferedImage texImg;
 
 	private SpectrumChooserPanel emittancePanel, reflectancePanel,
@@ -789,7 +789,7 @@ public class MainGUI extends JFrame {
 	    bClose = new JButton("Close");
 	    bClose.addActionListener(new ButtonRes());
 	    cbBSDFList = new JComboBox();
-	    for (BSDF m : bsdfList) {
+	    for (Material m : bsdfList) {
 		cbBSDFList.addItem(m);
 	    }
 	    cbBSDFList.addItemListener(new ItemListener() {
@@ -823,7 +823,7 @@ public class MainGUI extends JFrame {
 		public void componentShown(ComponentEvent e) {
 		    if (selectedMesh != null) {
 			bAssign.setEnabled(true);
-			BSDF m = selectedMesh.getBSDF();
+			Material m = selectedMesh.getMaterial();
 			cbBSDFList.setSelectedItem(m);
 		    } else {
 			bAssign.setEnabled(false);
@@ -834,7 +834,7 @@ public class MainGUI extends JFrame {
 	    pack();
 	}
 
-	private void setBSDFBySliders(BSDF bsdf) {
+	private void setBSDFBySliders(Material bsdf) {
 	    bsdf.setName(tfName.getText());
 	    bsdf.setEmittance(emittancePanel.getSelectedSpectrum());
 	    bsdf.setReflectance(reflectancePanel.getSelectedSpectrum());
@@ -852,20 +852,20 @@ public class MainGUI extends JFrame {
 		} else if (o == bClose) {
 		    BSDFEditorDialog.this.setVisible(false);
 		} else if (o == bNewMat) {
-		    BSDF m = new IdealDiffuseModel();
+		    Material m = new IdealDiffuseModel();
 		    m.setName("BSDF_" + bsdfList.size());
 		    bsdfList.add(m);
 		    cbBSDFList.addItem(m);
 		    cbBSDFList.setSelectedItem(m);
 		} else if (o == bAssign) {
 		    if (selectedMesh != null) {
-			selectedMesh.setBSDF(currentBSDF);
+			selectedMesh.setMaterial(currentBSDF);
 		    }
 		}
 	    }
 	}
 
-	private void loadBSDF(BSDF mat) {
+	private void loadBSDF(Material mat) {
 	    this.currentBSDF = mat;
 	    displayBSDF();
 	}
@@ -959,16 +959,16 @@ public class MainGUI extends JFrame {
 	    g.fillRect(0, 0, getWidth(), getHeight());
 	}
 
-	public void setSelectedSpectrum(Spectrum c) {
+	public void setSelectedSpectrum(Color3f c) {
 	    color = new Color(c.r, c.g, c.b);
 	    repaint();
 	}
 
-	public Spectrum getSelectedSpectrum() {
+	public Color3f getSelectedSpectrum() {
 	    if (color == null) {
-		return new Spectrum(1.0f, 1.0f, 1.0f);
+		return new Color3f(1.0f, 1.0f, 1.0f);
 	    }
-	    return new Spectrum(color.getRed() / 256.0f,
+	    return new Color3f(color.getRed() / 256.0f,
 		    color.getGreen() / 256.0f, color.getBlue() / 256.0f);
 	}
 
@@ -1076,7 +1076,7 @@ public class MainGUI extends JFrame {
 			    File file = chooser.getSelectedFile();
 			    TriangleMesh[] meshes = loader.load(file);
 			    for (TriangleMesh mesh : meshes) {
-				mesh.setBSDF(bsdfList.get(0));
+				mesh.setMaterial(bsdfList.get(0));
 				mesh.finish();
 				sceneGraph.addMesh(mesh);
 				meshesList.add(mesh);
@@ -1122,7 +1122,7 @@ public class MainGUI extends JFrame {
 			    ObjectInputStream ois = new ObjectInputStream(
 				    new BufferedInputStream(
 					    new FileInputStream(file)));
-			    sceneGraph = (SceneGraph) ois.readObject();
+			    sceneGraph = (Scene) ois.readObject();
 			    camera.setScene(sceneGraph);
 			    viewPanel.display();
 			    ois.close();
@@ -1203,15 +1203,15 @@ public class MainGUI extends JFrame {
 	}
 
 	public void relocateCamera() {
-	    cam.lookAt(new Vec3(30, 0, 30), new Vec3(0, 0, 0),
-		    new Vec3(0, 1, 0));
+	    cam.lookAt(new Vec3f(30, 0, 30), new Vec3f(0, 0, 0),
+		    new Vec3f(0, 1, 0));
 	}
 
 	private void drawGrids(float d, GL2 gl) {
 	    int n = 8;
 	    float x, z, beg = -d * n, end = d * n;
 	    LHCoordinateSystem coSys = cam.getCoordinateSystem();
-	    Vec3 v0 = new Vec3(), v1 = new Vec3();
+	    Vec3f v0 = new Vec3f(), v1 = new Vec3f();
 	    gl.glDisable(GL2.GL_LIGHTING);
 	    gl.glBegin(GL2.GL_LINES);
 	    gl.glColor3f(0.4f, 0.4f, 0.4f);
@@ -1246,8 +1246,8 @@ public class MainGUI extends JFrame {
 	private int oldX, oldY;
 	@SuppressWarnings("unused")
 	private boolean isKeyPressing = false;
-	private Vec3 dv = new Vec3(), n = new Vec3();
-	private Vec3 v1 = new Vec3(), v2 = new Vec3();
+	private Vec3f dv = new Vec3f(), n = new Vec3f();
+	private Vec3f v1 = new Vec3f(), v2 = new Vec3f();
 	private Cursor moveCursor = new Cursor(Cursor.MOVE_CURSOR);
 
 	public void mouseWheelMoved(MouseWheelEvent e) {
@@ -1256,7 +1256,7 @@ public class MainGUI extends JFrame {
 	    }
 	    setCursor(new Cursor(Cursor.N_RESIZE_CURSOR));
 	    int ticks = e.getWheelRotation();
-	    cam.translate(new Vec3(0, 0, -ticks * 3));
+	    cam.translate(new Vec3f(0, 0, -ticks * 3));
 	    display();
 	}
 
@@ -1268,7 +1268,7 @@ public class MainGUI extends JFrame {
 	    case MouseEvent.BUTTON1:
 		selectedMesh = cam.pick(e.getX(), e.getY());
 		if (selectedMesh != null) {
-		    bsdfEditDialog.loadBSDF(selectedMesh.getBSDF());
+		    bsdfEditDialog.loadBSDF(selectedMesh.getMaterial());
 		}
 		viewPanel.display();
 		break;
@@ -1316,7 +1316,7 @@ public class MainGUI extends JFrame {
 	    cam.getLocalPointFromViewport(oldX, oldY, v1);
 	    v2.z = cam.getZNear();
 	    v1.z = cam.getZNear();
-	    dv = Vec3.sub(v1, v2);
+	    dv = Vec3f.sub(v1, v2);
 	    dv.normalize();
 	    switch (button) {
 	    case MouseEvent.BUTTON1:
@@ -1353,7 +1353,7 @@ public class MainGUI extends JFrame {
 		case ROTATE_MODE:
 		    v1.normalize();
 		    v2.normalize();
-		    float angle = (float) (3 * Math.acos(Vec3.dot(v1, v2)) * 180 / Math.PI);
+		    float angle = (float) (3 * Math.acos(Vec3f.dot(v1, v2)) * 180 / Math.PI);
 		    if (selectedMesh != null) {
 			switch (lockAxis) {
 			case AXIS_X:
@@ -1396,8 +1396,8 @@ public class MainGUI extends JFrame {
 	    case MouseEvent.BUTTON3:
 		v1.normalize();
 		v2.normalize();
-		float angle = (float) (3 * Math.acos(Vec3.dot(v1, v2)) * 180 / Math.PI);
-		n = Vec3.cross(v1, v2);
+		float angle = (float) (3 * Math.acos(Vec3f.dot(v1, v2)) * 180 / Math.PI);
+		n = Vec3f.cross(v1, v2);
 		n.normalize();
 		cam.rotate(n, angle);
 		display();

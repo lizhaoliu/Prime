@@ -1,7 +1,6 @@
 package prime.model;
 
 import java.io.Serializable;
-import java.util.ArrayList;
 import java.util.List;
 
 import javax.media.opengl.GL2;
@@ -10,17 +9,16 @@ import javax.media.opengl.glu.GLU;
 import prime.core.Camera;
 import prime.core.Drawable;
 import prime.math.MathUtils;
-import prime.math.Tuple3;
-import prime.math.Vec3;
-import prime.physics.BSDF;
+import prime.math.Vec3f;
+import prime.math.Vec3i;
+import prime.physics.Material;
 import prime.physics.Ray;
-import prime.physics.Spectrum;
+import prime.physics.Color3f;
+
+import com.google.common.collect.Lists;
 
 /**
- * a triangle mesh
- * 
- * @author lizhaoliu
- * 
+ * TriangleMesh is a 3D model consisted of {@link Triangle} 
  */
 public class TriangleMesh implements Drawable, Serializable {
 	private static final long serialVersionUID = 6079627240260644846L;
@@ -31,21 +29,17 @@ public class TriangleMesh implements Drawable, Serializable {
 	private transient boolean isToGenList = true;
 
 	private int nTriangles; // number of triangles
-	private float area; // the area of triangle meshs
+	private float area; 	// the area of triangle meshs
 
-	private List<Vec3> vertexBuffer = new ArrayList<Vec3>(); // vertices array
-	private List<Vec3> normalBuffer = new ArrayList<Vec3>(); // normals array
-	private List<Vec3> textureBuffer = new ArrayList<Vec3>(); // texture coordinates array
+	private List<Vec3f> vertexBuffer = Lists.newArrayList(); // vertices array
+	private List<Vec3f> normalBuffer = Lists.newArrayList(); // normals array
+	private List<Vec3f> texCoordBuffer = Lists.newArrayList(); // texture coordinates array
 
-	private List<Tuple3> vertexIndexBuffer = new ArrayList<Tuple3>(); // vertices
-	// index
-	private List<Tuple3> normalIndexBuffer = new ArrayList<Tuple3>(); // normals
-	// index
-	private List<Tuple3> textureIndexBuffer = new ArrayList<Tuple3>(); // texture
-	// coordinates
-	// array
+	private List<Vec3i> vertexIndexBuffer = Lists.newArrayList(); // vertex array index buffer
+	private List<Vec3i> normalIndexBuffer = Lists.newArrayList(); // normals
+	private List<Vec3i> texCoordsIndexBuffer = Lists.newArrayList(); // texture
 
-	private BSDF bsdf;
+	private Material material;
 	private String name;
 
 	private BoundingBox bb = new BoundingBox(Float.MAX_VALUE, Float.MAX_VALUE,
@@ -61,55 +55,55 @@ public class TriangleMesh implements Drawable, Serializable {
 		thisNum = ++numMeshes;
 	}
 
-	public void addVertex(Vec3 v) {
-		this.vertexBuffer.add(new Vec3(v));
+	public void addVertex(Vec3f v) {
+		this.vertexBuffer.add(new Vec3f(v));
 	}
 
-	public void addNormal(Vec3 n) {
-		this.normalBuffer.add(new Vec3(n));
+	public void addNormal(Vec3f n) {
+		this.normalBuffer.add(new Vec3f(n));
 	}
 
-	public void addTexCoord(Vec3 t) {
-		this.textureBuffer.add(new Vec3(t));
+	public void addTexCoord(Vec3f t) {
+		this.texCoordBuffer.add(new Vec3f(t));
 	}
 
-	public void addVertexIndex(Tuple3 vi) {
+	public void addVertexIndex(Vec3i vi) {
 		vertexIndexBuffer.add(vi);
 	}
 
-	public void addNormalIndex(Tuple3 ni) {
+	public void addNormalIndex(Vec3i ni) {
 		normalIndexBuffer.add(ni);
 	}
 
-	public void addTexCoordIndex(Tuple3 ti) {
-		textureIndexBuffer.add(ti);
+	public void addTexCoordIndex(Vec3i ti) {
+		texCoordsIndexBuffer.add(ti);
 	}
 
-	public void setVertexList(List<Vec3> v) {
+	public void setVertexList(List<Vec3f> v) {
 		this.vertexBuffer.clear();
 		this.vertexBuffer.addAll(v);
 	}
 
-	public void setNormalList(List<Vec3> n) {
+	public void setNormalList(List<Vec3f> n) {
 		this.normalBuffer.clear();
 		this.normalBuffer.addAll(n);
 	}
 
-	public void setTexCoordList(List<Vec3> t) {
-		this.textureBuffer.clear();
-		this.textureBuffer.addAll(t);
+	public void setTexCoordList(List<Vec3f> t) {
+		this.texCoordBuffer.clear();
+		this.texCoordBuffer.addAll(t);
 	}
 
-	public void setSharedVertexList(List<Vec3> v) {
+	public void setSharedVertexList(List<Vec3f> v) {
 		this.vertexBuffer = v;
 	}
 
-	public void setSharedNormalList(List<Vec3> n) {
+	public void setSharedNormalList(List<Vec3f> n) {
 		this.normalBuffer = n;
 	}
 
-	public void setSharedTexCoordList(List<Vec3> t) {
-		this.textureBuffer = t;
+	public void setSharedTexCoordList(List<Vec3f> t) {
+		this.texCoordBuffer = t;
 	}
 
 	/**
@@ -119,10 +113,7 @@ public class TriangleMesh implements Drawable, Serializable {
 	public Triangle[] getTriangleArray() {
 		Triangle[] triArray = new Triangle[nTriangles];
 		for (int i = 0; i < nTriangles; i++) {
-			Triangle t = new Triangle();
-			t.setTriangleMesh(this);
-			t.setIndex(i);
-			triArray[i] = t;
+			triArray[i] = new Triangle(this, i);
 		}
 		return triArray;
 	}
@@ -149,7 +140,7 @@ public class TriangleMesh implements Drawable, Serializable {
 	 * @param iV
 	 * @return
 	 */
-	public Vec3 getVertex(int index, int iV) {
+	public Vec3f getVertex(int index, int iV) {
 		return vertexBuffer.get(vertexIndexBuffer.get(index).get(iV));
 	}
 
@@ -159,7 +150,7 @@ public class TriangleMesh implements Drawable, Serializable {
 	 * @param iN
 	 * @return
 	 */
-	public Vec3 getNormal(int index, int iN) {
+	public Vec3f getNormal(int index, int iN) {
 		return normalBuffer.get(normalIndexBuffer.get(index).get(iN));
 	}
 
@@ -169,8 +160,8 @@ public class TriangleMesh implements Drawable, Serializable {
 	 * @param iT
 	 * @return
 	 */
-	public Vec3 getTexCoord(int index, int iT) {
-		return textureBuffer.get(textureIndexBuffer.get(index).get(iT));
+	public Vec3f getTexCoord(int index, int iT) {
+		return texCoordBuffer.get(texCoordsIndexBuffer.get(index).get(iT));
 	}
 
 	/**
@@ -178,7 +169,7 @@ public class TriangleMesh implements Drawable, Serializable {
 	 * @param gl
 	 */
 	private void genList(GL2 gl) {
-		Vec3 buf;
+		Vec3f buf;
 		gl.glNewList(thisNum, GL2.GL_COMPILE);
 		gl.glBegin(GL2.GL_TRIANGLES);
 		for (int i = 0; i < nTriangles; i++) // iterate all faces, the ith faces
@@ -240,7 +231,7 @@ public class TriangleMesh implements Drawable, Serializable {
 		gl.glLoadIdentity();
 		gl.glMultMatrixf(camera.getCoordinateSystem()
 				.getInversedMatrixArrayInColumnOrder(s), 0);
-		Spectrum c = bsdf.getReflectance();
+		Color3f c = material.getReflectance();
 		s[0] = c.r;
 		s[1] = c.g;
 		s[2] = c.b;
@@ -275,8 +266,7 @@ public class TriangleMesh implements Drawable, Serializable {
 	private void calculateArea() {
 		area = 0.0f;
 		for (int i = 0; i < nTriangles; i++) {
-			area += Triangle.getArea(getVertex(i, 0), getVertex(i, 1),
-					getVertex(i, 2));
+			area += Triangle.getArea(getVertex(i, 0), getVertex(i, 1), getVertex(i, 2));
 		}
 	}
 
@@ -292,18 +282,18 @@ public class TriangleMesh implements Drawable, Serializable {
 
 	/**
 	 * 
-	 * @param mat
+	 * @param material
 	 */
-	public void setBSDF(BSDF mat) {
-		bsdf = mat;
+	public void setMaterial(Material material) {
+		this.material = material;
 	}
 
 	/**
 	 * 
 	 * @return
 	 */
-	public BSDF getBSDF() {
-		return bsdf;
+	public Material getMaterial() {
+		return material;
 	}
 
 	/**
@@ -311,7 +301,7 @@ public class TriangleMesh implements Drawable, Serializable {
 	 * @param dst
 	 * @return
 	 */
-	public Vec3 randomPoint(Vec3 dst) {
+	public Vec3f randomPoint(Vec3f dst) {
 		int base = (int) (Math.random() * nTriangles);
 		Triangle.getRandomPoint(getVertex(base, 0), getVertex(base, 1),
 				getVertex(base, 2), dst);
@@ -323,7 +313,7 @@ public class TriangleMesh implements Drawable, Serializable {
 	 * @param dst
 	 * @return
 	 */
-	public Vec3 randomNormal(Vec3 dst) {
+	public Vec3f randomNormal(Vec3f dst) {
 		int base = (int) (Math.random() * nTriangles);
 		Triangle.getRandomPoint(getNormal(base, 0), getNormal(base, 1),
 				getNormal(base, 2), dst);
@@ -335,16 +325,16 @@ public class TriangleMesh implements Drawable, Serializable {
 	 * @param dst
 	 */
 	public void emitRandomRay(Ray dst) {
-		Vec3 origin = new Vec3();
+		Vec3f origin = new Vec3f();
 		randomPoint(origin);
 		dst.setOrigin(origin);
-		Vec3 n = new Vec3();
+		Vec3f n = new Vec3f();
 		randomNormal(n);
-		Vec3 normal = new Vec3();
+		Vec3f normal = new Vec3f();
 		MathUtils.randomDirectionInHemisphere(n, normal);
 		dst.setDirection(normal);
 		dst.setLength(Float.MAX_VALUE);
-		dst.setSpectrum(bsdf.getEmittance());
+		dst.setSpectrum(material.getEmittance());
 	}
 
 	/**

@@ -5,7 +5,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 
-import prime.math.Vec3;
+import prime.math.Vec3f;
 import prime.model.BoundingBox;
 
 /**
@@ -25,7 +25,7 @@ public class KDTree {
 		query1(region, head, resList);
 	}
 
-	public void query(Vec3 center, float r, List<Photon> resList) {
+	public void query(Vec3f center, float r, List<Photon> resList) {
 		query2(center, r, head, resList);
 	}
 
@@ -36,7 +36,7 @@ public class KDTree {
 	 * @param n
 	 * @param resList
 	 */
-	public float nearestNeighbors(Vec3 p, float initR, int n,
+	public float nearestNeighbors(Vec3f p, float initR, int n,
 			List<Photon> resList) {
 		query(p, initR, resList);
 		while (resList.size() < n) {
@@ -45,10 +45,10 @@ public class KDTree {
 			query(p, initR, resList);
 		}
 		Collections.sort(resList, new DistanceComparator(p));
-		return Vec3.distance(p, resList.get(n - 1).location);
+		return Vec3f.distance(p, resList.get(n - 1).location);
 	}
 
-	private void query2(Vec3 center, float r, KDNode currNode,
+	private void query2(Vec3f center, float r, KDNode currNode,
 			List<Photon> resList) {
 		int axis = currNode.subdivisionAxis;
 		float midValue = currNode.midValue;
@@ -57,7 +57,7 @@ public class KDTree {
 			List<Photon> pList = currNode.pList;
 			for (int i = 0; i < pList.size(); i++) {
 				p = pList.get(i);
-				if (Vec3.distance(p.location, center) < r) {
+				if (Vec3f.distance(p.location, center) < r) {
 					resList.add(p);
 				}
 			}
@@ -75,8 +75,8 @@ public class KDTree {
 
 	private void query1(BoundingBox region, KDNode currNode,
 			List<Photon> resList) {
-		Vec3 min = region.getMinPoint();
-		Vec3 max = region.getMaxPoint();
+		Vec3f min = region.getMinPoint();
+		Vec3f max = region.getMaxPoint();
 		int axis = currNode.subdivisionAxis;
 		float midValue = currNode.midValue;
 		if (currNode.isLeaf()) {
@@ -143,14 +143,14 @@ class KDNode {
 }
 
 class DistanceComparator implements Comparator<Photon> {
-	private Vec3 center;
+	private Vec3f center;
 
-	public DistanceComparator(Vec3 center) {
+	public DistanceComparator(Vec3f center) {
 		this.center = center;
 	}
 
 	public int compare(Photon o1, Photon o2) {
-		float d1 = Vec3.distanceSqr(o1.location, center), d2 = Vec3
+		float d1 = Vec3f.distanceSqr(o1.location, center), d2 = Vec3f
 				.distanceSqr(o2.location, center);
 		if (d1 < d2) {
 			return -1;

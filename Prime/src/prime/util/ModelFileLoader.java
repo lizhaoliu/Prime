@@ -9,8 +9,8 @@ import java.util.List;
 
 
 import prime.gui.MainGUI;
-import prime.math.Tuple3;
-import prime.math.Vec3;
+import prime.math.Vec3i;
+import prime.math.Vec3f;
 import prime.model.TriangleMesh;
 
 /**
@@ -48,9 +48,9 @@ public class ModelFileLoader {
      * @throws IOException
      */
     private TriangleMesh[] loadOBJFile(File file) throws IOException {
-	List<Vec3> vList = new ArrayList<Vec3>();
-	List<Vec3> nList = new ArrayList<Vec3>();
-	List<Vec3> tList = new ArrayList<Vec3>();
+	List<Vec3f> vList = new ArrayList<Vec3f>();
+	List<Vec3f> nList = new ArrayList<Vec3f>();
+	List<Vec3f> tList = new ArrayList<Vec3f>();
 
 	BufferedReader reader = new BufferedReader(new FileReader(file));
 	String line;
@@ -67,7 +67,7 @@ public class ModelFileLoader {
 	    } else if (buf0 == 'v') {
 		String[] ss = line.split(" ");
 		int len = ss.length;
-		Vec3 v = new Vec3(Float.parseFloat(ss[len - 3]), Float
+		Vec3f v = new Vec3f(Float.parseFloat(ss[len - 3]), Float
 			.parseFloat(ss[len - 2]), Float.parseFloat(ss[len - 1]));
 		char buf1 = line.charAt(1);
 		if (buf1 == ' ') // vertex
@@ -138,36 +138,36 @@ public class ModelFileLoader {
 			i0 = Integer.parseInt(data[i][0]) - 1;
 			i1 = Integer.parseInt(data[i + 1][0]) - 1;
 			i2 = Integer.parseInt(data[i + 2][0]) - 1;
-			result[iMeshes].addVertexIndex(new Tuple3(i0, i1, i2));
+			result[iMeshes].addVertexIndex(new Vec3i(i0, i1, i2));
 			break;
 
 		    case 1: // %d//%d
 			i0 = Integer.parseInt(data[i][0]) - 1;
 			i1 = Integer.parseInt(data[i + 1][0]) - 1;
 			i2 = Integer.parseInt(data[i + 2][0]) - 1;
-			result[iMeshes].addVertexIndex(new Tuple3(i0, i1, i2));
+			result[iMeshes].addVertexIndex(new Vec3i(i0, i1, i2));
 
 			i0 = Integer.parseInt(data[i][2]) - 1;
 			i1 = Integer.parseInt(data[i + 1][2]) - 1;
 			i2 = Integer.parseInt(data[i + 2][2]) - 1;
-			result[iMeshes].addNormalIndex(new Tuple3(i0, i1, i2));
+			result[iMeshes].addNormalIndex(new Vec3i(i0, i1, i2));
 			break;
 
 		    default:// %d/%d/%d
 			i0 = Integer.parseInt(data[i][0]) - 1;
 			i1 = Integer.parseInt(data[i + 1][0]) - 1;
 			i2 = Integer.parseInt(data[i + 2][0]) - 1;
-			result[iMeshes].addVertexIndex(new Tuple3(i0, i1, i2));
+			result[iMeshes].addVertexIndex(new Vec3i(i0, i1, i2));
 
 			i0 = Integer.parseInt(data[i][1]) - 1;
 			i1 = Integer.parseInt(data[i + 1][1]) - 1;
 			i2 = Integer.parseInt(data[i + 2][1]) - 1;
-			result[iMeshes].addTexCoordIndex(new Tuple3(i0, i1, i2));
+			result[iMeshes].addTexCoordIndex(new Vec3i(i0, i1, i2));
 
 			i0 = Integer.parseInt(data[i][2]) - 1;
 			i1 = Integer.parseInt(data[i + 1][2]) - 1;
 			i2 = Integer.parseInt(data[i + 2][2]) - 1;
-			result[iMeshes].addNormalIndex(new Tuple3(i0, i1, i2));
+			result[iMeshes].addNormalIndex(new Vec3i(i0, i1, i2));
 		    }
 		}
 		;

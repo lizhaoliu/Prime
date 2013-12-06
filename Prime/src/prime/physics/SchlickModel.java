@@ -1,37 +1,37 @@
 package prime.physics;
 
-import prime.math.Vec3;
+import prime.math.Vec3f;
 
-public class SchlickModel extends BSDF {
+public class SchlickModel extends Material {
     private float f0; // specular reflection at normal incidence
     private float sigma; // roughness factor(0 : perfectly smooth; 1 : ideal
 			 // diffuse
     private float psi; // isotropy factor(0 : perfect anisotropic; 1 : isotropic
 
     @Override
-    public float samplingReflectionDirection(Vec3 origin,
-	    Vec3 normal, Vec3 inDir, Vec3 dest) {
+    public float samplingReflectionDirection(Vec3f origin,
+	    Vec3f normal, Vec3f inDir, Vec3f dest) {
 	// TODO Auto-generated method stub
 	return 1.0f;
     }
 
     @Override
-    public float samplingTransmissionDirection(Vec3 origin,
-	    Vec3 normal, Vec3 inDir, Vec3 dest) {
+    public float samplingTransmissionDirection(Vec3f origin,
+	    Vec3f normal, Vec3f inDir, Vec3f dest) {
 	// TODO Auto-generated method stub
 	return 1.0f;
     }
 
     @Override
-    public void brdf(Vec3 origin, Vec3 normal, Vec3 inDir,
-	    Vec3 outDir, Spectrum dest) {
+    public void brdf(Vec3f origin, Vec3f normal, Vec3f inDir,
+	    Vec3f outDir, Color3f dest) {
 	// TODO Auto-generated method stub
-	Vec3 H = Vec3.add(inDir, outDir);
+	Vec3f H = Vec3f.add(inDir, outDir);
 	H.normalize();
-	float u = Vec3.dot(outDir, H);
-	float t = Vec3.dot(normal, H);
-	float v = Vec3.dot(outDir, normal);
-	float vdot = -Vec3.dot(inDir, normal);
+	float u = Vec3f.dot(outDir, H);
+	float t = Vec3f.dot(normal, H);
+	float v = Vec3f.dot(outDir, normal);
+	float vdot = -Vec3f.dot(inDir, normal);
 	float w = (float) (Math.random());
 	float g = 4 * sigma * (1 - sigma);
 	float d = (sigma < 0.5f ? 0.0f : 1 - g);
@@ -64,8 +64,8 @@ public class SchlickModel extends BSDF {
     }
 
     @Override
-    public void btdf(Vec3 origin, Vec3 normal, Vec3 inDir,
-	    Vec3 outDir, Spectrum dest) {
+    public void btdf(Vec3f origin, Vec3f normal, Vec3f inDir,
+	    Vec3f outDir, Color3f dest) {
 	// TODO Auto-generated method stub
 
     }

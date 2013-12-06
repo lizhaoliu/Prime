@@ -3,9 +3,6 @@ package prime.math;
 
 /**
  * The Gaussian filter
- * 
- * @author lizhaoliu
- * 
  */
 public class GaussianFilter implements Filter {
 	private float alpha = 0.918f, beta = 1.953f;

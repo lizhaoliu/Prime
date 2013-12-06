@@ -7,7 +7,7 @@ import java.io.Serializable;
  * 
  * @author lizhaoliu
  */
-public class Vec3 implements Serializable, Cloneable {
+public class Vec3f implements Serializable, Cloneable {
 	private static final long serialVersionUID = 7314440075896007971L;
 
 	private static float[] xDir, yDir, zDir;
@@ -42,10 +42,10 @@ public class Vec3 implements Serializable, Cloneable {
 	/**
 	 * 
 	 */
-	public Vec3() {
+	public Vec3f() {
 	}
 
-	public Vec3(int code) {
+	public Vec3f(int code) {
 		z = zDir[code & 0x000000ff];
 		code >>= 8;
 		y = zDir[code & 0x0000ff];
@@ -60,7 +60,7 @@ public class Vec3 implements Serializable, Cloneable {
 	 * @param y
 	 * @param z
 	 */
-	public Vec3(float x, float y, float z) {
+	public Vec3f(float x, float y, float z) {
 		this.x = x;
 		this.y = y;
 		this.z = z;
@@ -70,7 +70,7 @@ public class Vec3 implements Serializable, Cloneable {
 	 * 
 	 * @param v
 	 */
-	public Vec3(Vec3 v) {
+	public Vec3f(Vec3f v) {
 		x = v.x;
 		y = v.y;
 		z = v.z;
@@ -104,7 +104,7 @@ public class Vec3 implements Serializable, Cloneable {
 	 * 
 	 * @param v
 	 */
-	public void set(Vec3 v) {
+	public void set(Vec3f v) {
 		x = v.x;
 		y = v.y;
 		z = v.z;
@@ -117,7 +117,7 @@ public class Vec3 implements Serializable, Cloneable {
 	 * @param z
 	 * @return
 	 */
-	public Vec3 set(float x, float y, float z) {
+	public Vec3f set(float x, float y, float z) {
 		this.x = x;
 		this.y = y;
 		this.z = z;
@@ -130,7 +130,7 @@ public class Vec3 implements Serializable, Cloneable {
 	 * @param val
 	 * @return
 	 */
-	public Vec3 set(int i, float val) {
+	public Vec3f set(int i, float val) {
 		switch (i) {
 		case 0:
 			x = val;
@@ -148,7 +148,7 @@ public class Vec3 implements Serializable, Cloneable {
 	 * 
 	 * @return
 	 */
-	public Vec3 normalize() {
+	public Vec3f normalize() {
 		float invLen = 1.0f / (float) Math.sqrt(x * x + y * y + z * z);
 		x *= invLen;
 		y *= invLen;
@@ -161,7 +161,7 @@ public class Vec3 implements Serializable, Cloneable {
 	 * @param v
 	 * @return
 	 */
-	public Vec3 add(Vec3 v) {
+	public Vec3f add(Vec3f v) {
 		x += v.x;
 		y += v.y;
 		z += v.z;
@@ -175,7 +175,7 @@ public class Vec3 implements Serializable, Cloneable {
 	 * @param z
 	 * @return
 	 */
-	public Vec3 add(float x, float y, float z) {
+	public Vec3f add(float x, float y, float z) {
 		this.x += x;
 		this.y += y;
 		this.z += z;
@@ -189,8 +189,8 @@ public class Vec3 implements Serializable, Cloneable {
 	 * @param dst
 	 * @return
 	 */
-	public static Vec3 add(Vec3 v1, Vec3 v2) {
-		return new Vec3(v1.x + v2.x, v1.y + v2.y, v1.z + v2.z);
+	public static Vec3f add(Vec3f v1, Vec3f v2) {
+		return new Vec3f(v1.x + v2.x, v1.y + v2.y, v1.z + v2.z);
 	}
 
 	/**
@@ -198,7 +198,7 @@ public class Vec3 implements Serializable, Cloneable {
 	 * @param v
 	 * @return
 	 */
-	public Vec3 sub(Vec3 v) {
+	public Vec3f sub(Vec3f v) {
 		x -= v.x;
 		y -= v.y;
 		z -= v.z;
@@ -212,7 +212,7 @@ public class Vec3 implements Serializable, Cloneable {
 	 * @param z
 	 * @return
 	 */
-	public Vec3 sub(float x, float y, float z) {
+	public Vec3f sub(float x, float y, float z) {
 		this.x -= x;
 		this.y -= y;
 		this.z -= z;
@@ -226,8 +226,8 @@ public class Vec3 implements Serializable, Cloneable {
 	 * @param dst
 	 * @return
 	 */
-	public static Vec3 sub(Vec3 v1, Vec3 v2) {
-		return new Vec3(v1.x - v2.x, v1.y - v2.y, v1.z - v2.z);
+	public static Vec3f sub(Vec3f v1, Vec3f v2) {
+		return new Vec3f(v1.x - v2.x, v1.y - v2.y, v1.z - v2.z);
 	}
 
 	/**
@@ -235,7 +235,7 @@ public class Vec3 implements Serializable, Cloneable {
 	 * @param a
 	 * @return
 	 */
-	public Vec3 mul(float a) {
+	public Vec3f mul(float a) {
 		x *= a;
 		y *= a;
 		z *= a;
@@ -249,8 +249,8 @@ public class Vec3 implements Serializable, Cloneable {
 	 * @param dst
 	 * @return
 	 */
-	public static Vec3 mul(float a, Vec3 v) {
-		return new Vec3(a * v.x, a * v.y, a * v.z);
+	public static Vec3f mul(float a, Vec3f v) {
+		return new Vec3f(a * v.x, a * v.y, a * v.z);
 	}
 
 	/**
@@ -260,8 +260,8 @@ public class Vec3 implements Serializable, Cloneable {
 	 * @param dst
 	 * @return
 	 */
-	public static Vec3 mul(Vec3 v, float a) {
-		return new Vec3(a * v.x, a * v.y, a * v.z);
+	public static Vec3f mul(Vec3f v, float a) {
+		return new Vec3f(a * v.x, a * v.y, a * v.z);
 	}
 
 	/**
@@ -271,10 +271,10 @@ public class Vec3 implements Serializable, Cloneable {
 	 * @param dst
 	 * @return
 	 */
-	public static Vec3 mul(Mat3 m, Vec3 v) {
-		return new Vec3 (m.m00 * v.x + m.m01 * v.y + m.m02 * v.z, 
-				m.m10 * v.x + m.m11 * v.y + m.m12 * v.z, 
-				m.m20 * v.x + m.m21 * v.y + m.m22 * v.z);
+	public static Vec3f mul(Mat3 m, Vec3f v) {
+		return new Vec3f(m.m00 * v.x + m.m01 * v.y + m.m02 * v.z, m.m10 * v.x
+				+ m.m11 * v.y + m.m12 * v.z, m.m20 * v.x + m.m21 * v.y + m.m22
+				* v.z);
 	}
 
 	/**
@@ -284,9 +284,10 @@ public class Vec3 implements Serializable, Cloneable {
 	 * @param dst
 	 * @return
 	 */
-	public static Vec3 mul(Vec3 v, Mat3 m) {
-		return new Vec3(m.m00 * v.x + m.m10 * v.y + m.m20 * v.z, m.m01 * v.x + m.m11
-				* v.y + m.m21 * v.z, m.m02 * v.x + m.m12 * v.y + m.m22 * v.z);
+	public static Vec3f mul(Vec3f v, Mat3 m) {
+		return new Vec3f(m.m00 * v.x + m.m10 * v.y + m.m20 * v.z, m.m01 * v.x
+				+ m.m11 * v.y + m.m21 * v.z, m.m02 * v.x + m.m12 * v.y + m.m22
+				* v.z);
 	}
 
 	/**
@@ -296,8 +297,8 @@ public class Vec3 implements Serializable, Cloneable {
 	 * @param dst
 	 * @return
 	 */
-	public static Vec3 cross(Vec3 v1, Vec3 v2) {
-		return new Vec3(v1.y * v2.z - v1.z * v2.y, v1.z * v2.x - v1.x * v2.z,
+	public static Vec3f cross(Vec3f v1, Vec3f v2) {
+		return new Vec3f(v1.y * v2.z - v1.z * v2.y, v1.z * v2.x - v1.x * v2.z,
 				v1.x * v2.y - v1.y * v2.x);
 	}
 
@@ -305,7 +306,7 @@ public class Vec3 implements Serializable, Cloneable {
 	 * 
 	 * @return
 	 */
-	public Vec3 negate() {
+	public Vec3f negate() {
 		x = -x;
 		y = -y;
 		z = -z;
@@ -318,7 +319,7 @@ public class Vec3 implements Serializable, Cloneable {
 	 * @param v2
 	 * @return
 	 */
-	public static float dot(Vec3 v1, Vec3 v2) {
+	public static float dot(Vec3f v1, Vec3f v2) {
 		return (v1.x * v2.x + v1.y * v2.y + v1.z * v2.z);
 	}
 
@@ -328,7 +329,7 @@ public class Vec3 implements Serializable, Cloneable {
 	 * @param v2
 	 * @return
 	 */
-	public static float distance(Vec3 v1, Vec3 v2) {
+	public static float distance(Vec3f v1, Vec3f v2) {
 		float dx = v1.x - v2.x, dy = v1.y - v2.y, dz = v1.z - v2.z;
 		return (float) Math.sqrt(dx * dx + dy * dy + dz * dz);
 	}
@@ -339,7 +340,7 @@ public class Vec3 implements Serializable, Cloneable {
 	 * @param v2
 	 * @return
 	 */
-	public static float distanceSqr(Vec3 v1, Vec3 v2) {
+	public static float distanceSqr(Vec3f v1, Vec3f v2) {
 		float dx = v1.x - v2.x, dy = v1.y - v2.y, dz = v1.z - v2.z;
 		return (dx * dx + dy * dy + dz * dz);
 	}
@@ -351,7 +352,7 @@ public class Vec3 implements Serializable, Cloneable {
 	 * @param v3
 	 * @return
 	 */
-	public static float tripleProduct(Vec3 v1, Vec3 v2, Vec3 v3) {
+	public static float tripleProduct(Vec3f v1, Vec3f v2, Vec3f v3) {
 		return ((v1.y * v2.z - v1.z * v2.y) * v3.x
 				+ (v1.z * v2.x - v1.x * v2.z) * v3.y + (v1.x * v2.y - v1.y
 				* v2.x)

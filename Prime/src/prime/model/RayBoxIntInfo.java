@@ -1,5 +1,10 @@
 package prime.model;
 
+import prime.physics.Ray;
+
+/**
+ * {@link Ray} and {@link BoundingBox} intersection test result
+ */
 public final class RayBoxIntInfo {
 	private final boolean isHit;
 	private final float min;

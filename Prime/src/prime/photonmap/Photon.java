@@ -3,9 +3,9 @@ package prime.photonmap;
 import java.io.Serializable;
 
 
-import prime.math.Vec3;
-import prime.physics.BSDF;
-import prime.physics.Spectrum;
+import prime.math.Vec3f;
+import prime.physics.Material;
+import prime.physics.Color3f;
 
 /**
  * 
@@ -15,14 +15,14 @@ import prime.physics.Spectrum;
 public class Photon implements Serializable {
     private static final long serialVersionUID = 8286259430083090915L;
 
-    public Spectrum spectrum = new Spectrum();
-    public Vec3 location = new Vec3();
-    public Vec3 normal = new Vec3();
-    public Vec3 inDir = new Vec3();
-    public BSDF bsdf;
+    public Color3f spectrum = new Color3f();
+    public Vec3f location = new Vec3f();
+    public Vec3f normal = new Vec3f();
+    public Vec3f inDir = new Vec3f();
+    public Material bsdf;
 
-    public Photon(Vec3 location, Vec3 normal, Vec3 inDir, BSDF bsdf,
-	    Spectrum spectrum) {
+    public Photon(Vec3f location, Vec3f normal, Vec3f inDir, Material bsdf,
+	    Color3f spectrum) {
 	this.location.set(location);
 	this.normal.set(normal);
 	this.inDir.set(inDir);
@@ -31,6 +31,6 @@ public class Photon implements Serializable {
     }
 
     public float distance(Photon p) {
-	return Vec3.distance(location, p.location);
+	return Vec3f.distance(location, p.location);
     }
 }

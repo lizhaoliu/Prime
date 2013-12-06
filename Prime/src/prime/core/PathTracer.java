@@ -1,28 +1,26 @@
 package prime.core;
 
-//import org.llz.rt.photonmap.Photon;
 import prime.math.MathUtils;
-import prime.math.Vec3;
+import prime.math.Vec3f;
 import prime.model.RayTriIntInfo;
 import prime.model.Triangle;
-import prime.physics.BSDF;
+import prime.physics.Material;
 import prime.physics.Ray;
-import prime.physics.Spectrum;
+import prime.physics.Color3f;
 
 /**
- * the path-tracing renderer
- * @author lizhaoliu
- *
+ * Path tracing renderer 
  */
 public class PathTracer extends Renderer {
 	// private Photon photon;
 
-	public void prepareForRendering() {
+	public void preprocess() {
+		
 	}
 
 	public void render(Ray srcRay) {
 		// tracePhoton(1);
-		tracePath(srcRay, 1);
+		render(srcRay, 1);
 	}
 
 	/**
@@ -30,8 +28,8 @@ public class PathTracer extends Renderer {
 	 * @param srcRay
 	 * @param depth
 	 */
-	private void tracePath(Ray srcRay, int depth) {
-		Spectrum dstSpectrum = srcRay.getSpectrum();
+	private void render(Ray srcRay, int depth) {
+		Color3f dstSpectrum = srcRay.getSpectrum();
 		//
 		srcRay.setLengthToMax();
 		RayTriIntInfo intRes = new RayTriIntInfo();
@@ -43,20 +41,20 @@ public class PathTracer extends Renderer {
 		}
 
 		Triangle intTriangle = intRes.getTriangle();
-		BSDF bsdf = intTriangle.getBSDF();
+		Material bsdf = intTriangle.getMaterial();
 		if (bsdf.isLight()) {
 			dstSpectrum.add(bsdf.getEmittance());
 			return;
 		}
 
 		Ray newRay = new Ray();
-		Vec3 newDir = newRay.getDirection();
+		Vec3f newDir = newRay.getDirection();
 		float u = intRes.getU(), v = intRes.getV();
-		Vec3 hitPoint = new Vec3(), normal = new Vec3();// , texCoord =
+		Vec3f hitPoint = new Vec3f(), normal = new Vec3f();// , texCoord =
 		// new
 		// Vector3();
-		Vec3 srcDir = srcRay.getDirection();
-		hitPoint = intTriangle.interpolateVertex(u, v);
+		Vec3f srcDir = srcRay.getDirection();
+		hitPoint = intTriangle.interpolatePosition(u, v);
 		normal = intTriangle.interpolateNormal(u, v);
 		// intTriangle.interpolateTexCoord(u, v, texCoord);
 
@@ -67,7 +65,7 @@ public class PathTracer extends Renderer {
 			return;
 		}
 
-		Spectrum reflectance, transmission, absorption;
+		Color3f reflectance, transmission, absorption;
 		float refAvg, transAvg, abspAvg;
 
 		reflectance = bsdf.getReflectance();
@@ -78,8 +76,8 @@ public class PathTracer extends Renderer {
 		transAvg = transmission.average();
 		abspAvg = absorption.average();
 
-		Spectrum resSpectrum = newRay.getSpectrum();
-		Spectrum tmpSpectrum = new Spectrum();
+		Color3f resSpectrum = newRay.getSpectrum();
+		Color3f tmpSpectrum = new Color3f();
 
 		directIllumination(srcRay, hitPoint, normal, bsdf, dstSpectrum);
 
@@ -101,14 +99,15 @@ public class PathTracer extends Renderer {
 			// directIllumination(srcRay, hitPoint, normal, bsdf, destSpectrum);
 			return;
 		}
-		factor *= (float) (Math.abs(Vec3.dot(normal, newDir)));
-		newRay.setOrigin(hitPoint.x + MathUtils.EPSILON * newDir.x, 
+		factor *= (float)(Math.abs(Vec3f.dot(normal, newDir)));
+		newRay.setOrigin(
+				hitPoint.x + MathUtils.EPSILON * newDir.x, 
 				hitPoint.y + MathUtils.EPSILON * newDir.y, 
 				hitPoint.z + MathUtils.EPSILON * newDir.z);
 		newRay.setDirection(newDir);
 		newRay.setLengthToMax();
 		newRay.getSpectrum().zeroAll();
-		tracePath(newRay, depth + 1);
+		render(newRay, depth + 1);
 		bsdf.brdf(hitPoint, normal, srcDir, newDir, tmpSpectrum);
 		resSpectrum.blend(tmpSpectrum);
 		resSpectrum.multiply(factor);
@@ -158,7 +157,6 @@ public class PathTracer extends Renderer {
 	// break;
 	// }
 	//
-	// //锟叫斤拷锟斤拷
 	// t = intResult.getTriangle();
 	// u = intResult.getU();
 	// v = intResult.getV();
@@ -191,7 +189,7 @@ public class PathTracer extends Renderer {
 	// else if (roulette >= refAvg && roulette < (refAvg + transAvg)) //transmit
 	// {
 	// // float refraT = 1f;
-	// // if (Vector3.dot(normal, dir) < 0) //锟斤拷锟斤拷锟斤拷锟�
+	// // if (Vector3.dot(normal, dir) < 0)
 	// // {
 	// // refraT = bsdf.getRefractiveIndex();
 	// // }
@@ -232,6 +230,7 @@ public class PathTracer extends Renderer {
 	// }
 	// }
 	//
+	
 	@Override
 	public String toString() {
 		return "Path Tracer";

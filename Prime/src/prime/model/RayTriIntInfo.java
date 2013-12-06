@@ -1,9 +1,9 @@
 package prime.model;
 
+import prime.physics.Ray;
+
 /**
- * 
- * @author lizhaoliu
- * 
+ * {@link Ray} and {@link Triangle} intersection test result
  */
 public class RayTriIntInfo {
 	private boolean isHit;

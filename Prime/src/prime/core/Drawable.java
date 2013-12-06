@@ -5,8 +5,6 @@ import javax.media.opengl.glu.GLU;
 
 /**
  * interface of all drawables
- * @author lizhaoliu
- *
  */
 public interface Drawable {
 	/**

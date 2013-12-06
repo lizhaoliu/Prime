@@ -45,7 +45,7 @@ public final class MathUtils {
 	 * @param n
 	 * @param dest
 	 */
-	public static Vec3 randomScatteredDirection(Vec3 srcDir, int n) {
+	public static Vec3f randomScatteredDirection(Vec3f srcDir, int n) {
 		float zx = srcDir.x, zy = srcDir.y, zz = srcDir.z;
 		float xx = zy, xy = -zx, xz = 0;
 		float invLen = 1.0f / (float) Math.sqrt(xx * xx + xy * xy + xz * xz);
@@ -58,7 +58,7 @@ public final class MathUtils {
 				.sqrt(1 - costh * costh), cosphy = (float) Math.cos(phy), sinphy = (float) Math
 				.sin(phy);
 		float sincos = sinth * cosphy, sinsin = sinth * sinphy;
-		return new Vec3(sincos * xx + sinsin * yx + costh * zx, 
+		return new Vec3f(sincos * xx + sinsin * yx + costh * zx, 
 				sincos * xy + sinsin * yy + costh * zy, 
 				sincos * xz + sinsin * yz + costh * zz);
 	}
@@ -72,8 +72,8 @@ public final class MathUtils {
 	 * @param nSamples
 	 * @param dest
 	 */
-	public static void stratifiedScatteredDirection(Vec3 srcDir, int n,
-			int i, int j, int nSamples, Vec3 dest) {
+	public static void stratifiedScatteredDirection(Vec3f srcDir, int n,
+			int i, int j, int nSamples, Vec3f dest) {
 		float zx = srcDir.x, zy = srcDir.y, zz = srcDir.z;
 		float xx = zy, xy = -zx, xz = 0;
 		float invLen = 1.0f / (float) Math.sqrt(xx * xx + xy * xy + xz * xz);
@@ -108,8 +108,8 @@ public final class MathUtils {
 	 * @param n
 	 * @param dest
 	 */
-	public static void stratiefiedRandomReflectDirection(Vec3 srcDir,
-			int i, int j, int n, Vec3 dest) {
+	public static void stratiefiedRandomReflectDirection(Vec3f srcDir,
+			int i, int j, int n, Vec3f dest) {
 		float zx = srcDir.x, zy = srcDir.y, zz = srcDir.z;
 		float xx = zy, xy = -zx, xz = 0;
 		float invLen = 1.0f / (float) Math.sqrt(xx * xx + xy * xy + xz * xz);
@@ -135,7 +135,7 @@ public final class MathUtils {
 	 * @param dest
 	 */
 	public static void stratifiedRandomDirectionInHemisphere(
-			Vec3 normal, int i, int j, int n, Vec3 dest) {
+			Vec3f normal, int i, int j, int n, Vec3f dest) {
 		float zx = normal.x, zy = normal.y, zz = normal.z;
 		float xx = zy, xy = -zx, xz = 0;
 		float invLen = 1.0f / (float) Math.sqrt(xx * xx + xy * xy + xz * xz);
@@ -157,10 +157,10 @@ public final class MathUtils {
 	 * @param normal
 	 * @param dest
 	 */
-	public static void randomDirectionInHemisphere(Vec3 normal,
-			Vec3 dest) {
+	public static void randomDirectionInHemisphere(Vec3f normal,
+			Vec3f dest) {
 		randomDirectionInSphere(dest);
-		if (Vec3.dot(normal, dest) < 0) {
+		if (Vec3f.dot(normal, dest) < 0) {
 			dest.negate();
 		}
 	}
@@ -169,7 +169,7 @@ public final class MathUtils {
 	 * 
 	 * @param dest
 	 */
-	public static void randomDirectionInSphere(Vec3 dest) {
+	public static void randomDirectionInSphere(Vec3f dest) {
 		// float phy = (float)(2 * Math.PI * Math.random());
 		// float costh = 1 - 2 * (float)Math.random(), sinth =
 		// (float)Math.sqrt(1 - costh * costh), cosphy = (float)Math.cos(phy),
@@ -187,8 +187,8 @@ public final class MathUtils {
 	 * @param n
 	 * @param dest
 	 */
-	public static void reflectDirection(Vec3 d, Vec3 n, Vec3 dest) {
-		float dot = -2 * Vec3.dot(n, d);
+	public static void reflectDirection(Vec3f d, Vec3f n, Vec3f dest) {
+		float dot = -2 * Vec3f.dot(n, d);
 		dest.set(n.x * dot + d.x, n.y * dot + d.y, n.z * dot + d.z);
 	}
 
@@ -200,10 +200,10 @@ public final class MathUtils {
 	 * @param refraT
 	 * @param dest
 	 */
-	public static void refractDirection(Vec3 d, Vec3 n, float refraD,
-			float refraT, Vec3 dest) {
+	public static void refractDirection(Vec3f d, Vec3f n, float refraD,
+			float refraT, Vec3f dest) {
 		float q = refraD / refraT;
-		float cosD = -Vec3.dot(n, d), cosT = 1 - q * q * (1 - cosD * cosD);
+		float cosD = -Vec3f.dot(n, d), cosT = 1 - q * q * (1 - cosD * cosD);
 		if (cosT < 0) {
 			reflectDirection(d, n, dest);
 			return;

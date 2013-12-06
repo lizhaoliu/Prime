@@ -1,8 +1,8 @@
 package prime.physics;
 
-import prime.math.Vec3;
+import prime.math.Vec3f;
 
-public abstract class SparrowTorranceModel extends BSDF {
+public abstract class SparrowTorranceModel extends Material {
     protected MicrofacetDistribution d;
 
     public void setMicrofacetDistribution(MicrofacetDistribution d) {
@@ -14,21 +14,21 @@ public abstract class SparrowTorranceModel extends BSDF {
     }
 
     @Override
-    public void brdf(Vec3 origin, Vec3 normal, Vec3 inDir,
-	    Vec3 outDir, Spectrum dest) {
+    public void brdf(Vec3f origin, Vec3f normal, Vec3f inDir,
+	    Vec3f outDir, Color3f dest) {
 	// TODO Auto-generated method stub
     }
 
     @Override
-    public float samplingReflectionDirection(Vec3 origin, Vec3 normal,
-	    Vec3 inDir, Vec3 dest) {
+    public float samplingReflectionDirection(Vec3f origin, Vec3f normal,
+	    Vec3f inDir, Vec3f dest) {
 	// TODO Auto-generated method stub
 	return 1.0f;
     }
 
     @Override
-    public float samplingTransmissionDirection(Vec3 origin, Vec3 normal,
-	    Vec3 inDir, Vec3 dest) {
+    public float samplingTransmissionDirection(Vec3f origin, Vec3f normal,
+	    Vec3f inDir, Vec3f dest) {
 	// TODO Auto-generated method stub
 	return 1.0f;
     }

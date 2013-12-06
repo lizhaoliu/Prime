@@ -2,7 +2,7 @@ package prime.spatial;
 
 import java.io.Serializable;
 
-import prime.math.Vec3;
+import prime.math.Vec3f;
 import prime.model.BoundingBox;
 import prime.model.RayBoxIntInfo;
 import prime.model.RayTriIntInfo;
@@ -55,14 +55,14 @@ public class KdTree extends SpatialStructure implements Serializable {
 				&& bSPNode.box.getTriangleNum() > maxTrianglesPerNode) {
 			bSPNode.subdivideAxis = axis;
 
-			Vec3 min = bSPNode.box.getMinPoint();
-			Vec3 max = bSPNode.box.getMaxPoint();
-			Vec3 mid = bSPNode.box.getMidPoint();
+			Vec3f min = bSPNode.box.getMinPoint();
+			Vec3f max = bSPNode.box.getMaxPoint();
+			Vec3f mid = bSPNode.box.getMidPoint();
 			float r = mid.get(axis);
 
 			bSPNode.leftChild = new KdNode();
 			bSPNode.rightChild = new KdNode();
-			Vec3 leftMax = new Vec3(max), rightMin = new Vec3(min);
+			Vec3f leftMax = new Vec3f(max), rightMin = new Vec3f(min);
 			leftMax.set(axis, r);
 			rightMin.set(axis, r);
 			bSPNode.leftChild.box = new BoundingBox(min, leftMax);
@@ -120,8 +120,8 @@ public class KdTree extends SpatialStructure implements Serializable {
 			return;
 		}
 
-		Vec3 o = ray.getOrigin(), d = ray.getDirection();
-		Vec3 mid = kdNode.box.getMidPoint();
+		Vec3f o = ray.getOrigin(), d = ray.getDirection();
+		Vec3f mid = kdNode.box.getMidPoint();
 		int axis = kdNode.subdivideAxis;
 		float tmid = (mid.get(axis) - o.get(axis)) / d.get(axis);
 		if (o.get(axis) < mid.get(axis)) {	// origin on the lesser side of splitting plane

@@ -1,8 +1,8 @@
 package prime.physics;
 
-import prime.math.Vec3;
+import prime.math.Vec3f;
 
-public class OrenNayerModel extends BSDF {
+public class OrenNayerModel extends Material {
     private float sigma = 50; // gaussian distribution parameter
 
     public void setSigma(float sigma) {
@@ -14,8 +14,8 @@ public class OrenNayerModel extends BSDF {
     }
 
     @Override
-    public void brdf(Vec3 origin, Vec3 normal, Vec3 inDir,
-	    Vec3 outDir, Spectrum dest) {
+    public void brdf(Vec3f origin, Vec3f normal, Vec3f inDir,
+	    Vec3f outDir, Color3f dest) {
 	// TODO Auto-generated method stub
 	float sigma2 = sigma * sigma;
 	float A = 1 - sigma2 / (2 * (sigma2 + 0.33f));
@@ -40,28 +40,28 @@ public class OrenNayerModel extends BSDF {
     }
 
     @Override
-    public float samplingReflectionDirection(Vec3 origin,
-	    Vec3 normal, Vec3 inDir, Vec3 dest) {
+    public float samplingReflectionDirection(Vec3f origin,
+	    Vec3f normal, Vec3f inDir, Vec3f dest) {
 	// TODO Auto-generated method stub
 	do {
 	    dest.set(2 * (float) Math.random() - 1,
 		    2 * (float) Math.random() - 1,
 		    2 * (float) Math.random() - 1);
-	} while (Vec3.dot(dest, normal) < 0);
+	} while (Vec3f.dot(dest, normal) < 0);
 	dest.normalize();
 	return INV_2PI;
     }
 
     @Override
-    public float samplingTransmissionDirection(Vec3 origin,
-	    Vec3 normal, Vec3 inDir, Vec3 dest) {
+    public float samplingTransmissionDirection(Vec3f origin,
+	    Vec3f normal, Vec3f inDir, Vec3f dest) {
 	// TODO Auto-generated method stub
 	return 0.0f;
     }
 
     @Override
-    public void btdf(Vec3 origin, Vec3 normal, Vec3 inDir,
-	    Vec3 outDir, Spectrum dest) {
+    public void btdf(Vec3f origin, Vec3f normal, Vec3f inDir,
+	    Vec3f outDir, Color3f dest) {
 	// TODO Auto-generated method stub
 
     }

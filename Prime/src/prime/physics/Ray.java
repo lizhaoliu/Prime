@@ -2,7 +2,7 @@ package prime.physics;
 
 import java.io.Serializable;
 
-import prime.math.Vec3;
+import prime.math.Vec3f;
 
 /**
  * 
@@ -12,9 +12,9 @@ import prime.math.Vec3;
 public final class Ray implements Serializable {
 	private static final long serialVersionUID = -406076263164160604L;
 
-	private Vec3 origin = new Vec3(); //
-	private Vec3 direction = new Vec3(); //
-	private Spectrum spectrum = new Spectrum(); //
+	private Vec3f origin = new Vec3f(); //
+	private Vec3f direction = new Vec3f(); //
+	private Color3f spectrum = new Color3f(); //
 	private float length = Float.MAX_VALUE; //
 	private float n = 1.0f; //
 
@@ -28,7 +28,7 @@ public final class Ray implements Serializable {
 	 * 
 	 * @param v
 	 */
-	public final void setOrigin(Vec3 v) {
+	public final void setOrigin(Vec3f v) {
 		origin.set(v);
 	}
 
@@ -46,7 +46,7 @@ public final class Ray implements Serializable {
 	 * 
 	 * @param v
 	 */
-	public final void setDirection(Vec3 v) {
+	public final void setDirection(Vec3f v) {
 		direction.set(v);
 		direction.normalize();
 	}
@@ -80,7 +80,7 @@ public final class Ray implements Serializable {
 	 * 
 	 * @param c
 	 */
-	public final void setSpectrum(Spectrum c) {
+	public final void setSpectrum(Color3f c) {
 		spectrum.set(c);
 	}
 
@@ -96,16 +96,16 @@ public final class Ray implements Serializable {
 	 * 
 	 * @param dst
 	 */
-	public final Vec3 getOrigin() {
-		return new Vec3(origin);
+	public final Vec3f getOrigin() {
+		return new Vec3f(origin);
 	}
 
 	/**
 	 * 
 	 * @param dst
 	 */
-	public final Vec3 getDirection() {
-		return new Vec3(direction);
+	public final Vec3f getDirection() {
+		return new Vec3f(direction);
 	}
 
 	/**
@@ -128,7 +128,7 @@ public final class Ray implements Serializable {
 	 * 
 	 * @return
 	 */
-	public final Spectrum getSpectrum() {
+	public final Color3f getSpectrum() {
 		return spectrum;
 	}
 

@@ -2,30 +2,28 @@ package prime.core;
 
 import prime.math.Filter;
 import prime.math.MathUtils;
-import prime.math.Vec3;
+import prime.math.Vec3f;
 import prime.model.RayTriIntInfo;
 import prime.model.Triangle;
 import prime.model.TriangleMesh;
-import prime.physics.BSDF;
+import prime.physics.Material;
 import prime.physics.Ray;
-import prime.physics.Spectrum;
+import prime.physics.Color3f;
 
 /**
- * provides an abstract of a renderer
- * @author lizhaoliu
- *
+ * Abstract Renderer
  */
 public abstract class Renderer {
-	protected SceneGraph sceneGraph;
+	protected Scene sceneGraph;
 	protected int maxDepth;
-	protected Spectrum backgroundSpectrum;
+	protected Color3f backgroundSpectrum;
 	protected Camera camera;
 	protected Filter filter;
 
 	public Renderer() {
 	}
 
-	public Renderer(SceneGraph sceneGraph) {
+	public Renderer(Scene sceneGraph) {
 		this.sceneGraph = sceneGraph;
 	}
 
@@ -33,7 +31,7 @@ public abstract class Renderer {
 		this.camera = camera;
 	}
 
-	public void setBackgroundColor(Spectrum backgroundColor) {
+	public void setBackgroundColor(Color3f backgroundColor) {
 		this.backgroundSpectrum = backgroundColor;
 	}
 
@@ -41,7 +39,7 @@ public abstract class Renderer {
 		this.maxDepth = maxDepth;
 	}
 
-	public void setSceneGraph(SceneGraph sceneGraph) {
+	public void setSceneGraph(Scene sceneGraph) {
 		this.sceneGraph = sceneGraph;
 	}
 
@@ -53,12 +51,12 @@ public abstract class Renderer {
 	 * @param bsdf
 	 * @param destColor
 	 */
-	protected void directIllumination(Ray srcRay, Vec3 hitPoint,
-			Vec3 normal, BSDF bsdf, Spectrum destColor) {
+	protected void directIllumination(Ray srcRay, Vec3f hitPoint,
+			Vec3f normal, Material bsdf, Color3f destColor) {
 		RayTriIntInfo ir = new RayTriIntInfo();
 		Ray newRay = new Ray();
-		Vec3 newDir = newRay.getDirection();
-		Spectrum spectrum = newRay.getSpectrum();
+		Vec3f newDir = newRay.getDirection();
+		Color3f spectrum = newRay.getSpectrum();
 
 		//
 		TriangleMesh meshLight;
@@ -75,21 +73,21 @@ public abstract class Renderer {
 			newRay.setLengthToMax();
 			sceneGraph.intersect(newRay, ir);
 			triangleLight = ir.getTriangle();
-			float cos = Vec3.dot(newDir, normal);
+			float cos = Vec3f.dot(newDir, normal);
 			if (ir.isHit()
 					&& triangleLight.getTriangleMesh() == meshLight && cos > 0) {
 				float u = ir.getU(), v = ir.getV();
-				Vec3 normalLight = new Vec3();
+				Vec3f normalLight = new Vec3f();
 				normalLight = triangleLight.interpolateNormal(u, v);
 
-				spectrum.set(meshLight.getBSDF().getEmittance());
+				spectrum.set(meshLight.getMaterial().getEmittance());
 				spectrum.multiply(cos
-						* Math.abs(Vec3.dot(newDir, normalLight)) * nLights);// *
+						* Math.abs(Vec3f.dot(newDir, normalLight)) * nLights);// *
 																				// meshLight.getArea());
 				spectrum.blend(bsdf.getReflectance());
 
-				Spectrum tmp = new Spectrum();
-				Vec3 srcDir = srcRay.getDirection();
+				Color3f tmp = new Color3f();
+				Vec3f srcDir = srcRay.getDirection();
 				bsdf.brdf(hitPoint, normal, srcDir, newDir, tmp);
 				spectrum.blend(tmp);
 			}
@@ -130,7 +128,7 @@ public abstract class Renderer {
 	/**
      * 
      */
-	public abstract void prepareForRendering();
+	public abstract void preprocess();
 
 	/**
 	 * 

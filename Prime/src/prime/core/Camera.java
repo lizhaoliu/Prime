@@ -10,11 +10,11 @@ import javax.media.opengl.glu.GLU;
 
 import prime.math.LHCoordinateSystem;
 import prime.math.Transformable;
-import prime.math.Vec3;
+import prime.math.Vec3f;
 import prime.model.RayTriIntInfo;
 import prime.model.TriangleMesh;
 import prime.physics.Ray;
-import prime.physics.Spectrum;
+import prime.physics.Color3f;
 
 /**
  * 
@@ -36,9 +36,9 @@ public class Camera extends Observable implements Serializable,
 	private float zFar; //
 	private float lens; //
 	private LHCoordinateSystem coordSys; //
-	private SceneGraph sceneGraph; 
-	private Spectrum backgroundColor; 
-	private Vec3 origin = new Vec3(0f, 0f, 0f);
+	private Scene sceneGraph; 
+	private Color3f backgroundColor; 
+	private Vec3f origin = new Vec3f(0f, 0f, 0f);
 
 	private transient boolean isRenderingStopped = false;
 
@@ -56,7 +56,7 @@ public class Camera extends Observable implements Serializable,
 		zFar = -1000;
 		coordSys = new LHCoordinateSystem();
 		setViewportMap(-5, -5, 5, 5);
-		backgroundColor = new Spectrum();
+		backgroundColor = new Color3f();
 	}
 
 	public LHCoordinateSystem getCoordinateSystem() {
@@ -123,7 +123,7 @@ public class Camera extends Observable implements Serializable,
 	 * 
 	 * @param bkc
 	 */
-	public void setBackgroundColor(Spectrum bkc) {
+	public void setBackgroundColor(Color3f bkc) {
 		backgroundColor.set(bkc);
 	}
 
@@ -132,7 +132,7 @@ public class Camera extends Observable implements Serializable,
 	 * @param dest
 	 * @return
 	 */
-	public Spectrum getBackgoundColor(Spectrum dest) {
+	public Color3f getBackgoundColor(Color3f dest) {
 		dest.set(backgroundColor);
 		return dest;
 	}
@@ -143,13 +143,13 @@ public class Camera extends Observable implements Serializable,
 	 * @param focus
 	 * @param up
 	 */
-	public void lookAt(Vec3 eye, Vec3 focus, Vec3 up) {
-		Vec3 d = new Vec3(focus);
+	public void lookAt(Vec3f eye, Vec3f focus, Vec3f up) {
+		Vec3f d = new Vec3f(focus);
 		d.sub(eye);
 		d.normalize();
 		d.negate();
 		up.normalize();
-		Vec3 newX = Vec3.cross(up, d);
+		Vec3f newX = Vec3f.cross(up, d);
 		coordSys.setParentToLocalMatrix(newX.x, up.x, d.x, newX.y, up.y, d.y,
 				newX.z, up.z, d.z);
 		coordSys.setOrigin(eye);
@@ -158,7 +158,7 @@ public class Camera extends Observable implements Serializable,
 	/**
 	 * 
 	 */
-	public void translate(Vec3 displacement) {
+	public void translate(Vec3f displacement) {
 		coordSys.translateInLocal(displacement);
 	}
 
@@ -168,7 +168,7 @@ public class Camera extends Observable implements Serializable,
 	 * @param dest
 	 * @return
 	 */
-	public Vec3 transPointToLocal(Vec3 p) {
+	public Vec3f transPointToLocal(Vec3f p) {
 		return coordSys.transPointToLocal(p);
 	}
 
@@ -178,7 +178,7 @@ public class Camera extends Observable implements Serializable,
 	 * @param dest
 	 * @return
 	 */
-	public Vec3 transVectorToLocal(Vec3 v) {
+	public Vec3f transVectorToLocal(Vec3f v) {
 		return coordSys.transVectorToLocal(v);
 	}
 
@@ -196,7 +196,7 @@ public class Camera extends Observable implements Serializable,
 	/**
 	 * 
 	 */
-	public void rotate(Vec3 axis, float angle) {
+	public void rotate(Vec3f axis, float angle) {
 		coordSys.rotate(axis, angle);
 	}
 
@@ -222,7 +222,7 @@ public class Camera extends Observable implements Serializable,
 	 * 
 	 * @param s
 	 */
-	public void setScene(SceneGraph s) {
+	public void setScene(Scene s) {
 		sceneGraph = s;
 	}
 
@@ -264,13 +264,13 @@ public class Camera extends Observable implements Serializable,
 	 * @param dest
 	 * @return
 	 */
-	public Vec3 getLocalPointFromViewport(int x, int y, Vec3 dest) {
+	public Vec3f getLocalPointFromViewport(int x, int y, Vec3f dest) {
 		dest.set(((float) x / width * dX + minX), (maxY - (float) y / height
 				* dY), zNear);
 		return dest;
 	}
 
-	public Vec3 getWorldPointFromViewport(int x, int y, Vec3 dest) {
+	public Vec3f getWorldPointFromViewport(int x, int y, Vec3f dest) {
 		dest.set(((float) x / width * dX + minX), (maxY - (float) y / height
 				* dY), zNear);
 		return coordSys.transPointToParent(dest);
@@ -281,7 +281,7 @@ public class Camera extends Observable implements Serializable,
 	 * @param p
 	 * @return
 	 */
-	public int getXFromWorld(Vec3 p) {
+	public int getXFromWorld(Vec3f p) {
 		float px = p.x, py = p.y, pz = p.z;
 		p = coordSys.transPointToLocal(p);
 		float x = p.x * zNear / (zNear + p.z);
@@ -294,7 +294,7 @@ public class Camera extends Observable implements Serializable,
 	 * @param p
 	 * @return
 	 */
-	public int getYFromWorld(Vec3 p) {
+	public int getYFromWorld(Vec3f p) {
 		float px = p.x, py = p.y, pz = p.z;
 		p = coordSys.transPointToLocal(p);
 		float y = p.y * zNear / (zNear + p.z);
@@ -307,7 +307,7 @@ public class Camera extends Observable implements Serializable,
 	 * @param p
 	 * @return
 	 */
-	public int getXFromLocal(Vec3 p) {
+	public int getXFromLocal(Vec3f p) {
 		float x = p.x * zNear / (zNear + p.z);
 		return getXFromViewport(x);
 	}
@@ -317,7 +317,7 @@ public class Camera extends Observable implements Serializable,
 	 * @param p
 	 * @return
 	 */
-	public int getYFromLocal(Vec3 p) {
+	public int getYFromLocal(Vec3f p) {
 		float y = p.y * zNear / (zNear + p.z);
 		return getYFromViewport(y);
 	}
@@ -360,7 +360,7 @@ public class Camera extends Observable implements Serializable,
 	 * 
 	 * @return
 	 */
-	public SceneGraph getSceneGraph() {
+	public Scene getSceneGraph() {
 		return sceneGraph;
 	}
 
@@ -380,7 +380,7 @@ public class Camera extends Observable implements Serializable,
 	public void render(BufferedImage img, Component panel) {
 		sceneGraph.finish();
 
-		renderer.prepareForRendering();
+		renderer.preprocess();
 		isRenderingStopped = false;
 
 		int nCores = Runtime.getRuntime().availableProcessors();
@@ -419,7 +419,7 @@ public class Camera extends Observable implements Serializable,
 	 */
 	public Ray getRayFromViewport(int x, int y, float xOffset,
 			float yOffset, Ray dest) {
-		Vec3 o = new Vec3(), d = new Vec3();
+		Vec3f o = new Vec3f(), d = new Vec3f();
 		getLocalPointFromViewport(x, y, d);
 		d.x += xOffset;
 		d.y += yOffset;
@@ -458,10 +458,10 @@ public class Camera extends Observable implements Serializable,
 
 		public void run() {
 			Ray ray = new Ray();
-			Spectrum rayColor = ray.getSpectrum();
-			Vec3 d = ray.getDirection();
-			Vec3 c = ray.getOrigin();
-			Vec3 buf = new Vec3();
+			Color3f rayColor = ray.getSpectrum();
+			Vec3f d = ray.getDirection();
+			Vec3f c = ray.getOrigin();
+			Vec3f buf = new Vec3f();
 			float sampleGap = getLocalPointFromViewport(0, 0, buf).x;
 			sampleGap = (sampleGap - getLocalPointFromViewport(1, 0, buf).x);
 
@@ -509,7 +509,7 @@ public class Camera extends Observable implements Serializable,
 						getLocalPointFromViewport(x, y, d);
 						d.x += xJittered[i][j];
 						d.y += yJittered[i][j];
-						d = Vec3.sub(d, c);
+						d = Vec3f.sub(d, c);
 						d.normalize();
 						d = coordSys.transVectorToParent(d);
 						c = coordSys.transPointToParent(c);

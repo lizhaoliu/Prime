@@ -6,7 +6,7 @@ import java.util.Iterator;
 import java.util.List;
 
 import prime.math.MathUtils;
-import prime.math.Vec3;
+import prime.math.Vec3f;
 import prime.model.BoundingBox;
 import prime.model.RayTriIntInfo;
 import prime.model.Triangle;
@@ -16,12 +16,9 @@ import prime.physics.Sky;
 import prime.spatial.KdTree;
 
 /**
- * Scene Graph that adopts one spatial sorting algorithm to accelerate
- * ray-triangle intersection test
- * 
- * @author lizhaoliu
+ * Scene that adopts one spatial sorting algorithm to accelerate ray-triangle intersection test
  */
-public class SceneGraph implements Serializable, Iterable<TriangleMesh> {
+public class Scene implements Serializable, Iterable<TriangleMesh> {
 	private static final long serialVersionUID = 4945947837143837173L;
 
 	private List<TriangleMesh> meshList = new ArrayList<TriangleMesh>();
@@ -59,7 +56,7 @@ public class SceneGraph implements Serializable, Iterable<TriangleMesh> {
 
 	public void removeMesh(TriangleMesh c) {
 		meshList.remove(c);
-		if (c.getBSDF().isLight()) {
+		if (c.getMaterial().isLight()) {
 			meshLightList.remove(c);
 		}
 	}
@@ -91,16 +88,16 @@ public class SceneGraph implements Serializable, Iterable<TriangleMesh> {
 	private void genLightList() {
 		meshLightList.clear();
 		for (TriangleMesh t : meshList) {
-			if (t.getBSDF().isLight()) {
+			if (t.getMaterial().isLight()) {
 				meshLightList.add(t);
 			}
 		}
 	}
 
-	boolean isVisible(Vec3 p0, Vec3 p1) {
+	boolean isVisible(Vec3f p0, Vec3f p1) {
 		Ray ray = new Ray();
 		ray.setLengthToMax();
-		Vec3 d = Vec3.sub(p1, p0);
+		Vec3f d = Vec3f.sub(p1, p0);
 		d.normalize();
 		ray.setDirection(d);
 		ray.setOrigin(p0.x + d.x * MathUtils.EPSILON, p0.y + d.y

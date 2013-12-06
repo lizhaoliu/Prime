@@ -3,8 +3,6 @@ package prime.math;
 
 /**
  * a cone filter
- * @author lizhaoliu
- *
  */
 public class ConeFilter implements Filter {
 	private float k = 1;

@@ -1,13 +1,13 @@
 package prime.physics;
 
-import prime.math.Vec3;
+import prime.math.Vec3f;
 
 /**
  * 
  * @author lizhaoliu
  *
  */
-public class PhongModel extends BSDF {
+public class PhongModel extends Material {
     private float exponent = 20;
 
     public void setSpecularExponent(float exponent) {
@@ -15,14 +15,14 @@ public class PhongModel extends BSDF {
     }
 
     @Override
-    public void brdf(Vec3 origin, Vec3 normal, Vec3 inDir,
-	    Vec3 outDir, Spectrum dest) {
+    public void brdf(Vec3f origin, Vec3f normal, Vec3f inDir,
+	    Vec3f outDir, Color3f dest) {
 	// TODO Auto-generated method stub
     }
 
     @Override
-    public float samplingReflectionDirection(Vec3 origin,
-	    Vec3 normal, Vec3 inDir, Vec3 dest) {
+    public float samplingReflectionDirection(Vec3f origin,
+	    Vec3f normal, Vec3f inDir, Vec3f dest) {
 	// TODO Auto-generated method stub
 	float zx = inDir.x, zy = inDir.y, zz = inDir.z;
 	float xx = zy, xy = -zx, xz = 0;
@@ -42,15 +42,15 @@ public class PhongModel extends BSDF {
     }
 
     @Override
-    public float samplingTransmissionDirection(Vec3 origin,
-	    Vec3 normal, Vec3 inDir, Vec3 dest) {
+    public float samplingTransmissionDirection(Vec3f origin,
+	    Vec3f normal, Vec3f inDir, Vec3f dest) {
 	// TODO Auto-generated method stub
 	return 0;
     }
 
     @Override
-    public void btdf(Vec3 origin, Vec3 normal, Vec3 inDir,
-	    Vec3 outDir, Spectrum dest) {
+    public void btdf(Vec3f origin, Vec3f normal, Vec3f inDir,
+	    Vec3f outDir, Color3f dest) {
 	// TODO Auto-generated method stub
 
     }

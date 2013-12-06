@@ -10,7 +10,7 @@ import javax.media.opengl.glu.GLU;
 
 import prime.core.Camera;
 import prime.core.Drawable;
-import prime.math.Vec3;
+import prime.math.Vec3f;
 import prime.physics.Ray;
 
 /**
@@ -21,13 +21,13 @@ import prime.physics.Ray;
 public class BoundingBox implements Drawable, Iterable<Triangle>,
 		Serializable {
 	private static final long serialVersionUID = -8072891542252256281L;
-	private Vec3 min = new Vec3(), max = new Vec3();
+	private Vec3f min = new Vec3f(), max = new Vec3f();
 	private List<Triangle> triangleList = new ArrayList<Triangle>();
 
 	public BoundingBox() {
 	}
 
-	public BoundingBox(Vec3 minV, Vec3 maxV) {
+	public BoundingBox(Vec3f minV, Vec3f maxV) {
 		min.set(minV);
 		max.set(maxV);
 	}
@@ -46,7 +46,7 @@ public class BoundingBox implements Drawable, Iterable<Triangle>,
 				Float.POSITIVE_INFINITY);
 		max.set(Float.NEGATIVE_INFINITY, Float.NEGATIVE_INFINITY,
 				Float.NEGATIVE_INFINITY);
-		Vec3 buf;
+		Vec3f buf;
 		for (Triangle t : triangleList) {
 			for (int j = 0; j < 3; j++) {
 				buf = t.getVertex(j);
@@ -90,7 +90,7 @@ public class BoundingBox implements Drawable, Iterable<Triangle>,
 	 * @param min
 	 * @param max
 	 */
-	public void set(Vec3 min, Vec3 max) {
+	public void set(Vec3f min, Vec3f max) {
 		this.min.set(min);
 		this.max.set(max);
 	}
@@ -140,8 +140,8 @@ public class BoundingBox implements Drawable, Iterable<Triangle>,
 	 */
 	public RayBoxIntInfo intersect(Ray ray) {
 		float tNear = Float.NEGATIVE_INFINITY, tFar = Float.POSITIVE_INFINITY, t1, t2;
-		Vec3 o = ray.getOrigin();
-		Vec3 d = ray.getDirection();
+		Vec3f o = ray.getOrigin();
+		Vec3f d = ray.getDirection();
 		for (int i = 0; i < 3; i++) {
 			t1 = (min.get(i) - o.get(i)) / d.get(i);
 			t2 = (max.get(i) - o.get(i)) / d.get(i);
@@ -169,9 +169,9 @@ public class BoundingBox implements Drawable, Iterable<Triangle>,
 	 * @param v2
 	 * @return
 	 */
-	public boolean intersect(Vec3 v1, Vec3 v2) {
+	public boolean intersect(Vec3f v1, Vec3f v2) {
 		float tNear = Float.NEGATIVE_INFINITY, tFar = Float.POSITIVE_INFINITY, t1, t2;
-		Vec3 o = v1, d = new Vec3(v2.x - v1.x, v2.y - v1.y, v2.z - v1.z);
+		Vec3f o = v1, d = new Vec3f(v2.x - v1.x, v2.y - v1.y, v2.z - v1.z);
 		for (int i = 0; i < 3; i++) {
 			t1 = (min.get(i) - o.get(i)) / d.get(i);
 			t2 = (max.get(i) - o.get(i)) / d.get(i);
@@ -213,7 +213,7 @@ public class BoundingBox implements Drawable, Iterable<Triangle>,
 	 * @param v
 	 * @return
 	 */
-	public boolean contains(Vec3 v) {
+	public boolean contains(Vec3f v) {
 		for (int i = 0; i < 3; i++) {
 			if (v.get(i) > max.get(i) || v.get(i) < min.get(i)) {
 				return false;
@@ -226,24 +226,24 @@ public class BoundingBox implements Drawable, Iterable<Triangle>,
 	 * 
 	 * @param dst
 	 */
-	public Vec3 getMidPoint() {
-		return new Vec3((min.x + max.x) / 2, (min.y + max.y) / 2, (min.z + max.z) / 2);
+	public Vec3f getMidPoint() {
+		return new Vec3f((min.x + max.x) / 2, (min.y + max.y) / 2, (min.z + max.z) / 2);
 	}
 
 	/**
 	 * 
 	 * @param dst
 	 */
-	public Vec3 getMinPoint() {
-		return new Vec3(min);
+	public Vec3f getMinPoint() {
+		return new Vec3f(min);
 	}
 
 	/**
 	 * 
 	 * @param dst
 	 */
-	public Vec3 getMaxPoint() {
-		return new Vec3(max);
+	public Vec3f getMaxPoint() {
+		return new Vec3f(max);
 	}
 
 	/**

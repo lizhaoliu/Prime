@@ -4,23 +4,21 @@ import java.io.Serializable;
 
 /**
  * 
- * @author lizhaoliu
- *
  */
-public class Spectrum implements Serializable {
+public class Color3f implements Serializable {
 	private static final long serialVersionUID = -7257336123202843467L;
 	public float r = 0f, g = 0f, b = 0f;
 
-	public Spectrum() {
+	public Color3f() {
 	}
 
-	public Spectrum(float r, float g, float b) {
+	public Color3f(float r, float g, float b) {
 		this.r = r;
 		this.g = g;
 		this.b = b;
 	}
 
-	public Spectrum(Spectrum c) {
+	public Color3f(Color3f c) {
 		r = c.r;
 		g = c.g;
 		b = c.b;
@@ -30,7 +28,7 @@ public class Spectrum implements Serializable {
 	 * 
 	 * @param argb
 	 */
-	public Spectrum(int argb) {
+	public Color3f(int argb) {
 		b = (argb & 0x000000ff) / 255.0f;
 		argb >>= 8;
 		g = (argb & 0x0000ff) / 255.0f;
@@ -42,7 +40,7 @@ public class Spectrum implements Serializable {
 	 * 
 	 * @param c
 	 */
-	public void set(Spectrum c) {
+	public void set(Color3f c) {
 		r = c.r;
 		g = c.g;
 		b = c.b;
@@ -55,14 +53,14 @@ public class Spectrum implements Serializable {
 	 * @param ab
 	 * @return
 	 */
-	public Spectrum set(float ar, float ag, float ab) {
+	public Color3f set(float ar, float ag, float ab) {
 		r = ar;
 		g = ag;
 		b = ab;
 		return this;
 	}
 
-	public Spectrum set(int argb) {
+	public Color3f set(int argb) {
 		b = (argb & 0x000000ff) / 255.0f;
 		argb >>= 8;
 		g = (argb & 0x0000ff) / 255.0f;
@@ -81,8 +79,8 @@ public class Spectrum implements Serializable {
 	 * @param c
 	 * @return
 	 */
-	public static Spectrum multiply(float scale, Spectrum c) {
-		return new Spectrum(c.r * scale, c.g * scale, c.b * scale);
+	public static Color3f multiply(float scale, Color3f c) {
+		return new Color3f(c.r * scale, c.g * scale, c.b * scale);
 	}
 
 	/**
@@ -91,11 +89,11 @@ public class Spectrum implements Serializable {
 	 * @param scale
 	 * @return
 	 */
-	public static Spectrum multiply(Spectrum c, float scale) {
-		return new Spectrum(c.r * scale, c.g * scale, c.b * scale);
+	public static Color3f multiply(Color3f c, float scale) {
+		return new Color3f(c.r * scale, c.g * scale, c.b * scale);
 	}
 
-	public Spectrum divide(float s) {
+	public Color3f divide(float s) {
 		float d = 1.0f / s;
 		r *= d;
 		g *= d;
@@ -115,7 +113,7 @@ public class Spectrum implements Serializable {
 	 * 
 	 * @param c
 	 */
-	public void blend(Spectrum c) {
+	public void blend(Color3f c) {
 		r *= c.r;
 		g *= c.g;
 		b *= c.b;
@@ -131,7 +129,7 @@ public class Spectrum implements Serializable {
 		g *= a;
 	}
 
-	public static Spectrum blend(Spectrum c0, Spectrum c1, Spectrum dest) {
+	public static Color3f blend(Color3f c0, Color3f c1, Color3f dest) {
 		return dest.set(c0.r + c1.r, c0.g + c1.g, c0.b + c1.b);
 	}
 
@@ -139,7 +137,7 @@ public class Spectrum implements Serializable {
 	 * 
 	 * @param c
 	 */
-	public void add(Spectrum c) {
+	public void add(Color3f c) {
 		r += c.r;
 		g += c.g;
 		b += c.b;
@@ -180,8 +178,8 @@ public class Spectrum implements Serializable {
 	/**
 	 * 
 	 */
-	public Spectrum clone() {
-		return new Spectrum(r, g, b);
+	public Color3f clone() {
+		return new Color3f(r, g, b);
 	}
 
 	/**

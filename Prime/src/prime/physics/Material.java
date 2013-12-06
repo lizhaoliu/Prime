@@ -1,17 +1,17 @@
 package prime.physics;
 
-import prime.math.Vec3;
+import prime.math.Vec3f;
 
 /**
  * Bidirectional Scattering Distribution Function (BSDF) which describes a physical surface
  * @author lizhaoliu
  *
  */
-public abstract class BSDF {
-    protected Spectrum emittance = new Spectrum();
-    protected Spectrum reflectance = new Spectrum(0.5f, 0.5f, 0.5f);
-    protected Spectrum transmission = new Spectrum();
-    protected Spectrum absorption = new Spectrum();
+public abstract class Material {
+    protected Color3f emittance = new Color3f();
+    protected Color3f reflectance = new Color3f(0.5f, 0.5f, 0.5f);
+    protected Color3f transmission = new Color3f();
+    protected Color3f absorption = new Color3f();
     protected float refractiveIndex = 1.0f;
     protected boolean isLight;
     protected String name;
@@ -19,35 +19,35 @@ public abstract class BSDF {
     public static final float INV_PI = (float) (1.0f / Math.PI);
     public static final float INV_2PI = (float) (1.0f / (2 * Math.PI));
 
-    public void setEmittance(Spectrum emittance) {
+    public void setEmittance(Color3f emittance) {
 	this.emittance.set(emittance);
     }
 
-    public Spectrum getEmittance() {
+    public Color3f getEmittance() {
 	return emittance;
     }
 
-    public void setReflectance(Spectrum reflectance) {
+    public void setReflectance(Color3f reflectance) {
 	this.reflectance.set(reflectance);
     }
 
-    public Spectrum getReflectance() {
+    public Color3f getReflectance() {
 	return reflectance;
     }
 
-    public void setTransmission(Spectrum transmission) {
+    public void setTransmission(Color3f transmission) {
 	this.transmission.set(transmission);
     }
 
-    public Spectrum getTransmission() {
+    public Color3f getTransmission() {
 	return transmission;
     }
 
-    public void setAbsorption(Spectrum absorption) {
+    public void setAbsorption(Color3f absorption) {
 	this.absorption.set(absorption);
     }
 
-    public Spectrum getAbsorption() {
+    public Color3f getAbsorption() {
 	return absorption;
     }
 
@@ -86,8 +86,8 @@ public abstract class BSDF {
      * @param dir
      * @return
      */
-    protected float sinTheta(Vec3 normal, Vec3 dir) {
-	float cos = Vec3.dot(normal, dir);
+    protected float sinTheta(Vec3f normal, Vec3f dir) {
+	float cos = Vec3f.dot(normal, dir);
 	return (float) (Math.sqrt(1 - cos * cos));
     }
 
@@ -98,8 +98,8 @@ public abstract class BSDF {
      * @param dir
      * @return
      */
-    protected float cosThetaAbsoluteValue(Vec3 normal, Vec3 dir) {
-	return (float) (Math.abs(Vec3.dot(normal, dir)));
+    protected float cosThetaAbsoluteValue(Vec3f normal, Vec3f dir) {
+	return (float) (Math.abs(Vec3f.dot(normal, dir)));
     }
 
     /**
@@ -111,8 +111,8 @@ public abstract class BSDF {
      * @param outDir
      * @param dest
      */
-    public abstract void brdf(Vec3 origin, Vec3 normal, Vec3 inDir,
-	    Vec3 outDir, Spectrum dest);
+    public abstract void brdf(Vec3f origin, Vec3f normal, Vec3f inDir,
+	    Vec3f outDir, Color3f dest);
 
     /**
      * 
@@ -122,8 +122,8 @@ public abstract class BSDF {
      * @param outDir
      * @param dest
      */
-    public abstract void btdf(Vec3 origin, Vec3 normal, Vec3 inDir,
-	    Vec3 outDir, Spectrum dest);
+    public abstract void btdf(Vec3f origin, Vec3f normal, Vec3f inDir,
+	    Vec3f outDir, Color3f dest);
 
     /**
      * importance sampling reflection direction according to BSDF
@@ -134,8 +134,8 @@ public abstract class BSDF {
      * @param dest
      * @return the probability of sampling direction
      */
-    public abstract float samplingReflectionDirection(Vec3 origin,
-	    Vec3 normal, Vec3 inDir, Vec3 dest);
+    public abstract float samplingReflectionDirection(Vec3f origin,
+	    Vec3f normal, Vec3f inDir, Vec3f dest);
 
     /**
      * importance sampling transmission direction according to BSDF
@@ -146,6 +146,6 @@ public abstract class BSDF {
      * @param dest
      * @return the probability of sampling direction
      */
-    public abstract float samplingTransmissionDirection(Vec3 origin,
-	    Vec3 normal, Vec3 inDir, Vec3 dest);
+    public abstract float samplingTransmissionDirection(Vec3f origin,
+	    Vec3f normal, Vec3f inDir, Vec3f dest);
 }
