@@ -23,9 +23,9 @@ import com.google.common.collect.Lists;
 public class TriangleMesh implements Drawable, Serializable {
 	private static final long serialVersionUID = 6079627240260644846L;
 
-	private static int numMeshes = 0; // help to generate OpenGL display list
+	private static int numMeshes = 0; // OpenGL display list id
 
-	private transient int thisNum;
+	private transient int id;
 	private transient boolean isToGenList = true;
 
 	private int nTriangles; // number of triangles
@@ -42,17 +42,14 @@ public class TriangleMesh implements Drawable, Serializable {
 	private Material material;
 	private String name;
 
-	private BoundingBox bb = new BoundingBox(Float.MAX_VALUE, Float.MAX_VALUE,
+	private BoundingBox aabb = new BoundingBox(Float.MAX_VALUE, Float.MAX_VALUE,
 			Float.MAX_VALUE, Float.MIN_VALUE, Float.MIN_VALUE, Float.MIN_VALUE);
 	private float minX = Float.MAX_VALUE, minY = Float.MAX_VALUE,
 			minZ = Float.MAX_VALUE, maxX = Float.MIN_VALUE,
 			maxY = Float.MIN_VALUE, maxZ = Float.MIN_VALUE;
 
-	/**
-	 * 
-	 */
 	public TriangleMesh() {
-		thisNum = ++numMeshes;
+		id = ++numMeshes;
 	}
 
 	public void addVertex(Vec3f v) {
@@ -170,7 +167,7 @@ public class TriangleMesh implements Drawable, Serializable {
 	 */
 	private void genList(GL2 gl) {
 		Vec3f buf;
-		gl.glNewList(thisNum, GL2.GL_COMPILE);
+		gl.glNewList(id, GL2.GL_COMPILE);
 		gl.glBegin(GL2.GL_TRIANGLES);
 		for (int i = 0; i < nTriangles; i++) // iterate all faces, the ith faces
 		{
@@ -213,7 +210,7 @@ public class TriangleMesh implements Drawable, Serializable {
 		gl.glEnd();
 		gl.glEndList();
 
-		bb.set(minX, minY, minZ, maxX, maxY, maxZ);
+		aabb.set(minX, minY, minZ, maxX, maxY, maxZ);
 	}
 
 	/**
@@ -239,7 +236,7 @@ public class TriangleMesh implements Drawable, Serializable {
 		gl.glMaterialfv(GL2.GL_FRONT_AND_BACK, GL2.GL_AMBIENT, s, 0);
 		gl.glMaterialfv(GL2.GL_FRONT_AND_BACK, GL2.GL_DIFFUSE, s, 0);
 		gl.glMaterialf(GL2.GL_FRONT_AND_BACK, GL2.GL_SHININESS, 50.0f);
-		gl.glCallList(thisNum);
+		gl.glCallList(id);
 		gl.glPopMatrix();
 	}
 
@@ -277,7 +274,7 @@ public class TriangleMesh implements Drawable, Serializable {
 	 * @param camera
 	 */
 	public void drawBoundingBox(GL2 gl, GLU glu, Camera camera) {
-		bb.draw(gl, glu, camera);
+		aabb.draw(gl, glu, camera);
 	}
 
 	/**

@@ -14,13 +14,12 @@ import prime.math.Vec3f;
 import prime.physics.Ray;
 
 /**
- * axis-aligned bounding box (AABB) which contains a list of triangles
- * 
- * @author lizhaoliu
+ * Axis-aligned bounding box (AABB) which contains a list of triangles
  */
 public class BoundingBox implements Drawable, Iterable<Triangle>,
 		Serializable {
 	private static final long serialVersionUID = -8072891542252256281L;
+	
 	private Vec3f min = new Vec3f(), max = new Vec3f();
 	private List<Triangle> triangleList = new ArrayList<Triangle>();
 
@@ -145,10 +144,10 @@ public class BoundingBox implements Drawable, Iterable<Triangle>,
 		for (int i = 0; i < 3; i++) {
 			t1 = (min.get(i) - o.get(i)) / d.get(i);
 			t2 = (max.get(i) - o.get(i)) / d.get(i);
-			if (t1 > t2) {
-				float temp = t1;
+			if (t1 > t2) {	//swap t1 and t2
+				float tmp = t1;
 				t1 = t2;
-				t2 = temp;
+				t2 = tmp;
 			}
 			if (tNear < t1) {
 				tNear = t1;

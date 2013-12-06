@@ -18,19 +18,20 @@ public class KdTree extends SpatialStructure implements Serializable {
 	private static final long serialVersionUID = -6629508645189976660L;
 	
 	private KdNode root = null;
-	private int maxDivisionDepth = 10;
-	private int maxTrianglesPerNode = 5;
+	private int maxDepth = 10;
+	private int maxTrianglesPerLeaf = 5;
 
 	/**
 	 * 
 	 * @param box
-	 * @param maxDivisionDepth
-	 * @param maxTrianglesPerNode
+	 * @param maxDepth
+	 * @param maxTrianglesPerLeaf
 	 */
-	public KdTree(BoundingBox box, int maxDivisionDepth, int maxTrianglesPerNode) {
+	public KdTree(BoundingBox box, int maxDepth, int maxTrianglesPerLeaf) {
 		super(box);
-		this.maxDivisionDepth = maxDivisionDepth;
-		this.maxTrianglesPerNode = maxTrianglesPerNode;
+		this.maxDepth = maxDepth;
+		this.maxTrianglesPerLeaf = maxTrianglesPerLeaf;
+		
 		root = new KdNode();
 		root.box = box;
 		subdiv();
@@ -51,8 +52,7 @@ public class KdTree extends SpatialStructure implements Serializable {
 	 * @param axis
 	 */
 	private void subdiv(KdNode bSPNode, int depth, int axis) {
-		if (depth < maxDivisionDepth
-				&& bSPNode.box.getTriangleNum() > maxTrianglesPerNode) {
+		if (depth < maxDepth && bSPNode.box.getTriangleNum() > maxTrianglesPerLeaf) {
 			bSPNode.subdivideAxis = axis;
 
 			Vec3f min = bSPNode.box.getMinPoint();
@@ -69,9 +69,6 @@ public class KdTree extends SpatialStructure implements Serializable {
 			bSPNode.rightChild.box = new BoundingBox(rightMin, max);
 			int nextAxis = (axis + 1) % 3;
 
-			/*
-			 * 
-			 */
 			for (int i = 0; i < bSPNode.box.getTriangleNum(); i++) {
 				Triangle t = bSPNode.box.getTriangle(i);
 				if (t.intersect((bSPNode.leftChild.box))) {
@@ -91,14 +88,14 @@ public class KdTree extends SpatialStructure implements Serializable {
 	/**
 	 * 
 	 * @param ray
-	 * @param dest
+	 * @param dst
 	 */
-	public void intersect(Ray ray, RayTriIntInfo dest) {
+	public void intersect(Ray ray, RayTriIntInfo dst) {
 		if (root == null) {
-			dest.setIsIntersected(false);
+			dst.setIsIntersected(false);
 			return;
 		}
-		intersect(ray, root, dest);
+		intersect(ray, root, dst);
 	}
 
 	/**
@@ -108,8 +105,7 @@ public class KdTree extends SpatialStructure implements Serializable {
 	 * @param kdNode
 	 * @param dst
 	 */
-	private void intersect(Ray ray, KdNode kdNode,
-			RayTriIntInfo dst) {
+	private void intersect(Ray ray, KdNode kdNode, RayTriIntInfo dst) {
 		RayBoxIntInfo rayBoxInt = kdNode.box.intersect(ray);
 		if (!rayBoxInt.isHit()) {
 			dst.setIsIntersected(false);
@@ -151,43 +147,38 @@ public class KdTree extends SpatialStructure implements Serializable {
 	}
 
 	public void setMaxDivisionDepth(int maxDivisionDepth) {
-		this.maxDivisionDepth = maxDivisionDepth;
+		this.maxDepth = maxDivisionDepth;
 	}
 
 	public int getMaxDivisionDepth() {
-		return maxDivisionDepth;
+		return maxDepth;
 	}
 
 	public void setMaxTrianglesPerNode(int maxTrianglesPerNode) {
-		this.maxTrianglesPerNode = maxTrianglesPerNode;
+		this.maxTrianglesPerLeaf = maxTrianglesPerNode;
 	}
 
 	public int getMaxTrianglesPerNode() {
-		return maxTrianglesPerNode;
-	}
-}
-
-/**
- * 
- * @author lizhaoliu
- *
- */
-class KdNode implements Serializable {
-	private static final long serialVersionUID = -1993087877071361426L;
-
-	static int X = 0;
-	static int Y = 1;
-	static int Z = 2;
-
-	BoundingBox box;
-	KdNode leftChild, rightChild;
-	int subdivideAxis;
-
-	public void add(Triangle t) {
-		box.add(t);
+		return maxTrianglesPerLeaf;
 	}
 	
-	public boolean isLeaf() {
-		return leftChild == null && rightChild == null;
+	/**
+	 * 
+	 */
+	private static final class KdNode implements Serializable {
+		private static final long serialVersionUID = -1993087877071361426L;
+		
+		BoundingBox box;
+		KdNode leftChild, rightChild;
+		int subdivideAxis;
+		
+		public void add(Triangle t) {
+			box.add(t);
+		}
+		
+		public boolean isLeaf() {
+			return leftChild == null && rightChild == null;
+		}
 	}
 }
+
