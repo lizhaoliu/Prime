@@ -208,10 +208,8 @@ public class Triangle implements Serializable {
 			return true;
 		}
 
-		Vec3 min = new Vec3();
-		box.getMinPoint(min);
-		Vec3 max = new Vec3();
-		box.getMaxPoint(max);
+		Vec3 min = box.getMinPoint();
+		Vec3 max = box.getMaxPoint();
 		Vec3 p0 = new Vec3(), p1 = new Vec3();
 
 		p0.set(min);

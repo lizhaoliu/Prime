@@ -75,10 +75,8 @@ public class KDTree {
 
 	private void query1(BoundingBox region, KDNode currNode,
 			List<Photon> resList) {
-		Vec3 min = new Vec3();
-		region.getMinPoint(min);
-		Vec3 max = new Vec3();
-		region.getMaxPoint(max);
+		Vec3 min = region.getMinPoint();
+		Vec3 max = region.getMaxPoint();
 		int axis = currNode.subdivisionAxis;
 		float midValue = currNode.midValue;
 		if (currNode.isLeaf()) {

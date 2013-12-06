@@ -32,14 +32,14 @@ public class KdTree extends SpatialStructure implements Serializable {
 		this.maxTrianglesPerNode = maxTrianglesPerNode;
 		root = new KdNode();
 		root.box = box;
-		subdivide();
+		subdiv();
 	}
 
 	/**
 	 * subdivide the structure
 	 */
-	public void subdivide() {
-		subdivideImplementation(root, 0, root.box.maxLengthAxis());
+	public void subdiv() {
+		subdiv(root, 0, root.box.maxLengthAxis());
 	}
 
 	/**
@@ -49,17 +49,14 @@ public class KdTree extends SpatialStructure implements Serializable {
 	 * @param depth
 	 * @param axis
 	 */
-	private void subdivideImplementation(KdNode bSPNode, int depth, int axis) {
+	private void subdiv(KdNode bSPNode, int depth, int axis) {
 		if (depth < maxDivisionDepth
 				&& bSPNode.box.getTriangleNum() > maxTrianglesPerNode) {
 			bSPNode.subdivideAxis = axis;
 
-			Vec3 min = new Vec3();
-			bSPNode.box.getMinPoint(min);
-			Vec3 max = new Vec3();
-			bSPNode.box.getMaxPoint(max);
-			Vec3 mid = new Vec3();
-			bSPNode.box.getMidPoint(mid);
+			Vec3 min = bSPNode.box.getMinPoint();
+			Vec3 max = bSPNode.box.getMaxPoint();
+			Vec3 mid = bSPNode.box.getMidPoint();
 			float r = mid.get(axis);
 
 			bSPNode.leftChild = new KdNode();
@@ -85,8 +82,8 @@ public class KdTree extends SpatialStructure implements Serializable {
 			}
 			bSPNode.box.clear();
 
-			subdivideImplementation(bSPNode.leftChild, depth + 1, nextAxis);
-			subdivideImplementation(bSPNode.rightChild, depth + 1, nextAxis);
+			subdiv(bSPNode.leftChild, depth + 1, nextAxis);
+			subdiv(bSPNode.rightChild, depth + 1, nextAxis);
 		}
 	}
 

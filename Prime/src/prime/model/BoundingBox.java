@@ -226,24 +226,24 @@ public class BoundingBox implements Drawable, Iterable<Triangle>,
 	 * 
 	 * @param dst
 	 */
-	public void getMidPoint(Vec3 dst) {
-		dst.set((min.x + max.x) / 2, (min.y + max.y) / 2, (min.z + max.z) / 2);
+	public Vec3 getMidPoint() {
+		return new Vec3((min.x + max.x) / 2, (min.y + max.y) / 2, (min.z + max.z) / 2);
 	}
 
 	/**
 	 * 
 	 * @param dst
 	 */
-	public void getMinPoint(Vec3 dst) {
-		dst.set(min);
+	public Vec3 getMinPoint() {
+		return new Vec3(min);
 	}
 
 	/**
 	 * 
 	 * @param dst
 	 */
-	public void getMaxPoint(Vec3 dst) {
-		dst.set(max);
+	public Vec3 getMaxPoint() {
+		return new Vec3(max);
 	}
 
 	/**

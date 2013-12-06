@@ -31,27 +31,27 @@ public class PathTracer extends Renderer {
 	 * @param depth
 	 */
 	private void tracePath(Ray srcRay, int depth) {
-		Spectrum destSpectrum = srcRay.getSpectrum();
+		Spectrum dstSpectrum = srcRay.getSpectrum();
 		//
 		srcRay.setLengthToMax();
-		RayIntersectionInfo intResult = new RayIntersectionInfo();
-		sceneGraph.intersect(srcRay, intResult);
-		if (!intResult.isIntersected())
+		RayIntersectionInfo intRes = new RayIntersectionInfo();
+		sceneGraph.intersect(srcRay, intRes);
+		if (!intRes.isIntersected())
 		{
-			destSpectrum.add(backgroundSpectrum);
+			dstSpectrum.add(backgroundSpectrum);
 			return;
 		}
 
-		Triangle intTriangle = intResult.getTriangle();
+		Triangle intTriangle = intRes.getTriangle();
 		BSDF bsdf = intTriangle.getBSDF();
 		if (bsdf.isLight()) {
-			destSpectrum.add(bsdf.getEmittance());
+			dstSpectrum.add(bsdf.getEmittance());
 			return;
 		}
 
 		Ray newRay = new Ray();
 		Vec3 newDir = newRay.getDirection();
-		float u = intResult.getU(), v = intResult.getV();
+		float u = intRes.getU(), v = intRes.getV();
 		Vec3 hitPoint = new Vec3(), normal = new Vec3();// , texCoord =
 		// new
 		// Vector3();
@@ -63,7 +63,7 @@ public class PathTracer extends Renderer {
 		if (depth >= maxDepth)	//
 		{
 			// connect(hitPoint, normal, bsdf, destSpectrum);
-			// directIllumination(srcRay, hitPoint, normal, bsdf, destSpectrum);
+			 directIllumination(srcRay, hitPoint, normal, bsdf, dstSpectrum);
 			return;
 		}
 
@@ -81,7 +81,7 @@ public class PathTracer extends Renderer {
 		Spectrum resSpectrum = newRay.getSpectrum();
 		Spectrum tmpSpectrum = new Spectrum();
 
-		directIllumination(srcRay, hitPoint, normal, bsdf, destSpectrum);
+		directIllumination(srcRay, hitPoint, normal, bsdf, dstSpectrum);
 
 		//
 		float roulette = (float) (Math.random() * (refAvg + transAvg + abspAvg));
@@ -102,9 +102,9 @@ public class PathTracer extends Renderer {
 			return;
 		}
 		factor *= (float) (Math.abs(Vec3.dot(normal, newDir)));
-		newRay.setOrigin(hitPoint.x + MathUtils.EPSILON * newDir.x, hitPoint.y
-				+ MathUtils.EPSILON * newDir.y, hitPoint.z + MathUtils.EPSILON
-				* newDir.z);
+		newRay.setOrigin(hitPoint.x + MathUtils.EPSILON * newDir.x, 
+				hitPoint.y + MathUtils.EPSILON * newDir.y, 
+				hitPoint.z + MathUtils.EPSILON * newDir.z);
 		newRay.setDirection(newDir);
 		newRay.setLengthToMax();
 		newRay.getSpectrum().zeroAll();
@@ -112,7 +112,7 @@ public class PathTracer extends Renderer {
 		bsdf.brdf(hitPoint, normal, srcDir, newDir, tmpSpectrum);
 		resSpectrum.blend(tmpSpectrum);
 		resSpectrum.multiply(factor);
-		destSpectrum.add(resSpectrum);
+		dstSpectrum.add(resSpectrum);
 	}
 
 	/**
