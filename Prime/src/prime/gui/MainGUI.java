@@ -69,6 +69,9 @@ import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeModel;
 
 
+
+import org.apache.log4j.BasicConfigurator;
+
 import prime.core.Camera;
 import prime.core.PathTracer;
 import prime.core.Renderer;
@@ -119,7 +122,8 @@ public class MainGUI extends JFrame {
     private ContentLoader loader = new ContentLoader(MainGUI.this);
 
     public static void main(String[] args) {
-	new MainGUI();
+    	BasicConfigurator.configure();
+    	new MainGUI();
     }
 
     public MainGUI() {
