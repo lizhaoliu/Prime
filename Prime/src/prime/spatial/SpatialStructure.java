@@ -4,7 +4,7 @@
 package prime.spatial;
 
 import prime.model.BoundingBox;
-import prime.model.RayIntersectionInfo;
+import prime.model.RayTriIntInfo;
 import prime.physics.Ray;
 
 /**
@@ -19,5 +19,5 @@ public abstract class SpatialStructure {
 		this.box = box;
 	}
 
-	public abstract void intersect(Ray ray, RayIntersectionInfo dst);
+	public abstract void intersect(Ray ray, RayTriIntInfo dst);
 }

@@ -3,7 +3,7 @@ package prime.core;
 import prime.math.Filter;
 import prime.math.MathUtils;
 import prime.math.Vec3;
-import prime.model.RayIntersectionInfo;
+import prime.model.RayTriIntInfo;
 import prime.model.Triangle;
 import prime.model.TriangleMesh;
 import prime.physics.BSDF;
@@ -55,7 +55,7 @@ public abstract class Renderer {
 	 */
 	protected void directIllumination(Ray srcRay, Vec3 hitPoint,
 			Vec3 normal, BSDF bsdf, Spectrum destColor) {
-		RayIntersectionInfo ir = new RayIntersectionInfo();
+		RayTriIntInfo ir = new RayTriIntInfo();
 		Ray newRay = new Ray();
 		Vec3 newDir = newRay.getDirection();
 		Spectrum spectrum = newRay.getSpectrum();
@@ -76,7 +76,7 @@ public abstract class Renderer {
 			sceneGraph.intersect(newRay, ir);
 			triangleLight = ir.getTriangle();
 			float cos = Vec3.dot(newDir, normal);
-			if (ir.isIntersected()
+			if (ir.isHit()
 					&& triangleLight.getTriangleMesh() == meshLight && cos > 0) {
 				float u = ir.getU(), v = ir.getV();
 				Vec3 normalLight = new Vec3();

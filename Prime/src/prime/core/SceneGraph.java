@@ -8,7 +8,7 @@ import java.util.List;
 import prime.math.MathUtils;
 import prime.math.Vec3;
 import prime.model.BoundingBox;
-import prime.model.RayIntersectionInfo;
+import prime.model.RayTriIntInfo;
 import prime.model.Triangle;
 import prime.model.TriangleMesh;
 import prime.physics.Ray;
@@ -105,9 +105,9 @@ public class SceneGraph implements Serializable, Iterable<TriangleMesh> {
 		ray.setDirection(d);
 		ray.setOrigin(p0.x + d.x * MathUtils.EPSILON, p0.y + d.y
 				* MathUtils.EPSILON, p0.z + d.z * MathUtils.EPSILON);
-		RayIntersectionInfo ir = new RayIntersectionInfo();
+		RayTriIntInfo ir = new RayTriIntInfo();
 		bSPTree.intersect(ray, ir);
-		return ir.isIntersected();
+		return ir.isHit();
 	}
 
 	public int getTrianglesNum() {
@@ -127,7 +127,10 @@ public class SceneGraph implements Serializable, Iterable<TriangleMesh> {
 	 * @param ray
 	 * @param dest
 	 */
-	public void intersect(Ray ray, RayIntersectionInfo dest) {
+	public void intersect(Ray ray, RayTriIntInfo dest) {
+		if (bSPTree == null) {
+			return ;
+		}
 		bSPTree.intersect(ray, dest);
 	}
 

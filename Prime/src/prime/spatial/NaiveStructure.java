@@ -5,7 +5,7 @@ package prime.spatial;
 
 
 import prime.model.BoundingBox;
-import prime.model.RayIntersectionInfo;
+import prime.model.RayTriIntInfo;
 import prime.physics.Ray;
 
 /**
@@ -22,7 +22,7 @@ public class NaiveStructure extends SpatialStructure {
      * 
      */
     @Override
-    public void intersect(Ray ray, RayIntersectionInfo dst) {
+    public void intersect(Ray ray, RayTriIntInfo dst) {
 	// TODO Auto-generated method stub
 	box.intersect(ray, dst);
     }

@@ -3,7 +3,7 @@ package prime.core;
 //import org.llz.rt.photonmap.Photon;
 import prime.math.MathUtils;
 import prime.math.Vec3;
-import prime.model.RayIntersectionInfo;
+import prime.model.RayTriIntInfo;
 import prime.model.Triangle;
 import prime.physics.BSDF;
 import prime.physics.Ray;
@@ -34,9 +34,9 @@ public class PathTracer extends Renderer {
 		Spectrum dstSpectrum = srcRay.getSpectrum();
 		//
 		srcRay.setLengthToMax();
-		RayIntersectionInfo intRes = new RayIntersectionInfo();
+		RayTriIntInfo intRes = new RayTriIntInfo();
 		sceneGraph.intersect(srcRay, intRes);
-		if (!intRes.isIntersected())
+		if (!intRes.isHit())
 		{
 			dstSpectrum.add(backgroundSpectrum);
 			return;

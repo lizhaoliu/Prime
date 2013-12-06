@@ -4,7 +4,8 @@ import java.io.Serializable;
 
 import prime.math.Vec3;
 import prime.model.BoundingBox;
-import prime.model.RayIntersectionInfo;
+import prime.model.RayBoxIntInfo;
+import prime.model.RayTriIntInfo;
 import prime.model.Triangle;
 import prime.physics.Ray;
 
@@ -92,7 +93,7 @@ public class KdTree extends SpatialStructure implements Serializable {
 	 * @param ray
 	 * @param dest
 	 */
-	public void intersect(Ray ray, RayIntersectionInfo dest) {
+	public void intersect(Ray ray, RayTriIntInfo dest) {
 		if (root == null) {
 			dest.setIsIntersected(false);
 			return;
@@ -104,34 +105,48 @@ public class KdTree extends SpatialStructure implements Serializable {
 	 * This method is the key to the efficiency of whole intersection process
 	 * 
 	 * @param ray
-	 * @param bSPNode
+	 * @param kdNode
 	 * @param dst
 	 */
-	private void intersect(Ray ray, KdNode bSPNode,
-			RayIntersectionInfo dst) {
-		if (!bSPNode.box.intersect(ray)) {
+	private void intersect(Ray ray, KdNode kdNode,
+			RayTriIntInfo dst) {
+		RayBoxIntInfo rayBoxInt = kdNode.box.intersect(ray);
+		if (!rayBoxInt.isHit()) {
 			dst.setIsIntersected(false);
 			return;
 		}
-		if (bSPNode.leftChild == null && bSPNode.rightChild == null) // a leaf
-		{
-			bSPNode.box.intersect(ray, dst);
+		if (kdNode.isLeaf()) {
+			kdNode.box.intersect(ray, dst);
 			return;
 		}
 
-		RayIntersectionInfo intr = new RayIntersectionInfo();
-		intersect(ray, bSPNode.leftChild, dst);
-		float destLength = ray.getLength();
-		intersect(ray, bSPNode.rightChild, intr);
-		float intrLength = ray.getLength();
-		if (intr.isIntersected()) {
-			if (dst.isIntersected()) {
-				if (destLength > intrLength) {
-					dst.assign(intr);
-				}
+		Vec3 o = ray.getOrigin(), d = ray.getDirection();
+		Vec3 mid = kdNode.box.getMidPoint();
+		int axis = kdNode.subdivideAxis;
+		float tmid = (mid.get(axis) - o.get(axis)) / d.get(axis);
+		if (o.get(axis) < mid.get(axis)) {	// origin on the lesser side of splitting plane
+			if (tmid < 0 || tmid > rayBoxInt.getMax()) {
+				intersect(ray, kdNode.leftChild, dst);
+			} else if (tmid < rayBoxInt.getMin()) {
+				intersect(ray, kdNode.rightChild, dst);
 			} else {
-				dst.assign(intr);
+				intersect(ray, kdNode.leftChild, dst);
+				if (!dst.isHit()) {
+					intersect(ray, kdNode.rightChild, dst);
+				}
 			}
+		} else {							// origin on the greater side of splitting plane
+			if (tmid < 0 || tmid > rayBoxInt.getMax()) {
+				intersect(ray, kdNode.rightChild, dst);
+			} else if (tmid < rayBoxInt.getMin()) {
+				intersect(ray, kdNode.leftChild, dst);
+			} else {
+				intersect(ray, kdNode.rightChild, dst);
+				if (!dst.isHit()) {
+					intersect(ray, kdNode.leftChild, dst);
+				}
+			}
+			
 		}
 	}
 
@@ -170,5 +185,9 @@ class KdNode implements Serializable {
 
 	public void add(Triangle t) {
 		box.add(t);
+	}
+	
+	public boolean isLeaf() {
+		return leftChild == null && rightChild == null;
 	}
 }

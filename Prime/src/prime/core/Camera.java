@@ -11,7 +11,7 @@ import javax.media.opengl.glu.GLU;
 import prime.math.LHCoordinateSystem;
 import prime.math.Transformable;
 import prime.math.Vec3;
-import prime.model.RayIntersectionInfo;
+import prime.model.RayTriIntInfo;
 import prime.model.TriangleMesh;
 import prime.physics.Ray;
 import prime.physics.Spectrum;
@@ -535,11 +535,14 @@ public class Camera extends Observable implements Serializable,
 	}
 
 	public TriangleMesh pick(int x, int y) {
+		if (sceneGraph == null) {
+			return null;
+		}
 		Ray ray = new Ray();
 		getRayFromViewport(x, y, 0, 0, ray);
-		RayIntersectionInfo ir = new RayIntersectionInfo();
+		RayTriIntInfo ir = new RayTriIntInfo();
 		sceneGraph.intersect(ray, ir);
-		if (ir.isIntersected()) {
+		if (ir.isHit()) {
 			return ir.getTriangle().getTriangleMesh();
 		}
 		return null;

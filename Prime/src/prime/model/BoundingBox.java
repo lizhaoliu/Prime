@@ -138,7 +138,7 @@ public class BoundingBox implements Drawable, Iterable<Triangle>,
 	 * @param ray
 	 * @return
 	 */
-	public boolean intersect(Ray ray) {
+	public RayBoxIntInfo intersect(Ray ray) {
 		float tNear = Float.NEGATIVE_INFINITY, tFar = Float.POSITIVE_INFINITY, t1, t2;
 		Vec3 o = ray.getOrigin();
 		Vec3 d = ray.getDirection();
@@ -157,10 +157,10 @@ public class BoundingBox implements Drawable, Iterable<Triangle>,
 				tFar = t2;
 			}
 			if (tNear > tFar || tFar < 0 || tNear > ray.getLength()) {
-				return false;
+				return new RayBoxIntInfo(false, t1, t2);
 			}
 		}
-		return true;
+		return new RayBoxIntInfo(true, tNear, tFar);
 	}
 
 	/**
@@ -198,11 +198,11 @@ public class BoundingBox implements Drawable, Iterable<Triangle>,
 	 * @param ray
 	 * @param dst
 	 */
-	public void intersect(Ray ray, RayIntersectionInfo dst) {
-		RayIntersectionInfo tmp = new RayIntersectionInfo();
+	public void intersect(Ray ray, RayTriIntInfo dst) {
+		RayTriIntInfo tmp = new RayTriIntInfo();
 		for (int i = 0; i < triangleList.size(); i++) {
 			triangleList.get(i).intersect(ray, tmp);
-			if (tmp.isIntersected()) {
+			if (tmp.isHit()) {
 				dst.assign(tmp);
 			}
 		}
