@@ -359,10 +359,8 @@ public class Vec3f implements Serializable, Cloneable {
 				* v3.z);
 	}
 
-	/**
-	 * 
-	 */
+	@Override
 	public String toString() {
-		return "x = " + x + ", y = " + y + ", z = " + z;
+	    return "Vec3f [x=" + x + ", y=" + y + ", z=" + z + "]";
 	}
 }

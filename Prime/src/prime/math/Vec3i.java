@@ -4,56 +4,61 @@ package prime.math;
  * 
  */
 public class Vec3i {
-	public int i0, i1, i2;
+    public int x, y, z;
 
-	/**
-	 * 
-	 * @param i0
-	 * @param i1
-	 * @param i2
-	 */
-	public Vec3i(int i0, int i1, int i2) {
-		this.i0 = i0;
-		this.i1 = i1;
-		this.i2 = i2;
+    /**
+     * 
+     * @param i0
+     * @param i1
+     * @param i2
+     */
+    public Vec3i(int i0, int i1, int i2) {
+	this.x = i0;
+	this.y = i1;
+	this.z = i2;
+    }
+
+    @Override
+    public String toString() {
+	return "Vec3i [x=" + x + ", y=" + y + ", z=" + z + "]";
+    }
+
+    /**
+     * 
+     * @param i
+     * @return
+     */
+    public int get(int i) {
+	switch (i) {
+	case 0:
+	    return x;
+
+	case 1:
+	    return y;
+
+	default:
+	    return z;
 	}
+    }
 
-	/**
-	 * 
-	 * @param i
-	 * @return
-	 */
-	public int get(int i) {
-		switch (i) {
-		case 0:
-			return i0;
+    /**
+     * 
+     * @param i
+     * @param val
+     */
+    public void set(int i, int val) {
+	switch (i) {
+	case 0:
+	    x = val;
+	    break;
 
-		case 1:
-			return i1;
+	case 1:
+	    y = val;
+	    break;
 
-		default:
-			return i2;
-		}
+	default:
+	    z = val;
+	    break;
 	}
-
-	/**
-	 * 
-	 * @param i
-	 * @param val
-	 */
-	public void set(int i, int val) {
-		switch (i) {
-		case 0:
-			i0 = val;
-			break;
-
-		case 1:
-			i1 = val;
-			break;
-
-		default:
-			i2 = val;
-			break;
-		}
-	}
+    }
 }

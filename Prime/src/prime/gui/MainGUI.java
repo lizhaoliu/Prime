@@ -36,6 +36,7 @@ import java.io.FileOutputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
 import javax.imageio.ImageIO;
@@ -61,12 +62,15 @@ import javax.swing.JSlider;
 import javax.swing.JTextArea;
 import javax.swing.JTextField;
 import javax.swing.JTree;
+import javax.swing.SwingUtilities;
 import javax.swing.border.TitledBorder;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeModel;
+
+
 
 
 
@@ -95,14 +99,8 @@ import prime.util.ContentLoader;
 public class MainGUI extends JFrame {
     private static final long serialVersionUID = -739564126009719851L;
 
-    public static final int PANEL_HEIGHT = (int) (Toolkit.getDefaultToolkit()
-	    .getScreenSize().height / 1.2);
-    public static final int PANEL_WIDTH = (int) (Toolkit.getDefaultToolkit()
-	    .getScreenSize().height / 1.2);
-
-    public static final int X = 0;
-    public static final int Y = 1;
-    public static final int Z = 2;
+    public static final int PANEL_HEIGHT = (int) (Toolkit.getDefaultToolkit().getScreenSize().height / 1.2);
+    public static final int PANEL_WIDTH = (int) (Toolkit.getDefaultToolkit().getScreenSize().height / 1.2);
 
     private ViewPanel viewPanel;
 
@@ -1078,7 +1076,7 @@ public class MainGUI extends JFrame {
 		    if (ret == JFileChooser.APPROVE_OPTION) {
 			try {
 			    File file = chooser.getSelectedFile();
-			    TriangleMesh[] meshes = loader.loadModelFile(file);
+			    Collection<TriangleMesh> meshes = loader.loadModelFile(file);
 			    for (TriangleMesh mesh : meshes) {
 				mesh.setMaterial(bsdfList.get(0));
 				mesh.finish();
@@ -1597,8 +1595,14 @@ public class MainGUI extends JFrame {
 	}
     }
 
-    public final void addSystemLog(String log) {
-	westPanel.addSystemLog(log);
+    public final void addSystemLog(final String log) {
+	SwingUtilities.invokeLater(new Runnable() {
+	    @Override
+	    public void run() {
+		// TODO Auto-generated method stub
+		westPanel.addSystemLog(log);
+	    }
+	});
     }
 
     public final void setViewPanelEnabled(boolean isEnabled) {
