@@ -70,10 +70,6 @@ import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeModel;
 
-
-
-
-
 import org.apache.log4j.BasicConfigurator;
 
 import prime.core.Camera;
@@ -86,9 +82,9 @@ import prime.math.GaussianFilter;
 import prime.math.LHCoordinateSystem;
 import prime.math.Vec3f;
 import prime.model.TriangleMesh;
-import prime.physics.Material;
-import prime.physics.IdealDiffuseModel;
 import prime.physics.Color3f;
+import prime.physics.IdealDiffuseModel;
+import prime.physics.Material;
 import prime.util.ContentLoader;
 
 /**
@@ -221,7 +217,7 @@ public class MainGUI extends JFrame {
 	    for (TriangleMesh mesh : meshesList) {
 		DefaultMutableTreeNode node = new DefaultMutableTreeNode(mesh);
 		DefaultMutableTreeNode trianglesNode = new DefaultMutableTreeNode(
-			mesh.getTrianglesNum());
+			mesh.getTriangleCount());
 		node.add(trianglesNode);
 		root.add(node);
 	    }
@@ -1070,7 +1066,7 @@ public class MainGUI extends JFrame {
 		} else if (o == bImptModel) {
 		    JFileChooser chooser = new JFileChooser();
 		    FileNameExtensionFilter filter = new FileNameExtensionFilter(
-			    "model file *.obj *.3ds", "obj", "3ds");
+			    "model file *.obj *.ply", "obj", "ply");
 		    chooser.setFileFilter(filter);
 		    int ret = chooser.showOpenDialog(null);
 		    if (ret == JFileChooser.APPROVE_OPTION) {
@@ -1079,7 +1075,6 @@ public class MainGUI extends JFrame {
 			    Collection<TriangleMesh> meshes = loader.loadModelFile(file);
 			    for (TriangleMesh mesh : meshes) {
 				mesh.setMaterial(bsdfList.get(0));
-				mesh.finish();
 				sceneGraph.addMesh(mesh);
 				meshesList.add(mesh);
 			    }

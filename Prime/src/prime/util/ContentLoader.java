@@ -33,7 +33,7 @@ public class ContentLoader {
     }
     
     /**
-     * 
+     * Load {@link TriangleMesh}s from a file
      * @param file input model file
      * @return a {@link Collection} of loaded {@link TriangleMesh}
      * @throws Exception
@@ -45,151 +45,17 @@ public class ContentLoader {
 	extName = extName.substring(extName.lastIndexOf('.') + 1);
 	if (extName.equalsIgnoreCase("obj")) {
 	    result = loadObjFile(file);
-	    mainGUI.addSystemLog("--importing succeeded--");
+	    mainGUI.addSystemLog("-- importing succeeded --");
 	    return result;
 	} else {
-	    mainGUI.addSystemLog("--importing failed --");
+	    mainGUI.addSystemLog("Unsupported file format");
+	    mainGUI.addSystemLog("-- importing failed --");
 	    return result;
 	}
     }
 
     /**
-     * the main method in charge of loading a model from OBJ file format
-     * 
-     * @param file
-     * @return
-     * @throws IOException
-     */
-//    private TriangleMesh[] loadOBJFile(File file) throws IOException {
-//	List<Vec3f> vList = Lists.newArrayList();
-//	List<Vec3f> nList = Lists.newArrayList();
-//	List<Vec3f> tList = Lists.newArrayList();
-//
-//	BufferedReader reader = new BufferedReader(new FileReader(file));
-//	String line;
-//	int nMeshes = 0;
-//	while ((line = reader.readLine()) != null) {
-//	    if (line.length() < 1) {
-//		continue;
-//	    }
-//	    char buf0 = line.charAt(0);
-//	    if (buf0 == 'g') {
-//		if (line.length() > 1) {
-//		    ++nMeshes;
-//		}
-//	    } else if (buf0 == 'v') {
-//		String[] ss = line.split(" ");
-//		int len = ss.length;
-//		Vec3f v = new Vec3f(Float.parseFloat(ss[len - 3]),
-//			Float.parseFloat(ss[len - 2]),
-//			Float.parseFloat(ss[len - 1]));
-//		char buf1 = line.charAt(1);
-//		if (buf1 == ' ') {
-//		    vList.add(v);
-//		} else if (buf1 == 'n') {
-//		    nList.add(v);
-//		} else if (buf1 == 't') {
-//		    tList.add(v);
-//		}
-//	    }
-//	}
-//	reader.close();
-//	mainGUI.addSystemLog(vList.size() + " vertices are loaded.");
-//	mainGUI.addSystemLog(nList.size() + " normals are loaded.");
-//	mainGUI.addSystemLog(tList.size() + " texture coordinates are loaded.");
-//
-//	if (nMeshes < 1) {
-//	    nMeshes = 1;
-//	}
-//	TriangleMesh[] result = new TriangleMesh[nMeshes];
-//	for (int i = 0; i < result.length; i++) {
-//	    result[i] = new TriangleMesh();
-//	    result[i].setSharedVertexList(vList);
-//	    result[i].setSharedNormalList(nList);
-//	    result[i].setSharedTexCoordList(tList);
-//	}
-//	mainGUI.addSystemLog(nMeshes + " triangle meshes are loaded.");
-//
-//	int iMeshes = -1;
-//	reader = new BufferedReader(new FileReader(file));
-//	while ((line = reader.readLine()) != null) {
-//	    if (line.length() < 1) {
-//		continue;
-//	    }
-//	    char buf0 = line.charAt(0);
-//	    if (buf0 == 'g' && line.length() > 1) {
-//		String[] ss = line.split(" ");
-//		result[++iMeshes].setName(ss[1]);
-//	    } else if (buf0 == 'f' && line.charAt(1) == ' ') {
-//		if (iMeshes == -1) {
-//		    iMeshes = 0;
-//		}
-//		String[] ss = line.split(" ");
-//		int segLen = ss[1].split("/").length; // cuz ss[0] == "f"
-//		String[][] data = new String[ss.length - 1][segLen];
-//		for (int i = 0; i < ss.length - 1; i++) {
-//		    data[i] = ss[i + 1].split("/");
-//		}
-//		int caseID;
-//		if (data[0].length == 1) {
-//		    caseID = 0; // %d
-//		} else {
-//		    if (data[0][1].length() == 0) {
-//			caseID = 1; // %d//%d
-//		    } else {
-//			caseID = 2; // %d/%d/%d
-//		    }
-//		}
-//		int i0, i1, i2;
-//		for (int i = 0; i < data.length - 2; i++) // ss[0] = "f"
-//		{
-//		    switch (caseID) {
-//		    case 0: // %d
-//			i0 = Integer.parseInt(data[i][0]) - 1;
-//			i1 = Integer.parseInt(data[i + 1][0]) - 1;
-//			i2 = Integer.parseInt(data[i + 2][0]) - 1;
-//			result[iMeshes].addVertexIndex(new Vec3i(i0, i1, i2));
-//			break;
-//
-//		    case 1: // %d//%d
-//			i0 = Integer.parseInt(data[i][0]) - 1;
-//			i1 = Integer.parseInt(data[i + 1][0]) - 1;
-//			i2 = Integer.parseInt(data[i + 2][0]) - 1;
-//			result[iMeshes].addVertexIndex(new Vec3i(i0, i1, i2));
-//
-//			i0 = Integer.parseInt(data[i][2]) - 1;
-//			i1 = Integer.parseInt(data[i + 1][2]) - 1;
-//			i2 = Integer.parseInt(data[i + 2][2]) - 1;
-//			result[iMeshes].addNormalIndex(new Vec3i(i0, i1, i2));
-//			break;
-//
-//		    default:// %d/%d/%d
-//			i0 = Integer.parseInt(data[i][0]) - 1;
-//			i1 = Integer.parseInt(data[i + 1][0]) - 1;
-//			i2 = Integer.parseInt(data[i + 2][0]) - 1;
-//			result[iMeshes].addVertexIndex(new Vec3i(i0, i1, i2));
-//
-//			i0 = Integer.parseInt(data[i][1]) - 1;
-//			i1 = Integer.parseInt(data[i + 1][1]) - 1;
-//			i2 = Integer.parseInt(data[i + 2][1]) - 1;
-//			result[iMeshes].addTexCoordIndex(new Vec3i(i0, i1, i2));
-//
-//			i0 = Integer.parseInt(data[i][2]) - 1;
-//			i1 = Integer.parseInt(data[i + 1][2]) - 1;
-//			i2 = Integer.parseInt(data[i + 2][2]) - 1;
-//			result[iMeshes].addNormalIndex(new Vec3i(i0, i1, i2));
-//		    }
-//		}
-//		;
-//	    }
-//	}
-//	reader.close();
-//
-//	return result;
-//    }
-    
-    /**
-     * 
+     * Load {@link TriangleMesh}s from OBJ format file
      * @param file input model file
      * @return a {@link Collection} of loaded {@link TriangleMesh}
      * @throws Exception
@@ -208,6 +74,7 @@ public class ContentLoader {
 	while ((buf = reader.readLine()) != null) {
 	    String[] tokens = buf.split(SPACE);
 	    switch (tokens[0]) {
+	    case "g":
 	    case "o":	//starting point of a new mesh
 		//dump all data into a new mesh
 		if (builder != null) {
@@ -226,7 +93,7 @@ public class ContentLoader {
 		    mainGUI.addSystemLog(nList.size() + " normals loaded.");
 		    mainGUI.addSystemLog(tList.size() + " tex coords loaded.");
 		    mainGUI.addSystemLog(viList.size() + " triangles loaded.");
-		    mainGUI.addSystemLog("--Finished loading mesh: " + meshName);
+		    mainGUI.addSystemLog("--Finished loading mesh: " + meshName + "\n");
 		}
 		//reset for reading new data
 		numV += vList.size();
@@ -325,7 +192,7 @@ public class ContentLoader {
 	mainGUI.addSystemLog(nList.size() + " normals loaded.");
 	mainGUI.addSystemLog(tList.size() + " tex coords loaded.");
 	mainGUI.addSystemLog(viList.size() + " triangles loaded.");
-	mainGUI.addSystemLog("--Finished loading mesh: " + meshName);
+	mainGUI.addSystemLog("--Finished loading mesh: " + meshName + "\n");
 	
 	return ret;
     }

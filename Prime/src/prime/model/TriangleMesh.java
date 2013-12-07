@@ -29,7 +29,7 @@ public final class TriangleMesh implements Drawable, Serializable {
     private static int globalMaxId = 0; // OpenGL display list id
 
     private transient int id;
-    private transient boolean isToGenList = true;
+    private transient boolean isDisplayListCreated;
 
     private final List<Vec3f> vertexList; 
     private final List<Vec3f> normalList;
@@ -41,14 +41,12 @@ public final class TriangleMesh implements Drawable, Serializable {
 
     private final String name;
     
-    private int nTriangles; // number of triangles
-    private float area; // the area of triangle meshs
+    private final int nTriangles;	// number of triangles
+    private final float area; 		// the area of triangle meshs
     
     private Material material;
 
-    private BoundingBox aabb = new BoundingBox(Float.MAX_VALUE,
-	    Float.MAX_VALUE, Float.MAX_VALUE, Float.MIN_VALUE, Float.MIN_VALUE,
-	    Float.MIN_VALUE);
+    private BoundingBox aabb = new BoundingBox(Float.MAX_VALUE, Float.MIN_VALUE);
     private float minX = Float.MAX_VALUE, minY = Float.MAX_VALUE,
 	    minZ = Float.MAX_VALUE, maxX = Float.MIN_VALUE,
 	    maxY = Float.MIN_VALUE, maxZ = Float.MIN_VALUE;
@@ -65,6 +63,9 @@ public final class TriangleMesh implements Drawable, Serializable {
 	texCoordsIndexList = builder.texCoordIndexList;
 	
 	name = builder.name;
+	
+	nTriangles = vertexIndexList.size();
+	area = calculateArea();
     }
 
     /**
@@ -79,45 +80,49 @@ public final class TriangleMesh implements Drawable, Serializable {
 	return triArray;
     }
 
+    /**
+     * 
+     * @return
+     */
     public String getName() {
 	return name;
     }
 
     /**
      * 
-     * @param index
-     * @param iV
+     * @param triangleId
+     * @param vertexId
      * @return
      */
-    public Vec3f getVertex(int index, int iV) {
-	return vertexList.get(vertexIndexList.get(index).get(iV));
+    Vec3f getVertex(int triangleId, int vertexId) {
+	return vertexList.get(vertexIndexList.get(triangleId).get(vertexId));
     }
 
     /**
      * 
-     * @param index
-     * @param iN
+     * @param triangleId
+     * @param normalId
      * @return
      */
-    public Vec3f getNormal(int index, int iN) {
-	return normalList.get(normalIndexList.get(index).get(iN));
+    Vec3f getNormal(int triangleId, int normalId) {
+	return normalList.get(normalIndexList.get(triangleId).get(normalId));
     }
 
     /**
      * 
-     * @param index
-     * @param iT
+     * @param triangleId
+     * @param texCoordId
      * @return
      */
-    public Vec3f getTexCoord(int index, int iT) {
-	return texCoordList.get(texCoordsIndexList.get(index).get(iT));
+    Vec3f getTexCoord(int triangleId, int texCoordId) {
+	return texCoordList.get(texCoordsIndexList.get(triangleId).get(texCoordId));
     }
 
     /**
      * 
      * @param gl
      */
-    private void genList(GL2 gl) {
+    private void genDisplayList(GL2 gl) {
 	Vec3f buf;
 	gl.glNewList(id, GL2.GL_COMPILE);
 	gl.glBegin(GL2.GL_TRIANGLES);
@@ -170,9 +175,9 @@ public final class TriangleMesh implements Drawable, Serializable {
      */
     @Override
     public void draw(GL2 gl, GLU glu, Camera camera) {
-	if (isToGenList) {
-	    genList(gl);
-	    isToGenList = false;
+	if (!isDisplayListCreated) {
+	    genDisplayList(gl);
+	    isDisplayListCreated = true;
 	}
 
 	float[] s = new float[16];
@@ -193,15 +198,6 @@ public final class TriangleMesh implements Drawable, Serializable {
     }
 
     /**
-     * finish adding info to this mesh and do some ending job
-     */
-    public void finish() {
-	nTriangles = vertexIndexList.size();
-	isToGenList = true;
-	calculateArea();
-    }
-
-    /**
      * 
      * @return
      */
@@ -212,12 +208,13 @@ public final class TriangleMesh implements Drawable, Serializable {
     /**
 	 * 
 	 */
-    private void calculateArea() {
-	area = 0.0f;
+    private float calculateArea() {
+	float area = 0.0f;
 	for (int i = 0; i < nTriangles; i++) {
 	    area += Triangle.getArea(getVertex(i, 0), getVertex(i, 1),
 		    getVertex(i, 2));
 	}
+	return area;
     }
 
     /**
@@ -290,7 +287,7 @@ public final class TriangleMesh implements Drawable, Serializable {
      * 
      * @return
      */
-    public int getTrianglesNum() {
+    public int getTriangleCount() {
 	return vertexIndexList.size() - 2;
     }
 
