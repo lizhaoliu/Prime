@@ -24,7 +24,7 @@ public class Camera extends Observable implements Serializable,
 	private static final long serialVersionUID = -4797769528520234991L;
 
 	private int width; 
-	private int height; //
+	private int height; 
 	private int nSamples; 
 	private float minX; 
 	private float maxY;

@@ -126,7 +126,7 @@ public class ContentLoader {
 	    case "f":
 		//determine face type: {v, v/t, v//n, v/t/n}
 		if (faceFormat == ObjFaceFormat.UNKNOWN) {
-		    String[] segs = tokens[1].split("/");
+		    String[] segs = tokens[1].split(SLASH);
 		    if (segs.length == 1) {	//v
 			faceFormat = ObjFaceFormat.VERTEX;
 		    }

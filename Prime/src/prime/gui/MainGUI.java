@@ -38,6 +38,7 @@ import java.io.ObjectOutputStream;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.concurrent.Executors;
 
 import javax.imageio.ImageIO;
 import javax.media.opengl.GL;
@@ -89,14 +90,15 @@ import prime.util.ContentLoader;
 
 /**
  * a hand-written gui
+ * 
  * @author lizhaoliu
- *
+ * 
  */
 public class MainGUI extends JFrame {
     private static final long serialVersionUID = -739564126009719851L;
 
-    public static final int PANEL_HEIGHT = (int) (Toolkit.getDefaultToolkit().getScreenSize().height / 1.2);
-    public static final int PANEL_WIDTH = (int) (Toolkit.getDefaultToolkit().getScreenSize().height / 1.2);
+    public static final int PANEL_HEIGHT = (int)(Toolkit.getDefaultToolkit().getScreenSize().height / 1.2);
+    public static final int PANEL_WIDTH = (int)(Toolkit.getDefaultToolkit().getScreenSize().height / 1.2);
 
     private ViewPanel viewPanel;
 
@@ -116,8 +118,8 @@ public class MainGUI extends JFrame {
     private ContentLoader loader = new ContentLoader(MainGUI.this);
 
     public static void main(String[] args) {
-    	BasicConfigurator.configure();
-    	new MainGUI();
+	BasicConfigurator.configure();
+	new MainGUI();
     }
 
     public MainGUI() {
@@ -128,31 +130,19 @@ public class MainGUI extends JFrame {
 	init();
 	initDialogs();
 	addWindowListener(new WindowListener() {
-	    public void windowOpened(WindowEvent e) {
-	    }
-
-	    public void windowIconified(WindowEvent e) {
-	    }
-
-	    public void windowDeiconified(WindowEvent e) {
-	    }
-
-	    public void windowDeactivated(WindowEvent e) {
-	    }
-
+	    public void windowOpened(WindowEvent e) {}
+	    public void windowIconified(WindowEvent e) {}
+	    public void windowDeiconified(WindowEvent e) {}
+	    public void windowDeactivated(WindowEvent e) {}
+	    public void windowClosed(WindowEvent e) {}
+	    public void windowActivated(WindowEvent e) {}
 	    public void windowClosing(WindowEvent e) {
 		int res = JOptionPane.showConfirmDialog(MainGUI.this,
-			"Are you sure to quit?", "Confirming",
+			"Are you sure to quit?", "Confirm exit",
 			JOptionPane.YES_NO_OPTION);
 		if (res == JOptionPane.YES_OPTION) {
 		    System.exit(0);
 		}
-	    }
-
-	    public void windowClosed(WindowEvent e) {
-	    }
-
-	    public void windowActivated(WindowEvent e) {
 	    }
 	});
 	Box centralBox = Box.createHorizontalBox();
@@ -194,8 +184,8 @@ public class MainGUI extends JFrame {
 	public WestPanel() {
 	    this.setPreferredSize(new Dimension((int) (PANEL_WIDTH / 2.5),
 		    PANEL_HEIGHT));
-	    Dimension dim = new Dimension(this.getPreferredSize().width, this
-		    .getPreferredSize().height / 2);
+	    Dimension dim = new Dimension(this.getPreferredSize().width,
+		    this.getPreferredSize().height / 2);
 	    tree.setRootVisible(false);
 	    Box vertBox = Box.createVerticalBox();
 	    JScrollPane spModlExplr = new JScrollPane(tree);
@@ -380,10 +370,10 @@ public class MainGUI extends JFrame {
 	    private JButton bStartRendering, bSaveImg, bStop;
 	    private SliderPanel sSamples, sDepth, sBspDepth, sTrianglePerNode;
 	    private JComboBox cW, cH, cRenders;
-	    private SpectrumChooserPanel colorChooser;
+	    private ColorChooserPanel colorChooser;
 	    private JTextField tfLens;
-	    private JTextField[] skyDirTFs = {new JTextField(5),new JTextField(5), new JTextField(5)}; 
-	    
+	    private JTextField[] skyDirTFs = { new JTextField(5),
+		    new JTextField(5), new JTextField(5) };
 
 	    private Integer[] ws = { 100, 200, 300, 400, 500, 600, 700, 800 };
 	    private Integer[] hs = { 100, 200, 300, 400, 500, 600, 700, 800 };
@@ -410,11 +400,12 @@ public class MainGUI extends JFrame {
 		sSamples = new SliderPanel(1, 64, 1, 1, "Samples per pixel");
 		sDepth = new SliderPanel(1, 25, 1, 1, "Ray tracing depth");
 		sBspDepth = new SliderPanel(10, 40, 18, 1, "Max BSP depth");
-		sTrianglePerNode = new SliderPanel(1, 5, 3, 1, "Max triangles per BSP leaf");
+		sTrianglePerNode = new SliderPanel(1, 5, 3, 1,
+			"Max triangles per BSP leaf");
 		bStartRendering.addActionListener(this);
 		bStop.addActionListener(this);
 		bSaveImg.addActionListener(this);
-		colorChooser = new SpectrumChooserPanel();
+		colorChooser = new ColorChooserPanel();
 		add(new JLabel("Image width"));
 		add(cW);
 		add(new JLabel("Image height"));
@@ -452,27 +443,31 @@ public class MainGUI extends JFrame {
 	    public void actionPerformed(ActionEvent ae) {
 		Object o = ae.getSource();
 		int w = ws[cW.getSelectedIndex()], h = hs[cH.getSelectedIndex()];
-		int depth = (int) sDepth.getValue(), samples = (int) sSamples.getValue();
+		int depth = (int) sDepth.getValue(), samples = (int) sSamples
+			.getValue();
 		if (o == bStop) {
 		    camera.stopRendering();
 		} else if (o == bStartRendering) {
-		    sceneGraph.getSky().setDirection(new Vec3f(Float.parseFloat(skyDirTFs[0].getText()), 
-			    Float.parseFloat(skyDirTFs[1].getText()), 
-			    Float.parseFloat(skyDirTFs[2].getText())));
+		    sceneGraph.getSky().setDirection(
+			    new Vec3f(Float.parseFloat(skyDirTFs[0].getText()),
+				    Float.parseFloat(skyDirTFs[1].getText()),
+				    Float.parseFloat(skyDirTFs[2].getText())));
 		    selectedRenderer = (Renderer) cRenders.getSelectedItem();
 		    selectedRenderer.setFilter(selectedFilter);
 		    camera.setRenderer(selectedRenderer);
 		    camera.setBackgroundColor(colorChooser
 			    .getSelectedSpectrum());
 		    camera.setLens(Float.parseFloat(tfLens.getText()));
-		    sceneGraph.getSky().setSpectrum(colorChooser.getSelectedSpectrum());
+		    sceneGraph.getSky().setSpectrum(
+			    colorChooser.getSelectedSpectrum());
 		    int bspDepth = (int) sBspDepth.getValue();
 		    sceneGraph.setMaxBSPDivisionDepth(bspDepth);
 		    int maxTrianlgesPerNode = (int) sTrianglePerNode.getValue();
 		    sceneGraph.setMaxTrianglesPerBSPNode(maxTrianlgesPerNode);
 		    selectedRenderer.setBouncingDepth(depth);
 		    camera.setSamplesPerPixel(samples);
-		    resImage = new BufferedImage(w, h, BufferedImage.TYPE_INT_RGB);
+		    resImage = new BufferedImage(w, h,
+			    BufferedImage.TYPE_INT_RGB);
 		    new RenderingThread(w, h).start();
 		} else if (o == bSaveImg) {
 		    JFileChooser chooser = new JFileChooser();
@@ -542,7 +537,7 @@ public class MainGUI extends JFrame {
     // private class TexEditorDialog extends JDialog
     // {
     // private static final long serialVersionUID = 5755031097232026158L;
-    //		
+    //
     // private BSDF mat;
     // private JButton bOk;
     // private BufferedImage tex, img;
@@ -551,7 +546,7 @@ public class MainGUI extends JFrame {
     // private int imgX, imgY, texX, texY;
     // private int[] xt = new int[4], yt = new int[4];
     // private int selectedPoint = -1;
-    //		
+    //
     // public TexEditorDialog(int w, int h)
     // {
     // setSize(w, h);
@@ -564,7 +559,7 @@ public class MainGUI extends JFrame {
     // add(panel);
     // add(bOk);
     // }
-    //		
+    //
     // private class ActionRes implements ActionListener
     // {
     // public void actionPerformed(ActionEvent ae)
@@ -576,18 +571,18 @@ public class MainGUI extends JFrame {
     // }
     // }
     // }
-    //		
+    //
     // public void setMaterial(BSDF mat)
     // {
     // this.mat = mat;
     // }
-    //		
+    //
     // private class EditorPanel extends JPanel implements MouseListener,
     // MouseMotionListener
     // {
     // private static final long serialVersionUID = -5039739356706730124L;
     // private int gap = 20;
-    //			
+    //
     // public EditorPanel(int w, int h)
     // {
     // setPreferredSize(new Dimension(w, h));
@@ -598,22 +593,22 @@ public class MainGUI extends JFrame {
     // addMouseListener(this);
     // addMouseMotionListener(this);
     // }
-    //			
+    //
     // protected void paintComponent(Graphics g)
     // {
     // super.paintComponent(g);
     // g.setColor(Color.DARK_GRAY);
     // g.fillRect(0, 0, getWidth(), getHeight());
-    //				
+    //
     // g.setColor(Color.RED);
     // g.drawString("mapping result", imgX, imgY - 5);
     // drawImg();
     // g.drawImage(img, imgX, imgY, imgSize, imgSize, null);
-    //				
+    //
     // g.setColor(Color.RED);
     // g.drawString("texture image", texX, texY - 5);
     // g.drawImage(tex, texX, texY, imgSize, imgSize, null);
-    //				
+    //
     // if (mat != null)
     // {
     // int h = imgY + imgSize;
@@ -633,7 +628,7 @@ public class MainGUI extends JFrame {
     // drawLines(g);
     // }
     // }
-    //			
+    //
     // private void drawLines(Graphics g)
     // {
     // Vector2 t = new Vector2();
@@ -648,7 +643,7 @@ public class MainGUI extends JFrame {
     // g.drawLine(xt[2], yt[2], xt[3], yt[3]);
     // g.drawLine(xt[3], yt[3], xt[0], yt[0]);
     // }
-    //			
+    //
     // private void drawLine(int index, Vector2 t , Graphics g)
     // {
     // int x = (int)(texX + imgSize * t.x), y = (int)(texY + imgSize * t.y);
@@ -675,7 +670,7 @@ public class MainGUI extends JFrame {
     // }
     // g.drawArc(x - 6, y - 6, 12, 12, 0, 360);
     // }
-    //			
+    //
     // private void drawImg()
     // {
     // float x, y;
@@ -755,7 +750,7 @@ public class MainGUI extends JFrame {
 	private Material currentBSDF;
 	// private BufferedImage texImg;
 
-	private SpectrumChooserPanel emittancePanel, reflectancePanel,
+	private ColorChooserPanel emittancePanel, reflectancePanel,
 		transmissionPanel, absorptionPanel;
 	private JTextField tfName;
 	private JButton bSave, bClose, bNewMat, bAssign;
@@ -770,13 +765,13 @@ public class MainGUI extends JFrame {
 	    panel.add(new JLabel("BSDF Name"));
 	    panel.add(tfName = new JTextField(8));
 	    panel.add(new JLabel("Emittance Spectrum -->"));
-	    panel.add(emittancePanel = new SpectrumChooserPanel());
+	    panel.add(emittancePanel = new ColorChooserPanel());
 	    panel.add(new JLabel("Reflection Spectrum -->"));
-	    panel.add(reflectancePanel = new SpectrumChooserPanel());
+	    panel.add(reflectancePanel = new ColorChooserPanel());
 	    panel.add(new JLabel("Transmission Spectrum -->"));
-	    panel.add(transmissionPanel = new SpectrumChooserPanel());
+	    panel.add(transmissionPanel = new ColorChooserPanel());
 	    panel.add(new JLabel("Absorption Spectrum -->"));
-	    panel.add(absorptionPanel = new SpectrumChooserPanel());
+	    panel.add(absorptionPanel = new ColorChooserPanel());
 	    panel.add(spRefrInd = new SliderPanel(100, 350, 100, 100,
 		    "Refractive Index"));
 
@@ -886,13 +881,13 @@ public class MainGUI extends JFrame {
 	// MouseListener
 	// {
 	// private static final long serialVersionUID = 1092061730680094741L;
-	//			
+	//
 	// public TexDisPanel()
 	// {
 	// setPreferredSize(new Dimension(100, 100));
 	// addMouseListener(this);
 	// }
-	//			
+	//
 	// protected void paintComponent(Graphics g)
 	// {
 	// super.paintComponent(g);
@@ -942,11 +937,11 @@ public class MainGUI extends JFrame {
 	// }
     }
 
-    private class SpectrumChooserPanel extends JPanel implements MouseListener {
+    private class ColorChooserPanel extends JPanel implements MouseListener {
 	private static final long serialVersionUID = 1889527783733521153L;
 	private Color color;
 
-	public SpectrumChooserPanel() {
+	public ColorChooserPanel() {
 	    setPreferredSize(new Dimension(100, 50));
 	    addMouseListener(this);
 	}
@@ -976,17 +971,13 @@ public class MainGUI extends JFrame {
 	    repaint();
 	}
 
-	public void mouseEntered(MouseEvent e) {
-	}
+	public void mouseEntered(MouseEvent e) {}
 
-	public void mouseExited(MouseEvent e) {
-	}
+	public void mouseExited(MouseEvent e) {}
 
-	public void mousePressed(MouseEvent e) {
-	}
+	public void mousePressed(MouseEvent e) {}
 
-	public void mouseReleased(MouseEvent e) {
-	}
+	public void mouseReleased(MouseEvent e) {}
     }
 
     private class ButtonPanel extends JPanel {
@@ -1071,17 +1062,40 @@ public class MainGUI extends JFrame {
 		    int ret = chooser.showOpenDialog(null);
 		    if (ret == JFileChooser.APPROVE_OPTION) {
 			try {
-			    File file = chooser.getSelectedFile();
-			    Collection<TriangleMesh> meshes = loader.loadModelFile(file);
-			    for (TriangleMesh mesh : meshes) {
-				mesh.setMaterial(bsdfList.get(0));
-				sceneGraph.addMesh(mesh);
-				meshesList.add(mesh);
-			    }
-			    sceneGraph.setMaxBSPDivisionDepth(10);
-			    sceneGraph.finish();
-			    viewPanel.display();
-			    westPanel.updateModelsData();
+			    final File file = chooser.getSelectedFile();
+			    
+			    Executors.newSingleThreadExecutor().execute(new Runnable() {
+			        @Override
+			        public void run() {
+			            Collection<TriangleMesh> meshes;
+				    try {
+					meshes = loader.loadModelFile(file);
+					for (TriangleMesh mesh : meshes) {
+					    mesh.setMaterial(bsdfList.get(0));
+					    sceneGraph.addMesh(mesh);
+					    meshesList.add(mesh);
+					}
+					sceneGraph.setMaxBSPDivisionDepth(10);
+					sceneGraph.finish();
+					viewPanel.display();
+					westPanel.updateModelsData();
+				    } catch (Exception e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				    }
+			        }
+			    });
+			    
+//			    Collection<TriangleMesh> meshes = loader.loadModelFile(file);
+//			    for (TriangleMesh mesh : meshes) {
+//				mesh.setMaterial(bsdfList.get(0));
+//				sceneGraph.addMesh(mesh);
+//				meshesList.add(mesh);
+//			    }
+//			    sceneGraph.setMaxBSPDivisionDepth(10);
+//			    sceneGraph.finish();
+//			    viewPanel.display();
+//			    westPanel.updateModelsData();
 			} catch (Exception ioe) {
 			    ioe.printStackTrace();
 			}
@@ -1200,8 +1214,8 @@ public class MainGUI extends JFrame {
 	}
 
 	public void relocateCamera() {
-	    cam.lookAt(new Vec3f(30, 0, 30), new Vec3f(0, 0, 0),
-		    new Vec3f(0, 1, 0));
+	    cam.lookAt(new Vec3f(30, 0, 30), new Vec3f(0, 0, 0), new Vec3f(0,
+		    1, 0));
 	}
 
 	private void drawGrids(float d, GL2 gl) {
@@ -1471,8 +1485,8 @@ public class MainGUI extends JFrame {
 	    gl.glLoadIdentity();
 	    cam.drawScene(gl, glu);
 	    if (selectedMesh != null) {
-			selectedMesh.draw(gl, glu, cam);
-			selectedMesh.drawBoundingBox(gl, glu, cam);
+		selectedMesh.draw(gl, glu, cam);
+		selectedMesh.drawBoundingBox(gl, glu, cam);
 	    }
 	    drawGrids(5f, gl);
 	}
@@ -1497,8 +1511,8 @@ public class MainGUI extends JFrame {
 	    gl.glClearColor(0.54f, 0.68f, 0.78f, 1.0f);
 
 	    gl.glLightModeli(GL2.GL_LIGHT0, GL2.GL_LIGHT_MODEL_TWO_SIDE);
-	    gl.glLightfv(GL2.GL_LIGHT0, GL2.GL_DIFFUSE, new float[] { 1f, 1f, 1f,
-		    1f }, 0);
+	    gl.glLightfv(GL2.GL_LIGHT0, GL2.GL_DIFFUSE, new float[] { 1f, 1f,
+		    1f, 1f }, 0);
 	    gl.glLightfv(GL2.GL_LIGHT0, GL2.GL_POSITION, new float[] { 0f, 0f,
 		    0f, 1f }, 0);
 	    gl.glEnable(GL2.GL_LIGHT0);
@@ -1533,8 +1547,8 @@ public class MainGUI extends JFrame {
 
 	@Override
 	public void dispose(GLAutoDrawable arg0) {
-		// TODO Auto-generated method stub
-		
+	    // TODO Auto-generated method stub
+
 	}
     }
 
