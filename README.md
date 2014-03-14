@@ -5,3 +5,8 @@ Prime is a physically based renderer built on pure Java. It is capable of utiliz
   2. Photon Mapping
 
 Prime is able to adopt all processor cores to render in parallel and can be easily deployed on multiple clusters to perform distributed rendering.
+
+
+How to run
+==========
+mvn exec:exec
