@@ -10,4 +10,3 @@ Prime is able to adopt all processor cores to render in parallel and can be easi
 
 <h3>How to run</h3>
 mvn exec:exec
-Get ready and explore.
