@@ -12,6 +12,6 @@ Prime is a physically based renderer built on pure Java with JOGL binding, featu
 Prime is able to adopt all processor cores to render in parallel and can be easily deployed on multiple clusters to perform distributed rendering. 
 
 
-<h3>How to run</h3>
+<h3>How to kick it off</h3>
 <code>mvn exec:java</code>
 <br/>Prime has a built-in Swing GUI that will lanuch.
