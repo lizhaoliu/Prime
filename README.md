@@ -1,5 +1,6 @@
 Prime
 =====
+<img src="https://avatars1.githubusercontent.com/u/3256712?s=460"/><br/>
 Prime is a physically based renderer built on pure Java, featuring:
   1. Monte Carlo ray tracing.
   2. Photon Mapping.
