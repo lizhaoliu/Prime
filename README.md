@@ -13,5 +13,5 @@ Prime is able to adopt all processor cores to render in parallel and can be easi
 
 
 <h3>How to kick it off</h3>
-<code>mvn exec:java</code>
+<code>mvn exec:exec</code>
 <br/>Prime has a built-in Swing GUI that will lanuch.
