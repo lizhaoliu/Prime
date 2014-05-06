@@ -14,5 +14,5 @@ Prime is able to adopt all processor cores to render in parallel and can be easi
 
 <h3>How to run</h3>
 Make sure you have Maven installed, then run the following command:<br/>
-<code>mvn clean install exec:exec</code><br/>
+<p><code>mvn clean install exec:exec</code></p>
 A built-in Swing GUI will kick off, and there is a sample .obj scene file which can be imported.
