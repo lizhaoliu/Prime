@@ -70,7 +70,7 @@ public class Scene implements Serializable, Iterable<TriangleMesh> {
 	return meshLightList.size();
     }
 
-    public void setMaxBSPDivisionDepth(int bspDepth) {
+    public void setMaxBspDivisionDepth(int bspDepth) {
 	this.bspDepth = bspDepth;
     }
 

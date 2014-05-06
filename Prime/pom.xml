@@ -4,41 +4,58 @@
 	<groupId>Prime</groupId>
 	<artifactId>Prime</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
+	
+	<properties>
+	    <mainClass>prime.gui.MainGui</mainClass>
+	</properties>
+	
 	<dependencies>
 		<dependency>
 			<groupId>org.jogamp.jogl</groupId>
 			<artifactId>jogl-all-main</artifactId>
 			<version>2.1.2</version>
 		</dependency>
+		
 		<dependency>
 			<groupId>org.jogamp.gluegen</groupId>
 			<artifactId>gluegen-rt-main</artifactId>
 			<version>2.1.2</version>
 		</dependency>
+		
 		<dependency>
 			<groupId>com.google.guava</groupId>
 			<artifactId>guava</artifactId>
 			<version>15.0</version>
 		</dependency>
+		
 		<dependency>
 			<groupId>log4j</groupId>
 			<artifactId>log4j</artifactId>
 			<version>1.2.17</version>
 		</dependency>
+		
 		<dependency>
 			<groupId>commons-io</groupId>
 			<artifactId>commons-io</artifactId>
 			<version>2.4</version>
 		</dependency>
+		
 		<dependency>
 			<groupId>commons-lang</groupId>
 			<artifactId>commons-lang</artifactId>
 			<version>2.6</version>
 		</dependency>
+		
 		<dependency>
 			<groupId>commons-collections</groupId>
 			<artifactId>commons-collections</artifactId>
 			<version>3.2.1</version>
+		</dependency>
+
+		<dependency>
+			<groupId>com.google.code.findbugs</groupId>
+			<artifactId>jsr305</artifactId>
+			<version>2.0.3</version>
 		</dependency>
 
 	</dependencies>
@@ -53,6 +70,7 @@
 					<target>1.7</target>
 				</configuration>
 			</plugin>
+			
 			<plugin>
 				<groupId>org.codehaus.mojo</groupId>
 				<artifactId>exec-maven-plugin</artifactId>
@@ -62,7 +80,7 @@
 					<arguments>
 						<argument>-classpath</argument>
 						<classpath />
-						<argument>prime.gui.MainGUI</argument>
+						<argument>${mainClass}</argument>
 					</arguments>
 				</configuration>
 			</plugin>
