@@ -11,11 +11,14 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.media.opengl.GL2;
 import javax.media.opengl.glu.GLU;
 
 import org.apache.commons.lang.math.RandomUtils;
+
+import com.google.common.base.Preconditions;
 
 import prime.math.LHCoordinateSystem;
 import prime.math.Transformable;
@@ -49,7 +52,7 @@ public class Camera extends Observable implements Serializable, Transformable, D
   private Color3f backgroundColor;
   private Vec3f origin = new Vec3f(0f, 0f, 0f);
 
-  private transient boolean isRenderingStopped = false;
+  private transient volatile boolean isStopRequested = false;
 
   private transient Renderer renderer;
 
@@ -107,7 +110,7 @@ public class Camera extends Observable implements Serializable, Transformable, D
 	 * 
 	 */
   public void stopRendering() {
-    isRenderingStopped = true;
+    isStopRequested = true;
   }
 
   /**
@@ -200,7 +203,9 @@ public class Camera extends Observable implements Serializable, Transformable, D
    * 
    * @param s
    */
-  public void setScene(Scene s) {
+  public void setScene(@Nonnull Scene s) {
+    Preconditions.checkNotNull(s);
+    
     sceneGraph = s;
   }
 
@@ -364,23 +369,24 @@ public class Camera extends Observable implements Serializable, Transformable, D
   }
 
   /**
+   * Start rendering task in blocking mode
    * 
    * @param img
    * @param panel
    */
-  public void syncRender(BufferedImage img, Component panel) {
+  public void renderSync(BufferedImage img, Component panel) {
     sceneGraph.finish();
 
     renderer.preprocess();
-    isRenderingStopped = false;
+    isStopRequested = false;
 
-    int numThreads = Runtime.getRuntime().availableProcessors();
-    Collection<RenderTask> tasks = new ArrayList<Camera.RenderTask>(numThreads);
-    for (int i = 0; i < numThreads; i++) {
-      tasks.add(new RenderTask(numThreads, i, img, panel));
+    int nThreads = Runtime.getRuntime().availableProcessors();
+    Collection<RenderTask> tasks = new ArrayList<Camera.RenderTask>(nThreads);
+    for (int i = 0; i < nThreads; i++) {
+      tasks.add(new RenderTask(nThreads, i, img, panel));
     }
     try {
-      List<Future<Void>> futureList = Executors.newFixedThreadPool(numThreads).invokeAll(tasks);
+      List<Future<Void>> futureList = Executors.newFixedThreadPool(nThreads).invokeAll(tasks);
       for (Future<Void> future : futureList) {
         future.get();
       }
@@ -406,7 +412,7 @@ public class Camera extends Observable implements Serializable, Transformable, D
    * @param dest
    * @return
    */
-  public Ray getRayFromViewport(int x, int y, float xOffset, float yOffset, Ray dest) {
+  public Ray getRayFromViewport(int x, int y, float xOffset, float yOffset, @Nullable Ray dest) {
     Vec3f o = new Vec3f(), d = getLocalPointFromScreen(x + xOffset, y + yOffset);
     d.normalize();
     o = coordSys.transPointToParent(origin);
@@ -429,7 +435,7 @@ public class Camera extends Observable implements Serializable, Transformable, D
   }
 
   /**
-   *  
+   * 
    */
   private class RenderTask implements Callable<Void> {
     private int nThreads;
@@ -458,7 +464,7 @@ public class Camera extends Observable implements Serializable, Transformable, D
       float scale = 1f / (nSamples * nSamples);
       int x = iThread, y = 0;
       while (y < height) {
-        if (isRenderingStopped) {
+        if (isStopRequested) {
           return null;
         }
 

@@ -10,7 +10,7 @@ import prime.math.Vec3f;
  * 
  */
 public final class Sky {
-  private Color3f spectrum = new Color3f();
+  private Color3f color = new Color3f();
   private Vec3f direction = new Vec3f(0, -1, 0);
 
   public Sky() {}
@@ -24,11 +24,11 @@ public final class Sky {
     this.direction.normalize();
   }
 
-  public Color3f getSpectrum() {
-    return spectrum;
+  public Color3f getColor() {
+    return color;
   }
 
-  public void setSpectrum(Color3f spectrum) {
-    this.spectrum = spectrum;
+  public void setColor(Color3f color) {
+    this.color = color;
   }
 }

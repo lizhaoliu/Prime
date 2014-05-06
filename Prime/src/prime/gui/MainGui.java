@@ -10,7 +10,6 @@ import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.GraphicsDevice;
 import java.awt.GraphicsEnvironment;
-import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.ComponentAdapter;
@@ -116,7 +115,7 @@ public class MainGui extends JFrame {
   private TriangleMesh selectedMesh;
 
   private RenderDialog renderDialog;
-  private MaterialEditorDialog bsdfEditDialog;
+  private MaterialEditorDialog materialEditDialog;
   // private TexEditorDialog texEditDialog;
   private WestPanel westPanel;
 
@@ -172,7 +171,7 @@ public class MainGui extends JFrame {
 
   private void initDialogs() {
     renderDialog = new RenderDialog();
-    bsdfEditDialog = new MaterialEditorDialog(750, 240);
+    materialEditDialog = new MaterialEditorDialog(750, 240);
     // texEditDialog = new TexEditorDialog(640, 480);
   }
 
@@ -279,8 +278,8 @@ public class MainGui extends JFrame {
       @Override
       public void mouseClicked(MouseEvent arg0) {
         if (arg0.getButton() == MouseEvent.BUTTON3) {
-          oX = (RENDERDLG_WIDTH - resImage.getWidth()) / 2;
-          oY = (RENDERDLG_HEIGHT - resImage.getHeight()) / 2;
+          oX = (getWidth() - resImage.getWidth()) / 2;
+          oY = (getHeight() - resImage.getHeight()) / 2;
           paintWidth = resImage.getWidth();
           paintHeight = resImage.getHeight();
           repaint();
@@ -420,8 +419,8 @@ public class MainGui extends JFrame {
           selectedRenderer = (Renderer) cRenders.getSelectedItem();
           selectedRenderer.setFilter(selectedFilter);
           camera.setRenderer(selectedRenderer);
-          camera.setBackgroundColor(colorChooser.getSelectedSpectrum());
-          sceneGraph.getSky().setSpectrum(colorChooser.getSelectedSpectrum());
+          camera.setBackgroundColor(colorChooser.getSelectedColor());
+          sceneGraph.getSky().setColor(colorChooser.getSelectedColor());
           int bspDepth = (int) sKdTreeDepth.getValue();
           sceneGraph.setMaxBspDivisionDepth(bspDepth);
           int maxTrianlgesPerNode = (int) sTrianglePerNode.getValue();
@@ -471,7 +470,7 @@ public class MainGui extends JFrame {
           log(sceneGraph.getTrianglesNum() + " triangles in total.");
 
           long t = System.nanoTime();
-          camera.syncRender(resImage, resPanel);
+          camera.renderSync(resImage, resPanel);
           t = System.nanoTime() - t;
           int seconds = (int) (t / 1000000000);
           int hours = seconds / 3600;
@@ -631,7 +630,7 @@ public class MainGui extends JFrame {
   // private void drawImg()
   // {
   // float x, y;
-  // Spectrum c = new Spectrum();
+  // Color c = new Color();
   // if (mat != null && mat.hasTexture())
   // {
   // for (int i = 0; i < imgSize; i++)
@@ -704,51 +703,51 @@ public class MainGui extends JFrame {
   private class MaterialEditorDialog extends SimpleDialog {
     private static final long serialVersionUID = -1500497763671474467L;
 
-    private Material currentBSDF;
+    private Material currentMaterial;
     // private BufferedImage texImg;
 
     private ColorChooserPanel emittancePanel, reflectancePanel, transmissionPanel, absorptionPanel;
     private JTextField tfName;
     private JButton bSave, bClose, bNewMat, bAssign;
     private SliderPanel spRefrInd;
-    private JComboBox cbBSDFList, cbIsLight;
+    private JComboBox cbMaterialList, cbIsLight;
     private String[] isLights = { "Yes", "No" };
 
     public MaterialEditorDialog(int w, int h) {
       super(w, h);
-      setTitle("BSDF Editor");
-      panel.setLayout(new GridLayout(5, 6));
-      panel.add(new JLabel("BSDF Name"));
+      setTitle("Material Editor");
+      panel.setLayout(new FlowLayout(FlowLayout.CENTER, 5, 5));
+      panel.add(new JLabel("Material Name"));
       panel.add(tfName = new JTextField(8));
-      panel.add(new JLabel("Emittance Spectrum -->"));
+      panel.add(new JLabel("Emittance Color"));
       panel.add(emittancePanel = new ColorChooserPanel());
-      panel.add(new JLabel("Reflection Spectrum -->"));
+      panel.add(new JLabel("Reflection Color"));
       panel.add(reflectancePanel = new ColorChooserPanel());
-      panel.add(new JLabel("Transmission Spectrum -->"));
+      panel.add(new JLabel("Transmission Color"));
       panel.add(transmissionPanel = new ColorChooserPanel());
-      panel.add(new JLabel("Absorption Spectrum -->"));
+      panel.add(new JLabel("Absorption Color"));
       panel.add(absorptionPanel = new ColorChooserPanel());
       panel.add(spRefrInd = new SliderPanel(100, 350, 100, 100, "Refractive Index"));
 
       bSave = new JButton("Save");
       bSave.addActionListener(new ButtonRes());
-      bNewMat = new JButton("New BSDF");
+      bNewMat = new JButton("New Material");
       bNewMat.addActionListener(new ButtonRes());
       bClose = new JButton("Close");
       bClose.addActionListener(new ButtonRes());
-      cbBSDFList = new JComboBox();
+      cbMaterialList = new JComboBox();
       for (Material m : materialList) {
-        cbBSDFList.addItem(m);
+        cbMaterialList.addItem(m);
       }
-      cbBSDFList.addItemListener(new ItemListener() {
+      cbMaterialList.addItemListener(new ItemListener() {
         public void itemStateChanged(ItemEvent e) {
-          int i = cbBSDFList.getSelectedIndex();
+          int i = cbMaterialList.getSelectedIndex();
           if (i != -1) {
             loadMaterial(materialList.get(i));
           }
         }
       });
-      panel.add(new JLabel("Is it a light source? -->"));
+      panel.add(new JLabel("Is it a light source?"));
       cbIsLight = new JComboBox(isLights);
       bAssign = new JButton("Assign to selected mesh");
       bAssign.addActionListener(new ButtonRes());
@@ -757,16 +756,16 @@ public class MainGui extends JFrame {
       panel.add(bSave);
       panel.add(bAssign);
       panel.add(bClose);
-      panel.add(cbBSDFList);
+      panel.add(cbMaterialList);
       addComponentListener(new ComponentAdapter() {
         public void componentShown(ComponentEvent e) {
           if (selectedMesh != null) {
             bAssign.setEnabled(true);
             Material m = selectedMesh.getMaterial();
-            cbBSDFList.setSelectedItem(m);
+            cbMaterialList.setSelectedItem(m);
           } else {
             bAssign.setEnabled(false);
-            cbBSDFList.setSelectedIndex(0);
+            cbMaterialList.setSelectedIndex(0);
           }
         }
       });
@@ -775,10 +774,10 @@ public class MainGui extends JFrame {
 
     private void setMaterialBySliders(Material material) {
       material.setName(tfName.getText());
-      material.setEmittance(emittancePanel.getSelectedSpectrum());
-      material.setReflectance(reflectancePanel.getSelectedSpectrum());
-      material.setTransmission(transmissionPanel.getSelectedSpectrum());
-      material.setAbsorption(absorptionPanel.getSelectedSpectrum());
+      material.setEmittance(emittancePanel.getSelectedColor());
+      material.setReflectance(reflectancePanel.getSelectedColor());
+      material.setTransmission(transmissionPanel.getSelectedColor());
+      material.setAbsorption(absorptionPanel.getSelectedColor());
       material.setRefractiveIndex(spRefrInd.getValue());
       material.setIsLight(cbIsLight.getSelectedIndex() == 0 ? true : false);
     }
@@ -787,39 +786,39 @@ public class MainGui extends JFrame {
       public void actionPerformed(ActionEvent ae) {
         Object o = ae.getSource();
         if (o == bSave) {
-          setMaterialBySliders(currentBSDF);
+          setMaterialBySliders(currentMaterial);
         } else if (o == bClose) {
           MaterialEditorDialog.this.setVisible(false);
         } else if (o == bNewMat) {
           Material m = new IdealDiffuseModel();
           m.setName("BSDF_" + materialList.size());
           materialList.add(m);
-          cbBSDFList.addItem(m);
-          cbBSDFList.setSelectedItem(m);
+          cbMaterialList.addItem(m);
+          cbMaterialList.setSelectedItem(m);
         } else if (o == bAssign) {
           if (selectedMesh != null) {
-            selectedMesh.setMaterial(currentBSDF);
+            selectedMesh.setMaterial(currentMaterial);
           }
         }
       }
     }
 
     private void loadMaterial(Material mat) {
-      this.currentBSDF = mat;
+      this.currentMaterial = mat;
       displayMaterial();
     }
 
     private void displayMaterial() {
-      if (currentBSDF == null) {
+      if (currentMaterial == null) {
         return;
       }
-      tfName.setText("" + currentBSDF.getName());
-      emittancePanel.setSelectedSpectrum(currentBSDF.getEmittance());
-      reflectancePanel.setSelectedSpectrum(currentBSDF.getReflectance());
-      transmissionPanel.setSelectedSpectrum(currentBSDF.getTransmission());
-      absorptionPanel.setSelectedSpectrum(currentBSDF.getAbsorption());
-      spRefrInd.setValue(currentBSDF.getRefractiveIndex());
-      cbIsLight.setSelectedIndex(currentBSDF.isLight() ? 0 : 1);
+      tfName.setText("" + currentMaterial.getName());
+      emittancePanel.setSelectedColor(currentMaterial.getEmittance());
+      reflectancePanel.setSelectedColor(currentMaterial.getReflectance());
+      transmissionPanel.setSelectedColor(currentMaterial.getTransmission());
+      absorptionPanel.setSelectedColor(currentMaterial.getAbsorption());
+      spRefrInd.setValue(currentMaterial.getRefractiveIndex());
+      cbIsLight.setSelectedIndex(currentMaterial.isLight() ? 0 : 1);
     }
   }
 
@@ -838,12 +837,12 @@ public class MainGui extends JFrame {
       g.fillRect(0, 0, getWidth(), getHeight());
     }
 
-    public void setSelectedSpectrum(Color3f c) {
+    public void setSelectedColor(Color3f c) {
       color = new Color(c.r, c.g, c.b);
       repaint();
     }
 
-    public Color3f getSelectedSpectrum() {
+    public Color3f getSelectedColor() {
       if (color == null) {
         return new Color3f(1.0f, 1.0f, 1.0f);
       }
@@ -851,7 +850,7 @@ public class MainGui extends JFrame {
     }
 
     public void mouseClicked(MouseEvent e) {
-      color = JColorChooser.showDialog(bsdfEditDialog, "Choose color", Color.WHITE);
+      color = JColorChooser.showDialog(materialEditDialog, "Choose color", Color.WHITE);
       repaint();
     }
 
@@ -935,7 +934,7 @@ public class MainGui extends JFrame {
         if (o == bRenderDia) {
           renderDialog.setVisible(true);
         } else if (o == bEditMat) {
-          bsdfEditDialog.setVisible(true);
+          materialEditDialog.setVisible(true);
         } else if (o == bImptModel) {
           JFileChooser chooser = new JFileChooser();
           FileNameExtensionFilter filter = new FileNameExtensionFilter("model file *.obj *.ply", "obj", "ply");
@@ -1141,7 +1140,7 @@ public class MainGui extends JFrame {
       case MouseEvent.BUTTON1:
         selectedMesh = cam.pick(e.getX(), e.getY());
         if (selectedMesh != null) {
-          bsdfEditDialog.loadMaterial(selectedMesh.getMaterial());
+          materialEditDialog.loadMaterial(selectedMesh.getMaterial());
         }
         viewPanel.display();
         break;
