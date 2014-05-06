@@ -3,7 +3,7 @@ package prime.core;
 import prime.math.Filter;
 import prime.math.MathUtils;
 import prime.math.Vec3f;
-import prime.model.RayTriIntInfo;
+import prime.model.RayTriHitInfo;
 import prime.model.Triangle;
 import prime.model.TriangleMesh;
 import prime.physics.Material;
@@ -51,10 +51,10 @@ public abstract class Renderer {
    * @param destColor
    */
   protected void directIllumination(Ray srcRay, Vec3f hitPoint, Vec3f normal, Material material, Color3f destColor) {
-    RayTriIntInfo ir = new RayTriIntInfo();
+    RayTriHitInfo ir = new RayTriHitInfo();
     Ray newRay = new Ray();
     Vec3f newDir = newRay.getDirection();
-    Color3f spectrum = newRay.getColor();
+    Color3f color = newRay.getColor();
 
     //
     TriangleMesh meshLight;
@@ -76,17 +76,17 @@ public abstract class Renderer {
         Vec3f normalLight = new Vec3f();
         normalLight = triangleLight.interpolateNormal(u, v);
 
-        spectrum.set(meshLight.getMaterial().getEmittance());
-        spectrum.multiply(cos * Math.abs(Vec3f.dot(newDir, normalLight)) * nLights);// *
+        color.set(meshLight.getMaterial().getEmittance());
+        color.multiply(cos * Math.abs(Vec3f.dot(newDir, normalLight)) * nLights);// *
         // meshLight.getArea());
-        spectrum.blend(material.getReflectance());
+        color.blend(material.getReflectance());
 
         Color3f tmp = new Color3f();
         Vec3f srcDir = srcRay.getDirection();
         material.brdf(hitPoint, normal, srcDir, newDir, tmp);
-        spectrum.blend(tmp);
+        color.blend(tmp);
       }
-      destColor.add(spectrum);
+      destColor.add(color);
       destColor.add(material.getEmittance());
     }
 

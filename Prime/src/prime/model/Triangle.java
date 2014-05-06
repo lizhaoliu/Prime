@@ -46,7 +46,7 @@ public class Triangle implements Serializable {
    * @param ray
    * @param dst
    */
-  public void intersect(final Ray ray, final RayTriIntInfo dst) {
+  public void intersect(final Ray ray, final RayTriHitInfo dst) {
     Vec3f d = ray.getDirection();
     Vec3f o = ray.getOrigin();
 

@@ -8,7 +8,7 @@ import java.util.List;
 import prime.math.MathUtils;
 import prime.math.Vec3f;
 import prime.model.BoundingBox;
-import prime.model.RayTriIntInfo;
+import prime.model.RayTriHitInfo;
 import prime.model.Triangle;
 import prime.model.TriangleMesh;
 import prime.physics.Ray;
@@ -103,7 +103,7 @@ public class Scene implements Serializable, Iterable<TriangleMesh> {
 	ray.setDirection(d);
 	ray.setOrigin(p0.x + d.x * MathUtils.EPSILON, p0.y + d.y
 		* MathUtils.EPSILON, p0.z + d.z * MathUtils.EPSILON);
-	RayTriIntInfo ir = new RayTriIntInfo();
+	RayTriHitInfo ir = new RayTriHitInfo();
 	bSPTree.intersect(ray, ir);
 	return ir.isHit();
     }
@@ -125,7 +125,7 @@ public class Scene implements Serializable, Iterable<TriangleMesh> {
      * @param ray
      * @param dest
      */
-    public void intersect(Ray ray, RayTriIntInfo dest) {
+    public void intersect(Ray ray, RayTriHitInfo dest) {
 	if (bSPTree == null) {
 	    return;
 	}

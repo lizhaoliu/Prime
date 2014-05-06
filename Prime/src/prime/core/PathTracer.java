@@ -1,8 +1,10 @@
 package prime.core;
 
+import org.apache.commons.lang.math.RandomUtils;
+
 import prime.math.MathUtils;
 import prime.math.Vec3f;
-import prime.model.RayTriIntInfo;
+import prime.model.RayTriHitInfo;
 import prime.model.Triangle;
 import prime.physics.Material;
 import prime.physics.Ray;
@@ -25,26 +27,24 @@ public class PathTracer extends Renderer {
    * @param depth
    */
   private void render(Ray srcRay, int depth) {
-    Color3f dstSpectrum = srcRay.getColor();
-    //
+    Color3f finalColor = srcRay.getColor();
+    
     srcRay.setLengthToMax();
-    RayTriIntInfo intRes = new RayTriIntInfo();
-    sceneGraph.intersect(srcRay, intRes);
-    if (!intRes.isHit()) {
-      dstSpectrum.add(backgroundColor);
+    RayTriHitInfo hitRes = new RayTriHitInfo();
+    sceneGraph.intersect(srcRay, hitRes);
+    if (!hitRes.isHit()) {
+      finalColor.add(backgroundColor);
       return;
     }
 
-    Triangle intTriangle = intRes.getTriangle();
+    Triangle intTriangle = hitRes.getTriangle();
     Material material = intTriangle.getMaterial();
     if (material.isLight()) {
-      dstSpectrum.add(material.getEmittance());
+      finalColor.add(material.getEmittance());
       return;
     }
 
-    Ray newRay = new Ray();
-    Vec3f newDir = newRay.getDirection();
-    float u = intRes.getU(), v = intRes.getV();
+    float u = hitRes.getU(), v = hitRes.getV();
     Vec3f hitPoint = new Vec3f(), normal = new Vec3f();// , texCoord =
     // new
     // Vector3();
@@ -52,11 +52,13 @@ public class PathTracer extends Renderer {
     hitPoint = intTriangle.interpolatePosition(u, v);
     normal = intTriangle.interpolateNormal(u, v);
     // intTriangle.interpolateTexCoord(u, v, texCoord);
+    Ray newRay = new Ray();
+    Vec3f newDir = newRay.getDirection();
 
     if (depth >= maxDepth) //
     {
       // connect(hitPoint, normal, bsdf, destSpectrum);
-      directIllumination(srcRay, hitPoint, normal, material, dstSpectrum);
+      directIllumination(srcRay, hitPoint, normal, material, finalColor);
       return;
     }
 
@@ -71,13 +73,13 @@ public class PathTracer extends Renderer {
     transAvg = transmission.average();
     abspAvg = absorption.average();
 
-    Color3f resSpectrum = newRay.getColor();
-    Color3f tmpSpectrum = new Color3f();
+    Color3f resColor = newRay.getColor();
+    Color3f tmpColor = new Color3f();
 
-    directIllumination(srcRay, hitPoint, normal, material, dstSpectrum);
+    directIllumination(srcRay, hitPoint, normal, material, finalColor);
 
     //
-    float roulette = (float) (Math.random() * (refAvg + transAvg + abspAvg));
+    float roulette = RandomUtils.nextFloat() * (refAvg + transAvg + abspAvg);
     float factor;
     if (roulette < refAvg) // reflection
     {
@@ -93,16 +95,18 @@ public class PathTracer extends Renderer {
       return;
     }
     factor *= (float) (Math.abs(Vec3f.dot(normal, newDir)));
-    newRay.setOrigin(hitPoint.x + MathUtils.EPSILON * newDir.x, hitPoint.y + MathUtils.EPSILON * newDir.y, hitPoint.z
-        + MathUtils.EPSILON * newDir.z);
+    newRay.setOrigin(
+        hitPoint.x + MathUtils.EPSILON * newDir.x, 
+        hitPoint.y + MathUtils.EPSILON * newDir.y, 
+        hitPoint.z + MathUtils.EPSILON * newDir.z);
     newRay.setDirection(newDir);
     newRay.setLengthToMax();
     newRay.getColor().zeroAll();
     render(newRay, depth + 1);
-    material.brdf(hitPoint, normal, srcDir, newDir, tmpSpectrum);
-    resSpectrum.blend(tmpSpectrum);
-    resSpectrum.multiply(factor);
-    dstSpectrum.add(resSpectrum);
+    material.brdf(hitPoint, normal, srcDir, newDir, tmpColor);
+    resColor.blend(tmpColor);
+    resColor.multiply(factor);
+    finalColor.add(resColor);
   }
 
   /**

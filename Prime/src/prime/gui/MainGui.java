@@ -8,8 +8,9 @@ import java.awt.FlowLayout;
 import java.awt.GradientPaint;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
+import java.awt.GraphicsDevice;
+import java.awt.GraphicsEnvironment;
 import java.awt.GridLayout;
-import java.awt.Toolkit;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.ComponentAdapter;
@@ -97,8 +98,15 @@ import prime.util.ContentLoader;
 public class MainGui extends JFrame {
   private static final long serialVersionUID = -739564126009719851L;
 
-  public static final int PANEL_HEIGHT = (int) (Toolkit.getDefaultToolkit().getScreenSize().height / 1.2);
-  public static final int PANEL_WIDTH = (int) (Toolkit.getDefaultToolkit().getScreenSize().height / 1.2);
+  public static final int PANEL_WIDTH;
+  public static final int PANEL_HEIGHT;
+  
+  static {
+    GraphicsEnvironment ge = GraphicsEnvironment.getLocalGraphicsEnvironment();
+    GraphicsDevice device = ge.getDefaultScreenDevice();
+    PANEL_WIDTH = (int)(device.getDisplayMode().getWidth() / 1.2);
+    PANEL_HEIGHT = (int)(device.getDisplayMode().getHeight() / 1.2);
+  }
 
   private ViewPanel viewPanel;
 
@@ -126,7 +134,7 @@ public class MainGui extends JFrame {
     setTitle("Prime");
     setVisible(true);
     setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
-    setResizable(false);
+    setResizable(true);
     init();
     initDialogs();
     addWindowListener(new WindowAdapter() {
@@ -217,7 +225,7 @@ public class MainGui extends JFrame {
     public static final int RENDERDLG_WIDTH = 660;
     public static final int RENDERDLG_HEIGHT = 660;
 
-    private ResultPanel resPanel;
+    private ResultImagePanel resPanel;
     private BufferedImage resImage;
     private Renderer[] renderers = { new PathTracer() };
     private Renderer selectedRenderer = renderers[0];
@@ -226,26 +234,29 @@ public class MainGui extends JFrame {
 
     public RenderDialog() {
       setTitle("Render Settings");
-      add(resPanel = new ResultPanel(), BorderLayout.CENTER);
+      add(resPanel = new ResultImagePanel(), BorderLayout.CENTER);
       add(new ContPanel(), BorderLayout.EAST);
       setDefaultCloseOperation(JDialog.HIDE_ON_CLOSE);
       setVisible(false);
-      setResizable(false);
+      setResizable(true);
       pack();
     }
 
-    private class ResultPanel extends JPanel implements MouseListener, MouseMotionListener, MouseWheelListener {
+    private class ResultImagePanel extends JPanel implements MouseListener, MouseMotionListener, MouseWheelListener {
       private static final long serialVersionUID = 2436178488034586868L;
 
-      private int startX, startY;
+      private int oX, oY;
       private float paintWidth, paintHeight;
+      
+      private boolean isLButtonDown;
+      private int pressX, pressY;
 
-      public ResultPanel() {
-        resImage = new BufferedImage(500, 500, BufferedImage.TYPE_INT_RGB);
+      public ResultImagePanel() {
+        resImage = new BufferedImage(PANEL_WIDTH / 2, PANEL_HEIGHT / 2, BufferedImage.TYPE_INT_RGB);
         setPreferredSize(new Dimension(RENDERDLG_WIDTH, RENDERDLG_HEIGHT));
 
-        startX = (RENDERDLG_WIDTH - resImage.getWidth()) / 2;
-        startY = (RENDERDLG_HEIGHT - resImage.getHeight()) / 2;
+        oX = (RENDERDLG_WIDTH - resImage.getWidth()) / 2;
+        oY = (RENDERDLG_HEIGHT - resImage.getHeight()) / 2;
 
         paintWidth = resImage.getWidth();
         paintHeight = resImage.getHeight();
@@ -259,20 +270,17 @@ public class MainGui extends JFrame {
       protected void paintComponent(Graphics g) {
         super.paintComponent(g);
         g.setColor(Color.GRAY);
-        g.fillRect(0, 0, RENDERDLG_WIDTH, RENDERDLG_HEIGHT);
-        g.drawImage(resImage, startX, startY, (int) paintWidth, (int) paintHeight, null);
+        g.fillRect(0, 0, getWidth(), getHeight());
+        g.drawImage(resImage, oX, oY, (int) paintWidth, (int) paintHeight, null);
         g.setColor(Color.RED);
-        g.drawString("output", startX, startY + 10);
+        g.drawString("output", oX, oY + 10);
       }
-
-      private boolean isLButtonDown;
-      private int pressX, pressY;
 
       @Override
       public void mouseClicked(MouseEvent arg0) {
         if (arg0.getButton() == MouseEvent.BUTTON3) {
-          startX = (RENDERDLG_WIDTH - resImage.getWidth()) / 2;
-          startY = (RENDERDLG_HEIGHT - resImage.getHeight()) / 2;
+          oX = (RENDERDLG_WIDTH - resImage.getWidth()) / 2;
+          oY = (RENDERDLG_HEIGHT - resImage.getHeight()) / 2;
           paintWidth = resImage.getWidth();
           paintHeight = resImage.getHeight();
           repaint();
@@ -305,8 +313,8 @@ public class MainGui extends JFrame {
       public void mouseDragged(MouseEvent arg0) {
         if (isLButtonDown) {
           int x = arg0.getX(), y = arg0.getY();
-          startX += (x - pressX);
-          startY += (y - pressY);
+          oX += (x - pressX);
+          oY += (y - pressY);
           pressX = x;
           pressY = y;
           repaint();
@@ -335,14 +343,11 @@ public class MainGui extends JFrame {
       private int width = 480, height = RENDERDLG_HEIGHT;
       private JTextField tfStatus;
       private JButton bStartRendering, bSaveImg, bStop;
-      private SliderPanel sSamples, sDepth, sBspDepth, sTrianglePerNode;
-      private JComboBox cW, cH, cRenders;
+      private SliderPanel sSamples, sDepth, sKdTreeDepth, sTrianglePerNode;
+      private JComboBox cRenders;
       private ColorChooserPanel colorChooser;
-      private JTextField tfLens;
+      private JTextField tfW, tfH;
       private JTextField[] skyDirTFs = { new JTextField(5), new JTextField(5), new JTextField(5) };
-
-      private Integer[] ws = { 100, 200, 300, 400, 500, 600, 700, 800 };
-      private Integer[] hs = { 100, 200, 300, 400, 500, 600, 700, 800 };
 
       public ContPanel() {
         setPreferredSize(new Dimension(width, height));
@@ -357,25 +362,23 @@ public class MainGui extends JFrame {
         bSaveImg = new JButton("Save Image");
         tfStatus = new JTextField(16);
         tfStatus.setEditable(false);
-        cW = new JComboBox(ws);
-        cW.setSelectedIndex(4);
-        cH = new JComboBox(hs);
-        cH.setSelectedIndex(4);
+        tfW = new JTextField(String.valueOf(PANEL_WIDTH / 2));
+        tfH = new JTextField(String.valueOf(PANEL_HEIGHT / 2));
         cRenders = new JComboBox(renderers);
         cRenders.setSelectedIndex(0);
         sSamples = new SliderPanel(1, 64, 1, 1, "Samples per pixel");
         sDepth = new SliderPanel(1, 25, 1, 1, "Ray tracing depth");
-        sBspDepth = new SliderPanel(10, 40, 18, 1, "Max BSP depth");
-        sTrianglePerNode = new SliderPanel(1, 5, 3, 1, "Max triangles per BSP leaf");
+        sKdTreeDepth = new SliderPanel(5, 70, 20, 1, "Max Kd-tree depth");
+        sTrianglePerNode = new SliderPanel(1, 10, 3, 1, "Max triangles per leaf");
         bStartRendering.addActionListener(this);
         bStop.addActionListener(this);
         bSaveImg.addActionListener(this);
         colorChooser = new ColorChooserPanel();
         add(new JLabel("Image width"));
-        add(cW);
+        add(tfW);
         add(new JLabel("Image height"));
-        add(cH);
-        add(sBspDepth);
+        add(tfH);
+        add(sKdTreeDepth);
         add(sTrianglePerNode);
         add(new JLabel("Select renderer"));
         add(cRenders);
@@ -384,7 +387,6 @@ public class MainGui extends JFrame {
         add(new JLabel("Select background color"));
         add(colorChooser);
         add(new JLabel("Camera Lens : "));
-        add(tfLens = new JTextField("" + camera.getLens(), 5));
         add(new JLabel("Sky light direction:"));
         for (JTextField tf : skyDirTFs) {
           tf.setText("-1");
@@ -407,7 +409,7 @@ public class MainGui extends JFrame {
 
       public void actionPerformed(ActionEvent ae) {
         Object o = ae.getSource();
-        int w = ws[cW.getSelectedIndex()], h = hs[cH.getSelectedIndex()];
+        int w = Integer.parseInt(tfW.getText()), h = Integer.parseInt(tfH.getText());
         int depth = (int) sDepth.getValue(), samples = (int) sSamples.getValue();
         if (o == bStop) {
           camera.stopRendering();
@@ -419,9 +421,8 @@ public class MainGui extends JFrame {
           selectedRenderer.setFilter(selectedFilter);
           camera.setRenderer(selectedRenderer);
           camera.setBackgroundColor(colorChooser.getSelectedSpectrum());
-          camera.setLens(Float.parseFloat(tfLens.getText()));
           sceneGraph.getSky().setSpectrum(colorChooser.getSelectedSpectrum());
-          int bspDepth = (int) sBspDepth.getValue();
+          int bspDepth = (int) sKdTreeDepth.getValue();
           sceneGraph.setMaxBspDivisionDepth(bspDepth);
           int maxTrianlgesPerNode = (int) sTrianglePerNode.getValue();
           sceneGraph.setMaxTrianglesPerBSPNode(maxTrianlgesPerNode);
@@ -459,32 +460,32 @@ public class MainGui extends JFrame {
 
         public void run() {
           setViewPanelEnabled(false);
-          int wi = camera.getWidth(), hei = camera.getHeight();
-          camera.setViewportSize(w, h);
+          int oriW = camera.getWidth(), oriH = camera.getHeight();
+          camera.setScreenSize(w, h);
           bStartRendering.setEnabled(false);
           bStop.setEnabled(true);
           tfStatus.setText("Working...");
 
           log("--rendering start--");
-          log(Runtime.getRuntime().availableProcessors() + " cores are found.");
-          log(sceneGraph.getTrianglesNum() + " triangles.");
+          log("With " + Runtime.getRuntime().availableProcessors() + " threads.");
+          log(sceneGraph.getTrianglesNum() + " triangles in total.");
 
           long t = System.nanoTime();
-          camera.render(resImage, resPanel);
+          camera.syncRender(resImage, resPanel);
           t = System.nanoTime() - t;
           int seconds = (int) (t / 1000000000);
           int hours = seconds / 3600;
           int mins = (seconds - hours * 3600) / 60;
           seconds = seconds - hours * 3600 - mins * 60;
-          String time = hours + "h " + mins + "m " + seconds + "s.";
+          String time = String.format("%d hrs %d mins %d secs.", hours, mins, seconds);
           tfStatus.setText("Done-- " + time);
 
           log("time elapsed : " + time);
           log("--rendering finished--");
           bStartRendering.setEnabled(true);
           bStop.setEnabled(false);
-          camera.setViewportSize(wi, hei);
-          MainGui.this.setViewPanelEnabled(true);
+          camera.setScreenSize(oriW, oriH);
+          setViewPanelEnabled(true);
         }
       }
     }
@@ -1059,7 +1060,7 @@ public class MainGui extends JFrame {
       addComponentListener(new ComponentAdapter() {
         public void componentResized(ComponentEvent e) {
           Dimension d = getSize();
-          ViewPanel.this.cam.setViewportSize(d.width, d.height);
+          ViewPanel.this.cam.setScreenSize(d.width, d.height);
         }
       });
       relocateCamera();
@@ -1183,8 +1184,8 @@ public class MainGui extends JFrame {
       if (!isEnabled) {
         return;
       }
-      cam.getLocalPointFromViewport(e.getX(), e.getY(), v2);
-      cam.getLocalPointFromViewport(oldX, oldY, v1);
+      v2 = cam.getLocalPointFromScreen(e.getX(), e.getY());
+      v1 = cam.getLocalPointFromScreen(oldX, oldY);
       v2.z = cam.getZNear();
       v1.z = cam.getZNear();
       dv = Vec3f.sub(v1, v2);
@@ -1376,7 +1377,7 @@ public class MainGui extends JFrame {
     }
 
     public void reshape(GLAutoDrawable drawable, int x, int y, int w, int h) {
-      cam.setViewportSize(w, h);
+      cam.setScreenSize(w, h);
       gl.glViewport(0, 0, w, h);
       gl.glMatrixMode(GL2.GL_PROJECTION);
       gl.glLoadIdentity();

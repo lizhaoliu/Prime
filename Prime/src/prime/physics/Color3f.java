@@ -12,27 +12,15 @@ public class Color3f implements Serializable {
   public Color3f() {}
 
   public Color3f(float r, float g, float b) {
-    this.r = r;
-    this.g = g;
-    this.b = b;
+    set(r, g, b);
   }
 
   public Color3f(Color3f c) {
-    r = c.r;
-    g = c.g;
-    b = c.b;
+    set(c);
   }
 
-  /**
-   * 
-   * @param argb
-   */
-  public Color3f(int argb) {
-    b = (argb & 0x000000ff) / 255.0f;
-    argb >>= 8;
-    g = (argb & 0x0000ff) / 255.0f;
-    argb >>= 8;
-    r = (argb & 0x00ff) / 255.0f;
+  public Color3f(int rgb) {
+    set(rgb);
   }
 
   /**
@@ -47,29 +35,25 @@ public class Color3f implements Serializable {
 
   /**
    * 
-   * @param ar
-   * @param ag
-   * @param ab
+   * @param r
+   * @param g
+   * @param b
    * @return
    */
-  public Color3f set(float ar, float ag, float ab) {
-    r = ar;
-    g = ag;
-    b = ab;
+  public Color3f set(float r, float g, float b) {
+    this.r = r;
+    this.g = g;
+    this.b = b;
     return this;
   }
 
-  public Color3f set(int argb) {
-    b = (argb & 0x000000ff) / 255.0f;
-    argb >>= 8;
-    g = (argb & 0x0000ff) / 255.0f;
-    argb >>= 8;
-    r = (argb & 0x00ff) / 255.0f;
+  public Color3f set(int rgb) {
+    b = (rgb & 0xff) / 255.0f;
+    rgb >>= 8;
+    g = (rgb & 0xff) / 255.0f;
+    rgb >>= 8;
+    r = (rgb & 0xff) / 255.0f;
     return this;
-  }
-
-  public int getBandsNum() {
-    return 3;
   }
 
   /**
@@ -142,14 +126,6 @@ public class Color3f implements Serializable {
     b += c.b;
   }
 
-  public void add(int argb) {
-    b += (argb & 0x000000ff) / 255.0f;
-    argb >>= 8;
-    g += (argb & 0x0000ff) / 255.0f;
-    argb >>= 8;
-    r += (argb & 0x00ff) / 255.0f;
-  }
-
   public void add(float r, float g, float b) {
     this.r += r;
     this.g += g;
@@ -160,7 +136,7 @@ public class Color3f implements Serializable {
    * 
    * @return
    */
-  public int toARGB() {
+  public int toRgb() {
     int ar = (int) (r * 255), ag = (int) (g * 255), ab = (int) (b * 255);
     if (ar > 255) {
       ar = 255;
@@ -171,7 +147,7 @@ public class Color3f implements Serializable {
     if (ab > 255) {
       ab = 255;
     }
-    return 0xff000000 | (ar << 16) | (ag << 8) | (ab);
+    return (ar << 16) | (ag << 8) | (ab);
   }
 
   /**

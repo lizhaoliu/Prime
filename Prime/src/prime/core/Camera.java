@@ -3,18 +3,27 @@ package prime.core;
 import java.awt.Component;
 import java.awt.image.BufferedImage;
 import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
 import java.util.Observable;
+import java.util.concurrent.Callable;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
+import javax.annotation.Nullable;
 import javax.media.opengl.GL2;
 import javax.media.opengl.glu.GLU;
+
+import org.apache.commons.lang.math.RandomUtils;
 
 import prime.math.LHCoordinateSystem;
 import prime.math.Transformable;
 import prime.math.Vec3f;
-import prime.model.RayTriIntInfo;
+import prime.model.RayTriHitInfo;
 import prime.model.TriangleMesh;
-import prime.physics.Ray;
 import prime.physics.Color3f;
+import prime.physics.Ray;
 
 /**
  * 
@@ -22,16 +31,19 @@ import prime.physics.Color3f;
 public class Camera extends Observable implements Serializable, Transformable, Drawable {
   private static final long serialVersionUID = -4797769528520234991L;
 
+  private int nSamples;
+
   private int width;
   private int height;
-  private int nSamples;
+  private float aspectRatio;
+
   private float minX;
-  private float maxY;
+  private float minY;
   private float dX;
   private float dY;
   private float zNear;
   private float zFar;
-  private float lens;
+
   private LHCoordinateSystem coordSys;
   private Scene sceneGraph;
   private Color3f backgroundColor;
@@ -47,7 +59,7 @@ public class Camera extends Observable implements Serializable, Transformable, D
    * @param height
    */
   public Camera(int width, int height) {
-    setViewportSize(width, height);
+    setScreenSize(width, height);
     nSamples = 1;
     zNear = -0.5f;
     zFar = -1000;
@@ -60,10 +72,6 @@ public class Camera extends Observable implements Serializable, Transformable, D
     return coordSys;
   }
 
-  public float getLeft() {
-    return minX;
-  }
-
   public void setRenderer(Renderer renderer) {
     this.renderer = renderer;
     this.renderer.setSceneGraph(sceneGraph);
@@ -71,12 +79,8 @@ public class Camera extends Observable implements Serializable, Transformable, D
     this.renderer.setCamera(this);
   }
 
-  public void setLens(float lens) {
-    this.lens = lens;
-  }
-
-  public float getLens() {
-    return lens;
+  public float getLeft() {
+    return minX;
   }
 
   public float getRight() {
@@ -84,11 +88,11 @@ public class Camera extends Observable implements Serializable, Transformable, D
   }
 
   public float getTop() {
-    return maxY;
+    return minY + dY;
   }
 
   public float getBottom() {
-    return maxY - dY;
+    return minY;
   }
 
   public float getZNear() {
@@ -100,16 +104,6 @@ public class Camera extends Observable implements Serializable, Transformable, D
   }
 
   /**
-   * 
-   * @param x
-   * @param y
-   * @return
-   */
-  public boolean isInViewport(int x, int y) {
-    return (x >= 0 && x < width && y >= 0 && y < height);
-  }
-
-  /**
 	 * 
 	 */
   public void stopRendering() {
@@ -118,20 +112,18 @@ public class Camera extends Observable implements Serializable, Transformable, D
 
   /**
    * 
-   * @param bkc
+   * @param backgroundColor
    */
-  public void setBackgroundColor(Color3f bkc) {
-    backgroundColor.set(bkc);
+  public void setBackgroundColor(Color3f backgroundColor) {
+    this.backgroundColor.set(backgroundColor);
   }
 
   /**
-   * 
-   * @param dest
+   *  
    * @return
    */
-  public Color3f getBackgoundColor(Color3f dest) {
-    dest.set(backgroundColor);
-    return dest;
+  public Color3f getBackgoundColor() {
+    return backgroundColor;
   }
 
   /**
@@ -179,17 +171,6 @@ public class Camera extends Observable implements Serializable, Transformable, D
   }
 
   /**
-   * 
-   * @param s
-   */
-  public void scaleViewport(float s) {
-    dX *= s;
-    dY *= s;
-    minX *= s;
-    maxY *= s;
-  }
-
-  /**
 	 * 
 	 */
   public void rotate(Vec3f axis, float angle) {
@@ -201,9 +182,10 @@ public class Camera extends Observable implements Serializable, Transformable, D
    * @param width
    * @param height
    */
-  public void setViewportSize(int width, int height) {
+  public void setScreenSize(int width, int height) {
     this.width = width;
     this.height = height;
+    this.aspectRatio = (float) width / height;
   }
 
   /**
@@ -233,7 +215,7 @@ public class Camera extends Observable implements Serializable, Transformable, D
     dX = maxX - minX;
     dY = maxY - minY;
     this.minX = minX;
-    this.maxY = maxY;
+    this.minY = minY;
   }
 
   /**
@@ -256,12 +238,14 @@ public class Camera extends Observable implements Serializable, Transformable, D
    * 
    * @param x
    * @param y
-   * @param dest
    * @return
    */
-  public Vec3f getLocalPointFromViewport(int x, int y, Vec3f dest) {
-    dest.set(((float) x / width * dX + minX), (maxY - (float) y / height * dY), zNear);
-    return dest;
+  public Vec3f getLocalPointFromScreen(float x, float y) {
+    if (aspectRatio >= 1) {
+      return new Vec3f((x / width * dX + minX) * aspectRatio, (minY + (1 - y / height) * dY), zNear);
+    } else {
+      return new Vec3f((x / width * dX + minX), (minY + (1 - y / height) * dY) / aspectRatio, zNear);
+    }
   }
 
   /**
@@ -270,9 +254,9 @@ public class Camera extends Observable implements Serializable, Transformable, D
    * @param y
    * @return
    */
-  public Vec3f getWorldPointFromViewport(int x, int y) {
-    return coordSys.transPointToParent(new Vec3f(((float) x / width * dX + minX), (maxY - (float) y / height * dY),
-        zNear));
+  public Vec3f getWorldPointFromScreen(float x, float y) {
+    Vec3f v = getLocalPointFromScreen(x, y);
+    return coordSys.transPointToParent(new Vec3f((v.x), (v.y), zNear));
   }
 
   /**
@@ -322,21 +306,29 @@ public class Camera extends Observable implements Serializable, Transformable, D
   }
 
   /**
+   * Return the screen coordinate from view port
    * 
    * @param x
    * @return
    */
   public int getXFromViewport(float x) {
+    if (aspectRatio >= 1) {
+      x /= aspectRatio;
+    }
     return (int) ((x - minX) * width / dX);
   }
 
   /**
+   * Return the screen coordinate from view port
    * 
    * @param y
    * @return
    */
   public int getYFromViewport(float y) {
-    return (int) ((maxY - y) * height / dY);
+    if (aspectRatio < 1) {
+      y *= aspectRatio;
+    }
+    return (int) ((minY + dY - y) * height / dY);
   }
 
   /**
@@ -376,26 +368,24 @@ public class Camera extends Observable implements Serializable, Transformable, D
    * @param img
    * @param panel
    */
-  public void render(BufferedImage img, Component panel) {
+  public void syncRender(BufferedImage img, Component panel) {
     sceneGraph.finish();
 
     renderer.preprocess();
     isRenderingStopped = false;
 
-    int nCores = Runtime.getRuntime().availableProcessors();
-    RenderingThread[] threads = new RenderingThread[nCores];
-    for (int i = 0; i < threads.length; i++) {
-      threads[i] = new RenderingThread(nCores, i, img, panel);
-    }
-    for (int i = 0; i < threads.length; i++) {
-      threads[i].start();
+    int numThreads = Runtime.getRuntime().availableProcessors();
+    Collection<RenderTask> tasks = new ArrayList<Camera.RenderTask>(numThreads);
+    for (int i = 0; i < numThreads; i++) {
+      tasks.add(new RenderTask(numThreads, i, img, panel));
     }
     try {
-      for (int i = 0; i < threads.length; i++) {
-        threads[i].join();
+      List<Future<Void>> futureList = Executors.newFixedThreadPool(numThreads).invokeAll(tasks);
+      for (Future<Void> future : futureList) {
+        future.get();
       }
-    } catch (InterruptedException ie) {
-      ie.printStackTrace();
+    } catch (Exception e) {
+      e.printStackTrace();
     }
   }
 
@@ -403,7 +393,7 @@ public class Camera extends Observable implements Serializable, Transformable, D
    * 
    * @param ray
    */
-  private void launchRenderer(Ray ray) {
+  private void render(Ray ray) {
     renderer.render(ray);
   }
 
@@ -417,15 +407,13 @@ public class Camera extends Observable implements Serializable, Transformable, D
    * @return
    */
   public Ray getRayFromViewport(int x, int y, float xOffset, float yOffset, Ray dest) {
-    Vec3f o = new Vec3f(), d = new Vec3f();
-    getLocalPointFromViewport(x, y, d);
-    d.x += xOffset;
-    d.y += yOffset;
+    Vec3f o = new Vec3f(), d = getLocalPointFromScreen(x + xOffset, y + yOffset);
     d.normalize();
     o = coordSys.transPointToParent(origin);
     d = coordSys.transVectorToParent(d);
     dest.setOrigin(o);
     dest.setDirection(d);
+    dest.setLengthToMax();
     return dest;
   }
 
@@ -440,102 +428,81 @@ public class Camera extends Observable implements Serializable, Transformable, D
     }
   }
 
-  private class RenderingThread extends Thread {
-    private int nCores;
-    private int iCore;
+  /**
+   *  
+   */
+  private class RenderTask implements Callable<Void> {
+    private int nThreads;
+    private int iThread;
     private BufferedImage img;
     private Component panel;
 
-    public RenderingThread(int nCores, int iCore, BufferedImage img, Component panel) {
-      this.nCores = nCores;
-      this.iCore = iCore;
+    public RenderTask(int nThreads, int iThread, BufferedImage img, Component panel) {
+      this.nThreads = nThreads;
+      this.iThread = iThread;
       this.img = img;
       this.panel = panel;
     }
 
-    public void run() {
+    public Void call() {
       Ray ray = new Ray();
-      Color3f rayColor = ray.getColor();
-      Vec3f d = ray.getDirection();
-      Vec3f c = ray.getOrigin();
-      Vec3f buf = new Vec3f();
-      float sampleGap = getLocalPointFromViewport(0, 0, buf).x;
-      sampleGap = (sampleGap - getLocalPointFromViewport(1, 0, buf).x);
 
-      // float[] xOffset = new float[sampleNum], yOffset = new
-      // float[sampleNum];
-      // for (int i = 0; i < nSamples; i++)
-      // {
-      // xOffset[i] = (float)Math.random() * sampleGap;
-      // yOffset[i] = (float)Math.random() * sampleGap;
-      // }
       float[][] xJittered = new float[nSamples][nSamples], yJittered = new float[nSamples][nSamples];
       for (int i = 0; i < nSamples; i++) {
         for (int j = 0; j < nSamples; j++) {
-          xJittered[i][j] = (i + (float) Math.random()) / nSamples * sampleGap;
-          yJittered[i][j] = (j + (float) Math.random()) / nSamples * sampleGap;
+          xJittered[i][j] = (i + RandomUtils.nextFloat()) / nSamples;
+          yJittered[i][j] = (j + RandomUtils.nextFloat()) / nSamples;
         }
       }
 
-      float[][] xOffset = new float[nSamples][nSamples], yOffset = new float[nSamples][nSamples];
-      for (int i = 0; i < nSamples; i++) {
-        for (int j = 0; j < nSamples; j++) {
-          float r = lens * (float) Math.sqrt(Math.random());
-          double phy = 2 * Math.PI * Math.random();
-          xOffset[i][j] = r * (float) Math.cos(phy);
-          yOffset[i][j] = r * (float) Math.sin(phy);
-        }
-      }
-
-      /*
-			 * 
-			 */
       float scale = 1f / (nSamples * nSamples);
-      int x = iCore, y = 0;
+      int x = iThread, y = 0;
       while (y < height) {
         if (isRenderingStopped) {
-          return;
+          return null;
         }
-        rayColor.set(0f, 0f, 0f);
+
+        // sample all
+        Color3f rayColor = ray.getColor();
+        rayColor.zeroAll();
         for (int i = 0; i < nSamples; i++) {
           for (int j = 0; j < nSamples; j++) {
-            c.set(origin);
-            c.add(xOffset[i][j], yOffset[i][j], 0);
-            getLocalPointFromViewport(x, y, d);
-            d.x += xJittered[i][j];
-            d.y += yJittered[i][j];
-            d = Vec3f.sub(d, c);
-            d.normalize();
-            d = coordSys.transVectorToParent(d);
-            c = coordSys.transPointToParent(c);
-            ray.setDirection(d);
-            ray.setOrigin(c);
-            ray.setLength(Float.MAX_VALUE);
-            launchRenderer(ray);
+            getRayFromViewport(x, y, xJittered[i][j], yJittered[i][j], ray);
+            render(ray);
           }
         }
-        rayColor.multiply(scale);
 
-        int argb = rayColor.toARGB();
+        rayColor.multiply(scale);
+        int argb = rayColor.toRgb();
         img.setRGB(x, y, argb);
 
-        x += nCores;
+        x += nThreads;
         if (x >= width) {
           x -= width;
           ++y;
           panel.repaint();
         }
       }
+
+      return null;
     }
   }
 
+  /**
+   * Pick a {@link TriangleMesh} from screen
+   * 
+   * @param x
+   * @param y
+   * @return null if nothing is picked, or a {@link TriangleMesh}
+   */
+  @Nullable
   public TriangleMesh pick(int x, int y) {
     if (sceneGraph == null) {
       return null;
     }
     Ray ray = new Ray();
     getRayFromViewport(x, y, 0, 0, ray);
-    RayTriIntInfo ir = new RayTriIntInfo();
+    RayTriHitInfo ir = new RayTriHitInfo();
     sceneGraph.intersect(ray, ir);
     if (ir.isHit()) {
       return ir.getTriangle().getTriangleMesh();

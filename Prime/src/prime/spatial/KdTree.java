@@ -5,7 +5,7 @@ import java.io.Serializable;
 import prime.math.Vec3f;
 import prime.model.BoundingBox;
 import prime.model.RayBoxIntInfo;
-import prime.model.RayTriIntInfo;
+import prime.model.RayTriHitInfo;
 import prime.model.Triangle;
 import prime.physics.Ray;
 
@@ -91,7 +91,7 @@ public class KdTree extends SpatialStructure implements Serializable {
    * @param ray
    * @param dst
    */
-  public void intersect(Ray ray, RayTriIntInfo dst) {
+  public void intersect(Ray ray, RayTriHitInfo dst) {
     if (root == null) {
       dst.setIsIntersected(false);
       return;
@@ -106,7 +106,7 @@ public class KdTree extends SpatialStructure implements Serializable {
    * @param kdNode
    * @param dst
    */
-  private void intersect(Ray ray, KdNode kdNode, RayTriIntInfo dst) {
+  private void intersect(Ray ray, KdNode kdNode, RayTriHitInfo dst) {
     RayBoxIntInfo rayBoxInt = kdNode.box.intersect(ray);
     if (!rayBoxInt.isHit()) {
       dst.setIsIntersected(false);

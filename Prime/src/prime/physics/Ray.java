@@ -47,7 +47,6 @@ public final class Ray implements Serializable {
    */
   public final void setDirection(Vec3f v) {
     direction.set(v);
-    direction.normalize();
   }
 
   /**
@@ -131,7 +130,8 @@ public final class Ray implements Serializable {
     return color;
   }
 
-  public final String toString() {
-    return ("Origin: " + origin + ", Direction: " + direction);
+  @Override
+  public String toString() {
+    return "Ray [origin=" + origin + ", direction=" + direction + ", color=" + color + "]";
   }
 }

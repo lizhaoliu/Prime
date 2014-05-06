@@ -5,12 +5,12 @@ import prime.physics.Ray;
 /**
  * {@link Ray} and {@link Triangle} intersection test result
  */
-public class RayTriIntInfo {
+public class RayTriHitInfo {
   private boolean isHit;
   private Triangle hitTriangle;
   private float u, v;
 
-  public void assign(RayTriIntInfo conf) {
+  public void assign(RayTriHitInfo conf) {
     isHit = conf.isHit;
     hitTriangle = conf.hitTriangle;
     u = conf.u;

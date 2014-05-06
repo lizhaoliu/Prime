@@ -198,8 +198,8 @@ public class BoundingBox implements Drawable, Iterable<Triangle>, Serializable {
    * @param ray
    * @param dst
    */
-  public void intersect(Ray ray, RayTriIntInfo dst) {
-    RayTriIntInfo tmp = new RayTriIntInfo();
+  public void intersect(Ray ray, RayTriHitInfo dst) {
+    RayTriHitInfo tmp = new RayTriHitInfo();
     for (int i = 0; i < triangleList.size(); i++) {
       triangleList.get(i).intersect(ray, tmp);
       if (tmp.isHit()) {
