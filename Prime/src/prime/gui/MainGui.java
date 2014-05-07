@@ -182,7 +182,7 @@ public class MainGui extends JFrame {
     private JTextArea txtArea = new JTextArea();
 
     public WestPanel() {
-      this.setPreferredSize(new Dimension((int) (PANEL_WIDTH / 2.5), PANEL_HEIGHT));
+      this.setPreferredSize(new Dimension((int) (PANEL_WIDTH / 3), PANEL_HEIGHT));
       Dimension dim = new Dimension(this.getPreferredSize().width, this.getPreferredSize().height / 2);
       tree.setRootVisible(false);
       Box vertBox = Box.createVerticalBox();

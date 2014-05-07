@@ -14,11 +14,11 @@ import prime.model.BoundingBox;
  * @author lizhaoliu
  * 
  */
-public class KDTree {
-  private KDNode head;
+public class KdTree {
+  private KdNode head;
 
-  public KDTree(List<Photon> pList) {
-    head = new KDNode(pList, 0);
+  public KdTree(List<Photon> pList) {
+    head = new KdNode(pList, 0);
     subdivide(head);
   }
 
@@ -48,7 +48,7 @@ public class KDTree {
     return Vec3f.distance(p, resList.get(n - 1).location);
   }
 
-  private void query2(Vec3f center, float r, KDNode currNode, List<Photon> resList) {
+  private void query2(Vec3f center, float r, KdNode currNode, List<Photon> resList) {
     int axis = currNode.subdivisionAxis;
     float midValue = currNode.midValue;
     if (currNode.isLeaf()) {
@@ -72,7 +72,7 @@ public class KDTree {
     }
   }
 
-  private void query1(BoundingBox region, KDNode currNode, List<Photon> resList) {
+  private void query1(BoundingBox region, KdNode currNode, List<Photon> resList) {
     Vec3f min = region.getMinPoint();
     Vec3f max = region.getMaxPoint();
     int axis = currNode.subdivisionAxis;
@@ -98,7 +98,7 @@ public class KDTree {
     }
   }
 
-  private void subdivide(KDNode currNode) {
+  private void subdivide(KdNode currNode) {
     List<Photon> pList = currNode.pList;
     int axis = currNode.subdivisionAxis;
     if (pList.size() <= 1) {
@@ -117,20 +117,20 @@ public class KDTree {
       rightList.add(pList.get(i));
     }
     pList.clear();
-    currNode.left = new KDNode(leftList, nextAxis);
-    currNode.right = new KDNode(rightList, nextAxis);
+    currNode.left = new KdNode(leftList, nextAxis);
+    currNode.right = new KdNode(rightList, nextAxis);
     subdivide(currNode.left);
     subdivide(currNode.right);
   }
 }
 
-class KDNode {
+class KdNode {
   List<Photon> pList;
   int subdivisionAxis;
   float midValue;
-  KDNode left, right;
+  KdNode left, right;
 
-  public KDNode(List<Photon> pList, int axis) {
+  public KdNode(List<Photon> pList, int axis) {
     this.pList = pList;
     subdivisionAxis = axis;
   }
