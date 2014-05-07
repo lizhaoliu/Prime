@@ -8,7 +8,7 @@ Prime
 Prime is a physically based renderer built on pure Java with JOGL binding, featuring:
   1. Monte Carlo path tracing.
   2. Photon Mapping.
-  3. Customizable material and physical models.
+  3. Customizable material and rendering pipeline.
 
 <br/>
 Features will be added:
@@ -16,7 +16,14 @@ Features will be added:
   2. Texture mapping and normal mapping.
 
 <br/>
+
 <h3>How to run</h3>
 Make sure you have Maven installed, then run the following command:<br/>
 <p><code>mvn clean install exec:exec</code></p>
-A built-in Swing GUI will kick off, and there is a sample .obj scene file which can be imported.
+A built-in Swing GUI will kick off, and there is a sample scene.obj scene file which can be imported.<br/>
+
+<h3>Manual</h3>
+<ul>
+<li>Mouse left button to select a model</li>
+<li></li>
+</ul>
