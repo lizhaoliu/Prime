@@ -22,8 +22,9 @@ Make sure you have Maven installed, then run the following command:<br/>
 <p><code>mvn clean install exec:exec</code></p>
 A built-in Swing GUI will kick off, and there is a sample scene.obj scene file which can be imported.<br/>
 
-<h3>Manual</h3>
+<h3>Minimal Manual</h3>
 <ul>
-<li>Mouse left button to select a model</li>
-<li></li>
+<li>Click mouse left button to select a model</li>
+<li>Dragging mouse middle button to move camera</li>
+<li>Dragging mouse right button to rotate camera</li>
 </ul>
