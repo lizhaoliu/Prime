@@ -27,7 +27,7 @@ public class Scene implements Serializable, Iterable<TriangleMesh> {
   private int maxTrisPerLeaf = 3;
 
   private transient List<Triangle> triangleList = new ArrayList<Triangle>();
-  private transient KdTree bSPTree;
+  private transient KdTree kdTree;
 
   private Sky sky = new Sky();
 
@@ -69,19 +69,19 @@ public class Scene implements Serializable, Iterable<TriangleMesh> {
     return meshLightList.size();
   }
 
-  public void setMaxBspDivisionDepth(int bspDepth) {
-    this.kdTreeDepth = bspDepth;
+  public void setMaxKdTreeDepth(int kdTreeDepth) {
+    this.kdTreeDepth = kdTreeDepth;
   }
 
-  public int getMaxBSPDivisionDepth() {
+  public int getMaxKdTreeDepth() {
     return kdTreeDepth;
   }
 
-  public void setMaxTrianglesPerBSPNode(int maxTrianglePerNode) {
-    this.maxTrisPerLeaf = maxTrianglePerNode;
+  public void setMaxTrisPerLeaf(int maxTrisPerLeaf) {
+    this.maxTrisPerLeaf = maxTrisPerLeaf;
   }
 
-  public int getMaxTrianglesPerBSPNode() {
+  public int getMaxTrisPerLeaf() {
     return maxTrisPerLeaf;
   }
 
@@ -101,8 +101,7 @@ public class Scene implements Serializable, Iterable<TriangleMesh> {
     d.normalize();
     ray.setDirection(d);
     ray.setOrigin(p0.x + d.x * MathUtils.EPSILON, p0.y + d.y * MathUtils.EPSILON, p0.z + d.z * MathUtils.EPSILON);
-    RayTriHitInfo ir = new RayTriHitInfo();
-    bSPTree.intersect(ray, ir);
+    RayTriHitInfo ir = kdTree.intersect(ray);
     return ir.isHit();
   }
 
@@ -121,13 +120,14 @@ public class Scene implements Serializable, Iterable<TriangleMesh> {
   /**
    * 
    * @param ray
-   * @param dest
    */
-  public void intersect(Ray ray, RayTriHitInfo dest) {
-    if (bSPTree == null) {
-      return;
+  public RayTriHitInfo intersect(Ray ray) {
+    if (kdTree == null) {
+      RayTriHitInfo hitInfo = new RayTriHitInfo();
+      hitInfo.setIsIntersected(false);
+      return hitInfo;
     }
-    bSPTree.intersect(ray, dest);
+    return kdTree.intersect(ray);
   }
 
   public void finish() {
@@ -146,12 +146,11 @@ public class Scene implements Serializable, Iterable<TriangleMesh> {
       box.add(t);
     }
     box.adjustSize();
-    bSPTree = new KdTree(box, kdTreeDepth, maxTrisPerLeaf);
+    kdTree = new KdTree(box, kdTreeDepth, maxTrisPerLeaf);
   }
 
   @Override
   public Iterator<TriangleMesh> iterator() {
-    // TODO Auto-generated method stub
     return meshList.iterator();
   }
 }

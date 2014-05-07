@@ -51,7 +51,6 @@ public abstract class Renderer {
    * @param destColor
    */
   protected void directIllumination(Ray srcRay, Vec3f hitPoint, Vec3f normal, Material material, Color3f destColor) {
-    RayTriHitInfo ir = new RayTriHitInfo();
     Ray newRay = new Ray();
     Vec3f newDir = newRay.getDirection();
     Color3f color = newRay.getColor();
@@ -68,7 +67,7 @@ public abstract class Renderer {
       newRay.setOrigin(hitPoint.x + MathUtils.EPSILON * newDir.x, hitPoint.y + MathUtils.EPSILON * newDir.y, hitPoint.z
           + MathUtils.EPSILON * newDir.z);
       newRay.setLengthToMax();
-      sceneGraph.intersect(newRay, ir);
+      RayTriHitInfo ir = sceneGraph.intersect(newRay);
       triangleLight = ir.getTriangle();
       float cos = Vec3f.dot(newDir, normal);
       if (ir.isHit() && triangleLight.getTriangleMesh() == meshLight && cos > 0) {

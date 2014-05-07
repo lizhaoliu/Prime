@@ -30,8 +30,7 @@ public class PathTracer extends Renderer {
     Color3f finalColor = srcRay.getColor();
     
     srcRay.setLengthToMax();
-    RayTriHitInfo hitRes = new RayTriHitInfo();
-    sceneGraph.intersect(srcRay, hitRes);
+    RayTriHitInfo hitRes = sceneGraph.intersect(srcRay);
     if (!hitRes.isHit()) {
       finalColor.add(backgroundColor);
       return;

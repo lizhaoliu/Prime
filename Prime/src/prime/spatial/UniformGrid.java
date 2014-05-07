@@ -61,7 +61,7 @@ public class UniformGrid extends SpatialStructure {
    * 
    */
   @Override
-  public void intersect(Ray ray, RayTriHitInfo dst) {
+  public RayTriHitInfo intersect(Ray ray) {
     throw new UnsupportedOperationException();
   }
 

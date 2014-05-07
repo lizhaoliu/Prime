@@ -161,10 +161,10 @@ public class MainGui extends JFrame {
     camera.setZFar(-1000);
     camera.setViewportMap(-.5f, -.5f, .5f, .5f);
     camera.setScene(sceneGraph);
-    sceneGraph.setMaxBspDivisionDepth(15);
+    sceneGraph.setMaxKdTreeDepth(15);
 
     Material defaultMat = new IdealDiffuseModel();
-    // BSDF defaultMat = new OrenNayerModel();
+    // Material defaultMat = new OrenNayerModel();
     defaultMat.setName("default");
     materialList.add(defaultMat);
   }
@@ -422,9 +422,9 @@ public class MainGui extends JFrame {
           camera.setBackgroundColor(colorChooser.getSelectedColor());
           sceneGraph.getSky().setColor(colorChooser.getSelectedColor());
           int bspDepth = (int) sKdTreeDepth.getValue();
-          sceneGraph.setMaxBspDivisionDepth(bspDepth);
+          sceneGraph.setMaxKdTreeDepth(bspDepth);
           int maxTrianlgesPerNode = (int) sTrianglePerNode.getValue();
-          sceneGraph.setMaxTrianglesPerBSPNode(maxTrianlgesPerNode);
+          sceneGraph.setMaxTrisPerLeaf(maxTrianlgesPerNode);
           selectedRenderer.setBouncingDepth(depth);
           camera.setSamplesPerPixel(samples);
           resImage = new BufferedImage(w, h, BufferedImage.TYPE_INT_RGB);
@@ -887,7 +887,7 @@ public class MainGui extends JFrame {
       bSpotLight.addActionListener(new ActionRes());
       bEditMat = new JButton(new ImageIcon("matEdit.png"));
       bEditMat.addActionListener(new ActionRes());
-      bEditMat.setToolTipText("Edit BSDF");
+      bEditMat.setToolTipText("Material Editor");
       bEditTex = new JButton("Texture Editor");
       bEditTex.addActionListener(new ActionRes());
       bNewScene = new JButton(new ImageIcon("newFile.png"));
@@ -955,7 +955,7 @@ public class MainGui extends JFrame {
                       sceneGraph.addMesh(mesh);
                       meshesList.add(mesh);
                     }
-                    sceneGraph.setMaxBspDivisionDepth(10);
+                    sceneGraph.setMaxKdTreeDepth(10);
                     sceneGraph.finish();
                     viewPanel.display();
                     westPanel.updateModelsData();

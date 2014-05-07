@@ -508,8 +508,7 @@ public class Camera extends Observable implements Serializable, Transformable, D
     }
     Ray ray = new Ray();
     getRayFromViewport(x, y, 0, 0, ray);
-    RayTriHitInfo ir = new RayTriHitInfo();
-    sceneGraph.intersect(ray, ir);
+    RayTriHitInfo ir = sceneGraph.intersect(ray);
     if (ir.isHit()) {
       return ir.getTriangle().getTriangleMesh();
     }

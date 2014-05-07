@@ -2,6 +2,10 @@ package prime.spatial;
 
 import java.io.Serializable;
 
+import javax.annotation.Nonnull;
+
+import com.google.common.base.Preconditions;
+
 import prime.math.Vec3f;
 import prime.model.BoundingBox;
 import prime.model.RayBoxIntInfo;
@@ -88,15 +92,16 @@ public class KdTree extends SpatialStructure implements Serializable {
 
   /**
    * 
-   * @param ray
-   * @param dst
    */
-  public void intersect(Ray ray, RayTriHitInfo dst) {
+  public RayTriHitInfo intersect(@Nonnull Ray ray) {
+    Preconditions.checkNotNull(ray);
+
+    RayTriHitInfo hitInfo = new RayTriHitInfo();
     if (root == null) {
-      dst.setIsIntersected(false);
-      return;
+      hitInfo.setIsIntersected(false);
+      return hitInfo;
     }
-    intersect(ray, root, dst);
+    return intersect(ray, root);
   }
 
   /**
@@ -104,48 +109,49 @@ public class KdTree extends SpatialStructure implements Serializable {
    * 
    * @param ray
    * @param kdNode
-   * @param dst
    */
-  private void intersect(Ray ray, KdNode kdNode, RayTriHitInfo dst) {
+  private RayTriHitInfo intersect(Ray ray, KdNode kdNode) {
+    RayTriHitInfo hitInfo = new RayTriHitInfo();
+
     RayBoxIntInfo rayBoxInt = kdNode.box.intersect(ray);
     if (!rayBoxInt.isHit()) {
-      dst.setIsIntersected(false);
-      return;
+      hitInfo.setIsIntersected(false);
+      return hitInfo;
     }
+
     if (kdNode.isLeaf()) {
-      kdNode.box.intersect(ray, dst);
-      return;
+      return kdNode.box.intersectRayWithTriangles(ray);
     }
 
     Vec3f o = ray.getOrigin(), d = ray.getDirection();
     Vec3f mid = kdNode.box.getMidPoint();
     int axis = kdNode.subdivideAxis;
     float tmid = (mid.get(axis) - o.get(axis)) / d.get(axis);
-    if (o.get(axis) < mid.get(axis)) { // origin on the lesser side of
-      // splitting plane
+    if (o.get(axis) < mid.get(axis)) { // origin on the lesser side of splitting plane
       if (tmid < 0 || tmid > rayBoxInt.getMax()) {
-        intersect(ray, kdNode.left, dst);
+        return intersect(ray, kdNode.left);
       } else if (tmid < rayBoxInt.getMin()) {
-        intersect(ray, kdNode.right, dst);
+        return intersect(ray, kdNode.right);
       } else {
-        intersect(ray, kdNode.left, dst);
-        if (!dst.isHit()) {
-          intersect(ray, kdNode.right, dst);
+        hitInfo = intersect(ray, kdNode.left);
+        if (!hitInfo.isHit()) {
+          hitInfo = intersect(ray, kdNode.right);
         }
       }
     } else { // origin on the greater side of splitting plane
       if (tmid < 0 || tmid > rayBoxInt.getMax()) {
-        intersect(ray, kdNode.right, dst);
+        return intersect(ray, kdNode.right);
       } else if (tmid < rayBoxInt.getMin()) {
-        intersect(ray, kdNode.left, dst);
+        return intersect(ray, kdNode.left);
       } else {
-        intersect(ray, kdNode.right, dst);
-        if (!dst.isHit()) {
-          intersect(ray, kdNode.left, dst);
+        hitInfo = intersect(ray, kdNode.right);
+        if (!hitInfo.isHit()) {
+          hitInfo = intersect(ray, kdNode.left);
         }
       }
-
     }
+
+    return hitInfo;
   }
 
   public void setMaxDepth(int maxDepth) {
