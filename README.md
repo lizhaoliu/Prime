@@ -4,14 +4,20 @@ Prime
 <img src="https://cloud.githubusercontent.com/assets/3256712/2883941/7853bb58-d4a2-11e3-8fe7-b27668eb9366.png"/><br/>
 <img src="https://cloud.githubusercontent.com/assets/3256712/2883601/ef135e2e-d49d-11e3-9150-48f129c5c414.jpg"/><br/>
 <img src="https://cloud.githubusercontent.com/assets/3256712/2883599/eb5b7cda-d49d-11e3-842c-dc63f05b44f3.jpg"/><br/>
+<p>
 Prime is a physically based renderer built on pure Java with JOGL binding, featuring:
-  1. Monte Carlo ray tracing.
+  1. Monte Carlo path tracing.
   2. Photon Mapping.
-  3. Distributed Rendering.
-
-Prime is able to adopt all processor cores to render in parallel and can be easily deployed on multiple clusters to perform distributed rendering. 
+  3. Customizable material and physical models.
 
 
+</p>
+<p>
+Features will be added:
+  1. Network distributed rendering.
+  2. Texture mapping and normal mapping.
+
+</p>
 <h3>How to run</h3>
 Make sure you have Maven installed, then run the following command:<br/>
 <p><code>mvn clean install exec:exec</code></p>
