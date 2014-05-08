@@ -46,6 +46,7 @@ public final class TriangleMesh implements Drawable, Serializable {
   private final float area; // the area of triangle meshs
 
   private Material material;
+  private Triangle[] triangleArray;
 
   private BoundingBox aabb = new BoundingBox(Float.MAX_VALUE, Float.MIN_VALUE);
   private float minX = Float.MAX_VALUE, minY = Float.MAX_VALUE, minZ = Float.MAX_VALUE, maxX = Float.MIN_VALUE,
@@ -66,6 +67,8 @@ public final class TriangleMesh implements Drawable, Serializable {
 
     nTriangles = vertexIndexList.size();
     area = calculateArea();
+    
+    triangleArray = createTriangleArray();
   }
 
   /**
@@ -73,6 +76,10 @@ public final class TriangleMesh implements Drawable, Serializable {
    * @return
    */
   public Triangle[] getTriangleArray() {
+    return triangleArray;
+  }
+  
+  private Triangle[] createTriangleArray() {
     Triangle[] triArray = new Triangle[nTriangles];
     for (int i = 0; i < nTriangles; i++) {
       triArray[i] = new Triangle(this, i);
@@ -285,6 +292,30 @@ public final class TriangleMesh implements Drawable, Serializable {
    */
   public int getTriangleCount() {
     return vertexIndexList.size() - 2;
+  }
+  
+  /**
+   * 
+   * @return
+   */
+  public int getPositionCount() {
+    return vertexList.size();
+  }
+  
+  /**
+   * 
+   * @return
+   */
+  public int getNormalCount() {
+    return normalList.size();
+  }
+  
+  /**
+   * 
+   * @return
+   */
+  public int getTexCoordCount() {
+    return texCoordList.size();
   }
 
   public String toString() {

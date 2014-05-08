@@ -62,7 +62,7 @@ public class ContentLoader {
   }
 
   /**
-   * Load {@link TriangleMesh}s from OBJ format file
+   * Load a collection of {@link TriangleMesh} from OBJ format file
    * 
    * @param file
    *          input model file
@@ -202,7 +202,7 @@ public class ContentLoader {
     mainGui.log(vList.size() + " vertices loaded.");
     mainGui.log(nList.size() + " normals loaded.");
     mainGui.log(tList.size() + " tex coords loaded.");
-    mainGui.log(viList.size() + " triangles loaded.");
+    mainGui.log((viList.size() - 2) + " triangles loaded.");
     mainGui.log("--Finished loading mesh: " + meshName + "\n");
 
     return ret;

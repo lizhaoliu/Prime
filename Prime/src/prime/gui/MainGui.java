@@ -67,6 +67,8 @@ import javax.swing.SwingUtilities;
 import javax.swing.border.TitledBorder;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
+import javax.swing.event.TreeSelectionEvent;
+import javax.swing.event.TreeSelectionListener;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeModel;
@@ -185,6 +187,17 @@ public class MainGui extends JFrame {
       this.setPreferredSize(new Dimension((int) (PANEL_WIDTH / 3), PANEL_HEIGHT));
       Dimension dim = new Dimension(this.getPreferredSize().width, this.getPreferredSize().height / 2);
       tree.setRootVisible(false);
+      tree.addTreeSelectionListener(new TreeSelectionListener() {
+        @Override
+        public void valueChanged(TreeSelectionEvent arg0) {
+          DefaultMutableTreeNode node = (DefaultMutableTreeNode)tree.getLastSelectedPathComponent();
+          Object obj = node.getUserObject();
+          if (obj instanceof TriangleMesh) {
+            selectedMesh = (TriangleMesh)obj;
+            onMeshSelected();
+          }
+        }
+      });
       Box vertBox = Box.createVerticalBox();
       JScrollPane spModlExplr = new JScrollPane(tree);
       spModlExplr.setPreferredSize(dim);
@@ -197,15 +210,17 @@ public class MainGui extends JFrame {
       vertBox.add(spModlExplr);
       vertBox.add(spTxtArea);
       this.add(vertBox);
-      updateModelsData();
+      updateModelTree();
     }
 
-    public final void updateModelsData() {
+    public final void updateModelTree() {
       DefaultMutableTreeNode root = new DefaultMutableTreeNode();
       for (TriangleMesh mesh : meshesList) {
         DefaultMutableTreeNode node = new DefaultMutableTreeNode(mesh);
-        DefaultMutableTreeNode trianglesNode = new DefaultMutableTreeNode(mesh.getTriangleCount());
-        node.add(trianglesNode);
+        node.add(new DefaultMutableTreeNode(mesh.getPositionCount() + " vertices"));
+        node.add(new DefaultMutableTreeNode(mesh.getNormalCount() + " normals"));
+        node.add(new DefaultMutableTreeNode(mesh.getTexCoordCount() + " tex coords"));
+        node.add(new DefaultMutableTreeNode(mesh.getTriangleCount() + " triangles"));
         root.add(node);
       }
       tree.removeAll();
@@ -958,7 +973,7 @@ public class MainGui extends JFrame {
                     sceneGraph.setMaxKdTreeDepth(10);
                     sceneGraph.finish();
                     viewPanel.display();
-                    westPanel.updateModelsData();
+                    westPanel.updateModelTree();
                   } catch (Exception e) {
                     e.printStackTrace();
                   }
@@ -1139,10 +1154,7 @@ public class MainGui extends JFrame {
       switch (button) {
       case MouseEvent.BUTTON1:
         selectedMesh = cam.pick(e.getX(), e.getY());
-        if (selectedMesh != null) {
-          materialEditDialog.loadMaterial(selectedMesh.getMaterial());
-        }
-        viewPanel.display();
+        onMeshSelected();
         break;
 
       case MouseEvent.BUTTON3:
@@ -1455,7 +1467,7 @@ public class MainGui extends JFrame {
     }
   }
 
-  public final void log(final String log) {
+  public void log(final String log) {
     SwingUtilities.invokeLater(new Runnable() {
       @Override
       public void run() {
@@ -1464,7 +1476,14 @@ public class MainGui extends JFrame {
     });
   }
 
-  public final void setViewPanelEnabled(boolean isEnabled) {
+  public void setViewPanelEnabled(boolean isEnabled) {
     viewPanel.setEnabled(isEnabled);
+  }
+  
+  private void onMeshSelected() {
+    if (selectedMesh != null) {
+      materialEditDialog.loadMaterial(selectedMesh.getMaterial());
+    }
+    viewPanel.display();
   }
 }
