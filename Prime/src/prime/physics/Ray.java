@@ -2,13 +2,16 @@ package prime.physics;
 
 import java.io.Serializable;
 
+import javax.annotation.concurrent.NotThreadSafe;
+
 import prime.math.Vec3f;
 
 /**
  * 
  * @author lizhaoliu
- * 
+ *
  */
+@NotThreadSafe
 public final class Ray implements Serializable {
   private static final long serialVersionUID = -406076263164160604L;
 

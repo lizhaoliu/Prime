@@ -46,7 +46,7 @@ public class KdTree extends SpatialStructure implements Serializable {
    * subdivide the structure
    */
   public void subdiv() {
-    subdiv(root, 0, root.box.maxLengthAxis());
+    subdiv(root, 0, root.box.maxExtentAxis());
   }
 
   /**
@@ -96,10 +96,8 @@ public class KdTree extends SpatialStructure implements Serializable {
   public RayTriHitInfo intersect(@Nonnull Ray ray) {
     Preconditions.checkNotNull(ray);
 
-    RayTriHitInfo hitInfo = new RayTriHitInfo();
     if (root == null) {
-      hitInfo.setIsIntersected(false);
-      return hitInfo;
+      return new RayTriHitInfo();
     }
     return intersect(ray, root);
   }
@@ -115,8 +113,7 @@ public class KdTree extends SpatialStructure implements Serializable {
 
     RayBoxIntInfo rayBoxInt = kdNode.box.intersect(ray);
     if (!rayBoxInt.isHit()) {
-      hitInfo.setIsIntersected(false);
-      return hitInfo;
+      return new RayTriHitInfo();
     }
 
     if (kdNode.isLeaf()) {
@@ -128,9 +125,9 @@ public class KdTree extends SpatialStructure implements Serializable {
     int axis = kdNode.subdivideAxis;
     float tmid = (mid.get(axis) - o.get(axis)) / d.get(axis);
     if (o.get(axis) < mid.get(axis)) { // origin on the lesser side of splitting plane
-      if (tmid < 0 || tmid > rayBoxInt.getMax()) {
+      if (tmid < 0 || tmid > rayBoxInt.getFar()) {
         return intersect(ray, kdNode.left);
-      } else if (tmid < rayBoxInt.getMin()) {
+      } else if (tmid < rayBoxInt.getNear()) {
         return intersect(ray, kdNode.right);
       } else {
         hitInfo = intersect(ray, kdNode.left);
@@ -139,9 +136,9 @@ public class KdTree extends SpatialStructure implements Serializable {
         }
       }
     } else { // origin on the greater side of splitting plane
-      if (tmid < 0 || tmid > rayBoxInt.getMax()) {
+      if (tmid < 0 || tmid > rayBoxInt.getFar()) {
         return intersect(ray, kdNode.right);
-      } else if (tmid < rayBoxInt.getMin()) {
+      } else if (tmid < rayBoxInt.getNear()) {
         return intersect(ray, kdNode.left);
       } else {
         hitInfo = intersect(ray, kdNode.right);

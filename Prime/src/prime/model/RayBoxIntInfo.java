@@ -1,31 +1,55 @@
 package prime.model;
 
+import javax.annotation.concurrent.Immutable;
+
 import prime.physics.Ray;
 
 /**
  * {@link Ray} and {@link BoundingBox} intersection test result
  */
-public final class RayBoxIntInfo {
+@Immutable
+public class RayBoxIntInfo {
   private final boolean isHit;
-  private final float min;
-  private final float max;
+  private final float near;
+  private final float far;
 
+  /**
+   * If is hit
+   * 
+   * @return
+   */
   public boolean isHit() {
     return isHit;
   }
 
-  public float getMin() {
-    return min;
+  /**
+   * Get the near hit distance
+   * 
+   * @return
+   */
+  public float getNear() {
+    return near;
   }
 
-  public float getMax() {
-    return max;
+  /**
+   * Get the far hit distance
+   * 
+   * @return
+   */
+  public float getFar() {
+    return far;
   }
 
-  public RayBoxIntInfo(boolean isHit, float min, float max) {
-    // TODO Auto-generated constructor stub
+  /**
+   * 
+   * 
+   * @param isHit
+   * @param near
+   * @param far
+   */
+  public RayBoxIntInfo(boolean isHit, float near, float far) {
     this.isHit = isHit;
-    this.min = min;
-    this.max = max;
+    this.near = near;
+    this.far = far;
   }
 }

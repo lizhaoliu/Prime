@@ -1,5 +1,5 @@
 package prime.model;
 
-public abstract class Geometry {
+public interface Geometry {
 
 }

@@ -123,9 +123,7 @@ public class Scene implements Serializable, Iterable<TriangleMesh> {
    */
   public RayTriHitInfo intersect(Ray ray) {
     if (kdTree == null) {
-      RayTriHitInfo hitInfo = new RayTriHitInfo();
-      hitInfo.setIsIntersected(false);
-      return hitInfo;
+      return new RayTriHitInfo();
     }
     return kdTree.intersect(ray);
   }

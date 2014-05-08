@@ -365,8 +365,8 @@ public class MainGui extends JFrame {
         tfH = new JTextField(String.valueOf(PANEL_HEIGHT / 2));
         cRenders = new JComboBox(renderers);
         cRenders.setSelectedIndex(0);
-        sSamples = new SliderPanel(1, 64, 1, 1, "Samples per pixel");
-        sDepth = new SliderPanel(1, 25, 1, 1, "Ray tracing depth");
+        sSamples = new SliderPanel(1, 100, 1, 1, "Samples^2 per pixel");
+        sDepth = new SliderPanel(1, 25, 1, 1, "Tracing depth");
         sKdTreeDepth = new SliderPanel(5, 70, 20, 1, "Max Kd-tree depth");
         sTrianglePerNode = new SliderPanel(1, 10, 3, 1, "Max triangles per leaf");
         bStartRendering.addActionListener(this);
@@ -914,7 +914,7 @@ public class MainGui extends JFrame {
       // add(new JLabel("Rendering"));
       hBox.add(bRenderDia);
       // add(new JLabel("Files"));
-      hBox.add(bNewScene);
+//      hBox.add(bNewScene);
       hBox.add(bSaveScene);
       hBox.add(bLoadScene);
 
@@ -937,7 +937,7 @@ public class MainGui extends JFrame {
           materialEditDialog.setVisible(true);
         } else if (o == bImptModel) {
           JFileChooser chooser = new JFileChooser();
-          FileNameExtensionFilter filter = new FileNameExtensionFilter("model file *.obj *.ply", "obj", "ply");
+          FileNameExtensionFilter filter = new FileNameExtensionFilter("model file *.obj", "obj");
           chooser.setFileFilter(filter);
           int ret = chooser.showOpenDialog(null);
           if (ret == JFileChooser.APPROVE_OPTION) {

@@ -118,6 +118,7 @@ public class BoundingBox implements Drawable, Iterable<Triangle>, Serializable {
   }
 
   /**
+   * Test if two bounding boxes intersect with each other
    * 
    * @param box
    * @return
@@ -132,7 +133,7 @@ public class BoundingBox implements Drawable, Iterable<Triangle>, Serializable {
   }
 
   /**
-   * ray-intersection test
+   * Test if the ray intersects with this bounding box 
    * 
    * @param ray
    * @return
@@ -163,6 +164,7 @@ public class BoundingBox implements Drawable, Iterable<Triangle>, Serializable {
   }
 
   /**
+   * Test if the line segment v1-v2 intersects with the bounding box
    * 
    * @param v1
    * @param v2
@@ -193,9 +195,10 @@ public class BoundingBox implements Drawable, Iterable<Triangle>, Serializable {
   }
 
   /**
-   * ray-intersection, and store the intersection result
+   * Perform ray-triangle intersection test for each {@link Triangle} inside 
    * 
    * @param ray
+   * @return
    */
   public RayTriHitInfo intersectRayWithTriangles(Ray ray) {
     RayTriHitInfo hitInfo = new RayTriHitInfo();
@@ -209,7 +212,7 @@ public class BoundingBox implements Drawable, Iterable<Triangle>, Serializable {
   }
 
   /**
-   * test if inside
+   * Test if a point is inside the bounding box
    * 
    * @param v
    * @return
@@ -225,7 +228,6 @@ public class BoundingBox implements Drawable, Iterable<Triangle>, Serializable {
 
   /**
    * 
-   * @param dst
    */
   public Vec3f getMidPoint() {
     return new Vec3f((min.x + max.x) / 2, (min.y + max.y) / 2, (min.z + max.z) / 2);
@@ -233,7 +235,6 @@ public class BoundingBox implements Drawable, Iterable<Triangle>, Serializable {
 
   /**
    * 
-   * @param dst
    */
   public Vec3f getMinPoint() {
     return new Vec3f(min);
@@ -241,17 +242,17 @@ public class BoundingBox implements Drawable, Iterable<Triangle>, Serializable {
 
   /**
    * 
-   * @param dst
    */
   public Vec3f getMaxPoint() {
     return new Vec3f(max);
   }
 
   /**
+   * Return the axis with the greatest extent 
    * 
    * @return
    */
-  public int maxLengthAxis() {
+  public int maxExtentAxis() {
     float dx = max.x - min.x, dy = max.y - min.y, dz = max.z - min.z;
     int axle = 0;
     if (dy > dx) {
@@ -270,11 +271,17 @@ public class BoundingBox implements Drawable, Iterable<Triangle>, Serializable {
   }
 
   /**
+   * Get the extent on a particular axis
    * 
-   * @param i
+   * @param i 
+   * <p>
+   * 0: x axis<br/>
+   * 1: y axis<br/>
+   * 2: z axis<br/>
+   * </p>
    * @return
    */
-  public float getLength(int i) {
+  public float getExtent(int i) {
     switch (i) {
     case 0:
       return max.x - min.x;
@@ -291,6 +298,7 @@ public class BoundingBox implements Drawable, Iterable<Triangle>, Serializable {
   }
 
   /**
+   * If the bounding box contains no {@link Triangle}
    * 
    * @return
    */

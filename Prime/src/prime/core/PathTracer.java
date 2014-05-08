@@ -36,7 +36,7 @@ public class PathTracer extends Renderer {
       return;
     }
 
-    Triangle intTriangle = hitRes.getTriangle();
+    Triangle intTriangle = hitRes.getHitTriangle();
     Material material = intTriangle.getMaterial();
     if (material.isLight()) {
       finalColor.add(material.getEmittance());
@@ -77,7 +77,7 @@ public class PathTracer extends Renderer {
 
     directIllumination(srcRay, hitPoint, normal, material, finalColor);
 
-    //
+    // perform a Russian Roulette
     float roulette = RandomUtils.nextFloat() * (refAvg + transAvg + abspAvg);
     float factor;
     if (roulette < refAvg) // reflection

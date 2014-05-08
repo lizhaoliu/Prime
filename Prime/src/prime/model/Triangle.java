@@ -46,8 +46,6 @@ public class Triangle implements Serializable {
    * @param ray
    */
   public RayTriHitInfo intersect(final Ray ray) {
-    RayTriHitInfo hitInfo = new RayTriHitInfo();
-    
     Vec3f d = ray.getDirection();
     Vec3f o = ray.getOrigin();
 
@@ -64,34 +62,26 @@ public class Triangle implements Serializable {
 
     u = -Vec3f.tripleProduct(vo0, v20, d) * invProduct;
     if (u < 0 || u > 1) {
-      hitInfo.setIsIntersected(false);
-      return hitInfo;
+      return new RayTriHitInfo();
     }
 
     v = -Vec3f.tripleProduct(v10, vo0, d) * invProduct;
     if (v < 0 || v > 1) {
-      hitInfo.setIsIntersected(false);
-      return hitInfo;
+      return new RayTriHitInfo();
     }
 
     t = Vec3f.tripleProduct(v10, v20, vo0) * invProduct;
     if (t < 0 || t > ray.getLength()) {
-      hitInfo.setIsIntersected(false);
-      return hitInfo;
+      return new RayTriHitInfo();
     }
 
     if (u + v > 1) {
-      hitInfo.setIsIntersected(false);
-      return hitInfo;
+      return new RayTriHitInfo();
     }
 
     ray.setLength(t);
 
-    hitInfo.setIsIntersected(true);
-    hitInfo.setHitTriangle(this);
-    hitInfo.setUV(u, v);
-    
-    return hitInfo;
+    return new RayTriHitInfo(true, this, u, v);
   }
 
   /**

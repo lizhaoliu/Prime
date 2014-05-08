@@ -1,5 +1,7 @@
 package prime.core;
 
+import javax.annotation.Nonnull;
+
 import prime.math.Filter;
 import prime.math.MathUtils;
 import prime.math.Vec3f;
@@ -14,6 +16,7 @@ import prime.physics.Color3f;
  * Abstract Renderer
  */
 public abstract class Renderer {
+
   protected Scene sceneGraph;
   protected int maxDepth;
   protected Color3f backgroundColor;
@@ -22,15 +25,11 @@ public abstract class Renderer {
 
   public Renderer() {}
 
-  public Renderer(Scene sceneGraph) {
-    this.sceneGraph = sceneGraph;
-  }
-
-  public void setCamera(Camera camera) {
+  public void setCamera(@Nonnull Camera camera) {
     this.camera = camera;
   }
 
-  public void setBackgroundColor(Color3f backgroundColor) {
+  public void setBackgroundColor(@Nonnull Color3f backgroundColor) {
     this.backgroundColor = backgroundColor;
   }
 
@@ -38,7 +37,7 @@ public abstract class Renderer {
     this.maxDepth = maxDepth;
   }
 
-  public void setSceneGraph(Scene sceneGraph) {
+  public void setSceneGraph(@Nonnull Scene sceneGraph) {
     this.sceneGraph = sceneGraph;
   }
 
@@ -68,7 +67,7 @@ public abstract class Renderer {
           + MathUtils.EPSILON * newDir.z);
       newRay.setLengthToMax();
       RayTriHitInfo ir = sceneGraph.intersect(newRay);
-      triangleLight = ir.getTriangle();
+      triangleLight = ir.getHitTriangle();
       float cos = Vec3f.dot(newDir, normal);
       if (ir.isHit() && triangleLight.getTriangleMesh() == meshLight && cos > 0) {
         float u = ir.getU(), v = ir.getV();
@@ -120,8 +119,8 @@ public abstract class Renderer {
   }
 
   /**
-     * 
-     */
+   * 
+   */
   public abstract void preprocess();
 
   /**
