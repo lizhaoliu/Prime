@@ -17,8 +17,8 @@ public class PathTracer extends Renderer {
 
   public void preprocess() {}
 
-  public void render(Ray srcRay) {
-    render(srcRay, 1);
+  public void render(Ray ray) {
+    render(ray, 1);
   }
 
   /**

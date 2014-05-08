@@ -250,24 +250,20 @@ public final class TriangleMesh implements Drawable, Serializable {
 
   /**
    * 
-   * @param dst
    * @return
    */
-  public Vec3f randomPoint(Vec3f dst) {
+  public Vec3f randomPoint() {
     int base = (int) (MathUtils.random() * nTriangles);
-    Triangle.getRandomPoint(getVertex(base, 0), getVertex(base, 1), getVertex(base, 2), dst);
-    return dst;
+    return Triangle.getRandomPoint(getVertex(base, 0), getVertex(base, 1), getVertex(base, 2));
   }
 
   /**
    * 
-   * @param dst
    * @return
    */
   public Vec3f randomNormal(Vec3f dst) {
     int base = (int) (MathUtils.random() * nTriangles);
-    Triangle.getRandomPoint(getNormal(base, 0), getNormal(base, 1), getNormal(base, 2), dst);
-    return dst;
+    return Triangle.getRandomPoint(getNormal(base, 0), getNormal(base, 1), getNormal(base, 2));
   }
 
   /**
@@ -275,8 +271,7 @@ public final class TriangleMesh implements Drawable, Serializable {
    * @param dst
    */
   public void emitRandomRay(Ray dst) {
-    Vec3f origin = new Vec3f();
-    randomPoint(origin);
+    Vec3f origin = randomPoint();
     dst.setOrigin(origin);
     Vec3f n = new Vec3f();
     randomNormal(n);
@@ -291,7 +286,7 @@ public final class TriangleMesh implements Drawable, Serializable {
    * @return
    */
   public int getTriangleCount() {
-    return vertexIndexList.size() - 2;
+    return vertexIndexList.size();
   }
   
   /**

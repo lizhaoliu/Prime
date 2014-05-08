@@ -60,9 +60,7 @@ public abstract class Renderer {
     int nLights = sceneGraph.getLightNum();
     if (nLights > 0) {
       meshLight = sceneGraph.getLight((int) (Math.random() * nLights));
-      meshLight.randomPoint(newDir);
-      newDir.sub(hitPoint);
-      newDir.normalize();
+      newDir = meshLight.randomPoint().sub(hitPoint).normalize();
       newRay.setOrigin(hitPoint.x + MathUtils.EPSILON * newDir.x, hitPoint.y + MathUtils.EPSILON * newDir.y, hitPoint.z
           + MathUtils.EPSILON * newDir.z);
       newRay.setLengthToMax();

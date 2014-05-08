@@ -22,9 +22,9 @@ import prime.physics.Ray;
 public class KdTree extends SpatialStructure implements Serializable {
   private static final long serialVersionUID = -6629508645189976660L;
 
-  private KdNode root = null;
-  private int maxDepth = 10;
-  private int maxTrianglesPerLeaf = 5;
+  private KdNode root;
+  private int maxDepth;
+  private int maxTrianglesPerLeaf;
 
   /**
    * 
@@ -113,7 +113,7 @@ public class KdTree extends SpatialStructure implements Serializable {
 
     RayBoxIntInfo rayBoxInt = kdNode.box.intersect(ray);
     if (!rayBoxInt.isHit()) {
-      return new RayTriHitInfo();
+      return hitInfo;
     }
 
     if (kdNode.isLeaf()) {

@@ -134,7 +134,6 @@ public class Triangle implements Serializable {
    * 
    * @param u
    * @param v
-   * @param dest
    * @return
    */
   public Vec3f interpolatePosition(float u, float v) {
@@ -150,7 +149,6 @@ public class Triangle implements Serializable {
    * 
    * @param u
    * @param v
-   * @param dest
    * @return
    */
   public Vec3f interpolateNormal(float u, float v) {
@@ -158,10 +156,8 @@ public class Triangle implements Serializable {
     Vec3f n0 = getNormal(0);
     Vec3f n1 = getNormal(1);
     Vec3f n2 = getNormal(2);
-    Vec3f dest = new Vec3f(w * n0.x + u * n1.x + v * n2.x, w * n0.y + u * n1.y + v * n2.y, w * n0.z + u * n1.z + v
-        * n2.z);
-    dest.normalize();
-    return dest;
+    return new Vec3f(w * n0.x + u * n1.x + v * n2.x, w * n0.y + u * n1.y + v * n2.y, w * n0.z + u * n1.z + v * n2.z)
+        .normalize();
   }
 
   /**
@@ -169,15 +165,14 @@ public class Triangle implements Serializable {
    * 
    * @param u
    * @param v
-   * @param dest
    * @return
    */
-  public Vec3f interpolateTexCoord(float u, float v, Vec3f dest) {
+  public Vec3f interpolateTexCoord(float u, float v) {
     float w = 1 - u - v;
     Vec3f t0 = getTexCoordinate(0);
     Vec3f t1 = getTexCoordinate(1);
     Vec3f t2 = getTexCoordinate(2);
-    return dest.set(w * t0.x + u * t1.x + v * t2.x, w * t0.y + u * t1.y + v * t2.y, w * t0.z + u * t1.z + v * t2.z);
+    return new Vec3f(w * t0.x + u * t1.x + v * t2.x, w * t0.y + u * t1.y + v * t2.y, w * t0.z + u * t1.z + v * t2.z);
   }
 
   /**
@@ -191,70 +186,123 @@ public class Triangle implements Serializable {
     Vec3f v1 = getVertex(1);
     Vec3f v2 = getVertex(2);
 
+    // intersects if any of triangle vertices is inside the box
     if (box.contains(v0) || box.contains(v1) || box.contains(v2)) {
       return true;
     }
 
+    // intersects if any of triangle edges intersect with the box
     if (box.intersect(v0, v1) || box.intersect(v1, v2) || box.intersect(v2, v0)) {
       return true;
     }
 
+    // intersects if any of the box edges intersect with the triangle
     Vec3f min = box.getMinPoint();
     Vec3f max = box.getMaxPoint();
     Vec3f p0 = new Vec3f(), p1 = new Vec3f();
 
-    p0.set(min);
-    p1.set(max);
-    if (intersect(p0, p1)) {
-      return true;
-    }
-
-    p0.set(min.x, max.y, min.z);
-    p1.set(max.x, min.y, max.z);
-    if (intersect(p0, p1)) {
-      return true;
-    }
-
-    p0.set(min.x, max.y, max.z);
+    // x series
+    p0.set(min.x, min.y, min.z);
     p1.set(max.x, min.y, min.z);
     if (intersect(p0, p1)) {
       return true;
     }
-
+    
     p0.set(min.x, min.y, max.z);
+    p1.set(max.x, min.y, max.z);
+    if (intersect(p0, p1)) {
+      return true;
+    }
+    
+    p0.set(min.x, max.y, min.z);
     p1.set(max.x, max.y, min.z);
     if (intersect(p0, p1)) {
       return true;
     }
-
+    
+    p0.set(min.x, max.y, max.z);
+    p1.set(max.x, max.y, max.z);
+    if (intersect(p0, p1)) {
+      return true;
+    }
+    
+    // y series
+    p0.set(min.x, min.y, min.z);
+    p1.set(min.x, max.y, min.z);
+    if (intersect(p0, p1)) {
+      return true;
+    }
+    
+    p0.set(min.x, min.y, max.z);
+    p1.set(min.x, max.y, max.z);
+    if (intersect(p0, p1)) {
+      return true;
+    }
+    
+    p0.set(max.x, min.y, min.z);
+    p1.set(max.x, max.y, min.z);
+    if (intersect(p0, p1)) {
+      return true;
+    }
+    
+    p0.set(max.x, min.y, max.z);
+    p1.set(max.x, max.y, max.z);
+    if (intersect(p0, p1)) {
+      return true;
+    }
+    
+    // z series
+    p0.set(min.x, min.y, min.z);
+    p1.set(min.x, min.y, max.z);
+    if (intersect(p0, p1)) {
+      return true;
+    }
+    
+    p0.set(max.x, min.y, min.z);
+    p1.set(max.x, min.y, max.z);
+    if (intersect(p0, p1)) {
+      return true;
+    }
+    
+    p0.set(min.x, max.y, min.z);
+    p1.set(min.x, max.y, max.z);
+    if (intersect(p0, p1)) {
+      return true;
+    }
+    
+    p0.set(max.x, max.y, min.z);
+    p1.set(max.x, max.y, max.z);
+    if (intersect(p0, p1)) {
+      return true;
+    }
+    
     return false;
   }
 
   /**
    * Get a random position vector on the triangle
    * 
-   * @param dest
    * @return
    */
-  public Vec3f getRandomPoint(Vec3f dest) {
+  public Vec3f getRandomPoint() {
     Vec3f v0 = getVertex(0);
     Vec3f v1 = getVertex(1);
     Vec3f v2 = getVertex(2);
     float u = 1 - (float) Math.sqrt(1 - Math.random()), v = (1 - u) * (float) Math.random(), w = 1 - u - v;
-    return dest.set(v0.x * w + v1.x * u + v2.x * v, v0.y * w + v1.y * u + v2.y * v, v0.z * w + v1.z * u + v2.z * v);
+    return new Vec3f(v0.x * w + v1.x * u + v2.x * v, v0.y * w + v1.y * u + v2.y * v, v0.z * w + v1.z * u + v2.z * v);
   }
 
   /**
    * 
+   * 
    * @param v0
    * @param v1
    * @param v2
-   * @param dest
    * @return
    */
-  public static Vec3f getRandomPoint(Vec3f v0, Vec3f v1, Vec3f v2, Vec3f dest) {
+  public static Vec3f getRandomPoint(Vec3f v0, Vec3f v1, Vec3f v2) {
     float u = 1 - (float) Math.sqrt(1 - Math.random()), v = (1 - u) * (float) Math.random(), w = 1 - u - v;
-    return dest.set(v0.x * w + v1.x * u + v2.x * v, v0.y * w + v1.y * u + v2.y * v, v0.z * w + v1.z * u + v2.z * v);
+    return new Vec3f(v0.x * w + v1.x * u + v2.x * v, v0.y * w + v1.y * u + v2.y * v, v0.z * w + v1.z * u + v2.z * v);
   }
 
   /**
