@@ -18,7 +18,7 @@ Features will be added:
 <br/>
 
 <h3>How to run</h3>
-Make sure you have installed Java 1.7+ and Maven, then run the following command:<br/>
+Make sure you have installed JDK 1.7+ and Maven, then run the following command:<br/>
 <p><code>mvn clean install exec:exec</code></p>
 A built-in Swing GUI will kick off, and there is a sample scene.obj scene file which can be imported.<br/>
 
