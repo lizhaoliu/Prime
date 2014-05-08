@@ -20,6 +20,7 @@ import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
+import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.awt.event.MouseMotionListener;
@@ -36,7 +37,6 @@ import java.io.FileOutputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.Executors;
 
@@ -236,9 +236,6 @@ public class MainGui extends JFrame {
   private class RenderDialog extends JDialog {
     private static final long serialVersionUID = -8582492154611863437L;
 
-    public static final int RENDERDLG_WIDTH = 660;
-    public static final int RENDERDLG_HEIGHT = 660;
-
     private ResultImagePanel resPanel;
     private BufferedImage resImage;
     private Renderer[] renderers = { new PathTracer() };
@@ -267,10 +264,10 @@ public class MainGui extends JFrame {
 
       public ResultImagePanel() {
         resImage = new BufferedImage(PANEL_WIDTH / 2, PANEL_HEIGHT / 2, BufferedImage.TYPE_INT_RGB);
-        setPreferredSize(new Dimension(RENDERDLG_WIDTH, RENDERDLG_HEIGHT));
+        setPreferredSize(new Dimension(PANEL_WIDTH, PANEL_HEIGHT));
 
-        oX = (RENDERDLG_WIDTH - resImage.getWidth()) / 2;
-        oY = (RENDERDLG_HEIGHT - resImage.getHeight()) / 2;
+        oX = (PANEL_WIDTH - resImage.getWidth()) / 2;
+        oY = (PANEL_HEIGHT - resImage.getHeight()) / 2;
 
         paintWidth = resImage.getWidth();
         paintHeight = resImage.getHeight();
@@ -354,18 +351,16 @@ public class MainGui extends JFrame {
 
     private class ContPanel extends JPanel implements ActionListener {
       private static final long serialVersionUID = -6635981662091939121L;
-      private int width = 480, height = RENDERDLG_HEIGHT;
+      private int width = PANEL_WIDTH / 4, height = PANEL_HEIGHT;
       private JTextField tfStatus;
       private JButton bStartRendering, bSaveImg, bStop;
       private SliderPanel sSamples, sDepth, sKdTreeDepth, sTrianglePerNode;
-      private JComboBox cRenders;
+      private JComboBox<Renderer> cRenders;
       private ColorChooserPanel colorChooser;
       private JTextField tfW, tfH;
-      private JTextField[] skyDirTFs = { new JTextField(5), new JTextField(5), new JTextField(5) };
 
       public ContPanel() {
         setPreferredSize(new Dimension(width, height));
-        // setLayout(new GridLayout(5, 2));
         setLayout(new FlowLayout());
         setBorder(new TitledBorder("Rendering parameters"));
 
@@ -378,7 +373,7 @@ public class MainGui extends JFrame {
         tfStatus.setEditable(false);
         tfW = new JTextField(String.valueOf(PANEL_WIDTH / 2));
         tfH = new JTextField(String.valueOf(PANEL_HEIGHT / 2));
-        cRenders = new JComboBox(renderers);
+        cRenders = new JComboBox<Renderer>(renderers);
         cRenders.setSelectedIndex(0);
         sSamples = new SliderPanel(1, 100, 1, 1, "Samples^2 per pixel");
         sDepth = new SliderPanel(1, 25, 1, 1, "Tracing depth");
@@ -400,12 +395,6 @@ public class MainGui extends JFrame {
         add(sDepth);
         add(new JLabel("Select background color"));
         add(colorChooser);
-        add(new JLabel("Camera Lens : "));
-        add(new JLabel("Sky light direction:"));
-        for (JTextField tf : skyDirTFs) {
-          tf.setText("-1");
-          add(tf);
-        }
         add(bStartRendering);
         add(bStop);
         add(bSaveImg);
@@ -428,9 +417,6 @@ public class MainGui extends JFrame {
         if (o == bStop) {
           camera.stopRendering();
         } else if (o == bStartRendering) {
-          sceneGraph.getSky().setDirection(
-              new Vec3f(Float.parseFloat(skyDirTFs[0].getText()), Float.parseFloat(skyDirTFs[1].getText()), Float
-                  .parseFloat(skyDirTFs[2].getText())));
           selectedRenderer = (Renderer) cRenders.getSelectedItem();
           selectedRenderer.setFilter(selectedFilter);
           camera.setRenderer(selectedRenderer);
@@ -480,7 +466,7 @@ public class MainGui extends JFrame {
           bStop.setEnabled(true);
           tfStatus.setText("Working...");
 
-          log("--rendering start--");
+          log("--rendering started--");
           log("With " + Runtime.getRuntime().availableProcessors() + " threads.");
           log(sceneGraph.getTrianglesNum() + " triangles in total.");
 
@@ -725,7 +711,8 @@ public class MainGui extends JFrame {
     private JTextField tfName;
     private JButton bSave, bClose, bNewMat, bAssign;
     private SliderPanel spRefrInd;
-    private JComboBox cbMaterialList, cbIsLight;
+    private JComboBox<Material> cbMaterialList;
+    private JComboBox<String> cbIsLight;
     private String[] isLights = { "Yes", "No" };
 
     public MaterialEditorDialog(int w, int h) {
@@ -750,7 +737,7 @@ public class MainGui extends JFrame {
       bNewMat.addActionListener(new ButtonRes());
       bClose = new JButton("Close");
       bClose.addActionListener(new ButtonRes());
-      cbMaterialList = new JComboBox();
+      cbMaterialList = new JComboBox<Material>();
       for (Material m : materialList) {
         cbMaterialList.addItem(m);
       }
@@ -763,7 +750,7 @@ public class MainGui extends JFrame {
         }
       });
       panel.add(new JLabel("Is it a light source?"));
-      cbIsLight = new JComboBox(isLights);
+      cbIsLight = new JComboBox<String>(isLights);
       bAssign = new JButton("Assign to selected mesh");
       bAssign.addActionListener(new ButtonRes());
       panel.add(cbIsLight);
@@ -837,13 +824,18 @@ public class MainGui extends JFrame {
     }
   }
 
-  private class ColorChooserPanel extends JPanel implements MouseListener {
+  private class ColorChooserPanel extends JPanel {
     private static final long serialVersionUID = 1889527783733521153L;
     private Color color;
 
     public ColorChooserPanel() {
       setPreferredSize(new Dimension(100, 50));
-      addMouseListener(this);
+      addMouseListener(new MouseAdapter() {
+        public void mouseClicked(MouseEvent e) {
+          color = JColorChooser.showDialog(materialEditDialog, "Choose color", Color.WHITE);
+          repaint();
+        }
+      });
     }
 
     protected void paintComponent(Graphics g) {
@@ -863,19 +855,6 @@ public class MainGui extends JFrame {
       }
       return new Color3f(color.getRed() / 256.0f, color.getGreen() / 256.0f, color.getBlue() / 256.0f);
     }
-
-    public void mouseClicked(MouseEvent e) {
-      color = JColorChooser.showDialog(materialEditDialog, "Choose color", Color.WHITE);
-      repaint();
-    }
-
-    public void mouseEntered(MouseEvent e) {}
-
-    public void mouseExited(MouseEvent e) {}
-
-    public void mousePressed(MouseEvent e) {}
-
-    public void mouseReleased(MouseEvent e) {}
   }
 
   private class ButtonPanel extends JPanel {
@@ -914,22 +893,12 @@ public class MainGui extends JFrame {
       bLoadScene = new JButton(new ImageIcon("loadFile.gif"));
       bLoadScene.setToolTipText("Load Scene");
       bLoadScene.addActionListener(new ActionRes());
-      // bImptModel = new JButton(new ImageIcon("importButton.png"));
       bImptModel = new JButton(new ImageIcon("importButton.png"));
       bImptModel.addActionListener(new ActionRes());
       bImptModel.setToolTipText("Import Model From File");
       hBox.add(bImptModel);
-      // add(new JLabel("Illuminating"));
-      // add(bPointLight);
-      // add(bDirectionalLight);
-      // add(bSpotLight);
-      // add(new JLabel("Editors"));
       hBox.add(bEditMat);
-      // add(bEditTex);
-      // add(new JLabel("Rendering"));
       hBox.add(bRenderDia);
-      // add(new JLabel("Files"));
-//      hBox.add(bNewScene);
       hBox.add(bSaveScene);
       hBox.add(bLoadScene);
 
@@ -958,14 +927,11 @@ public class MainGui extends JFrame {
           if (ret == JFileChooser.APPROVE_OPTION) {
             try {
               final File file = chooser.getSelectedFile();
-
               Executors.newSingleThreadExecutor().execute(new Runnable() {
                 @Override
                 public void run() {
-                  Collection<TriangleMesh> meshes;
                   try {
-                    meshes = loader.loadModelFile(file);
-                    for (TriangleMesh mesh : meshes) {
+                    for (TriangleMesh mesh : loader.loadModelFile(file)) {
                       mesh.setMaterial(materialList.get(0));
                       sceneGraph.addMesh(mesh);
                       meshesList.add(mesh);
@@ -979,17 +945,6 @@ public class MainGui extends JFrame {
                   }
                 }
               });
-
-              // Collection<TriangleMesh> meshes = loader.loadModelFile(file);
-              // for (TriangleMesh mesh : meshes) {
-              // mesh.setMaterial(bsdfList.get(0));
-              // sceneGraph.addMesh(mesh);
-              // meshesList.add(mesh);
-              // }
-              // sceneGraph.setMaxBSPDivisionDepth(10);
-              // sceneGraph.finish();
-              // viewPanel.display();
-              // westPanel.updateModelsData();
             } catch (Exception ioe) {
               ioe.printStackTrace();
             }
@@ -1046,13 +1001,6 @@ public class MainGui extends JFrame {
 
     private boolean isEnabled = true;
 
-    private static final int AXIS_X = 0;
-    private static final int AXIS_Y = 1;
-    private static final int AXIS_Z = 2;
-    private static final int MOVE_MODE = 3;
-    private static final int ROTATE_MODE = 4;
-    private static final int PICK_MODE = 5;
-
     public ViewPanel(Camera cam) {
       super();
       addGLEventListener(this);
@@ -1066,7 +1014,6 @@ public class MainGui extends JFrame {
         public void focusGained(FocusEvent e) {
           display();
         }
-
         public void focusLost(FocusEvent e) {
           display();
         }
@@ -1077,7 +1024,7 @@ public class MainGui extends JFrame {
           ViewPanel.this.cam.setScreenSize(d.width, d.height);
         }
       });
-      relocateCamera();
+      resetCamera();
     }
 
     public void setEnabled(boolean isEnabled) {
@@ -1090,7 +1037,7 @@ public class MainGui extends JFrame {
       g.drawString("perspective", 2, 12);
     }
 
-    public void relocateCamera() {
+    public void resetCamera() {
       cam.lookAt(new Vec3f(30, 0, 30), new Vec3f(0, 0, 0), new Vec3f(0, 1, 0));
     }
 
@@ -1127,12 +1074,8 @@ public class MainGui extends JFrame {
       gl.glEnable(GL2.GL_LIGHTING);
     }
 
-    private int lockAxis = AXIS_X;
-    private int opMode = PICK_MODE;
     private int button, key;
     private int oldX, oldY;
-    @SuppressWarnings("unused")
-    private boolean isKeyPressing = false;
     private Vec3f dv = new Vec3f(), n = new Vec3f();
     private Vec3f v1 = new Vec3f(), v2 = new Vec3f();
     private Cursor moveCursor = new Cursor(Cursor.MOVE_CURSOR);
@@ -1163,7 +1106,6 @@ public class MainGui extends JFrame {
       default:
         break;
       }
-      ;
     }
 
     public void mouseEntered(MouseEvent e) {
@@ -1203,69 +1145,6 @@ public class MainGui extends JFrame {
       dv.normalize();
       switch (button) {
       case MouseEvent.BUTTON1:
-        switch (opMode) {
-        case PICK_MODE:
-          viewPanel.display();
-          break;
-
-        case MOVE_MODE:
-          if (selectedMesh != null) {
-            switch (lockAxis) {
-            case AXIS_X:
-              dv.set(dv.get(0), 0, 0);
-              break;
-
-            case AXIS_Y:
-              dv.set(0, dv.get(0), 0);
-              break;
-
-            case AXIS_Z:
-              dv.set(0, 0, dv.get(0));
-              break;
-
-            default:
-              break;
-            }
-            ;
-            viewPanel.display();
-          }
-          oldX = e.getX();
-          oldY = e.getY();
-          break;
-
-        case ROTATE_MODE:
-          v1.normalize();
-          v2.normalize();
-          float angle = (float) (3 * Math.acos(Vec3f.dot(v1, v2)) * 180 / Math.PI);
-          if (selectedMesh != null) {
-            switch (lockAxis) {
-            case AXIS_X:
-              n.set(1, 0, 0);
-              break;
-
-            case AXIS_Y:
-              n.set(0, 1, 0);
-              break;
-
-            case AXIS_Z:
-              n.set(0, 0, 1);
-              break;
-
-            default:
-              break;
-            }
-            if (v1.x - v2.x < 0) {
-              angle = -angle;
-            }
-            viewPanel.display();
-          }
-          oldX = e.getX();
-          oldY = e.getY();
-          break;
-
-        default:
-          break;
-        }
         break;
 
       case MouseEvent.BUTTON2:
@@ -1291,7 +1170,6 @@ public class MainGui extends JFrame {
       default:
         break;
       }
-      ;
     }
 
     public void mouseMoved(MouseEvent e) {
@@ -1302,38 +1180,11 @@ public class MainGui extends JFrame {
       if (!isEnabled) {
         return;
       }
-      isKeyPressing = true;
       key = e.getKeyCode();
       switch (key) {
       case KeyEvent.VK_R:
-        relocateCamera();
+        resetCamera();
         display();
-        break;
-      case KeyEvent.VK_DELETE:
-        if (selectedMesh != null) {
-          sceneGraph.removeMesh(selectedMesh);
-          selectedMesh = null;
-          sceneGraph.finish();
-          viewPanel.display();
-        }
-        break;
-      case KeyEvent.VK_X:
-        lockAxis = AXIS_X;
-        break;
-      case KeyEvent.VK_Y:
-        lockAxis = AXIS_Y;
-        break;
-      case KeyEvent.VK_Z:
-        lockAxis = AXIS_Z;
-        break;
-      case KeyEvent.VK_Q:
-        opMode = PICK_MODE;
-        break;
-      case KeyEvent.VK_W:
-        opMode = MOVE_MODE;
-        break;
-      case KeyEvent.VK_E:
-        opMode = ROTATE_MODE;
         break;
       default:
         break;
@@ -1344,7 +1195,6 @@ public class MainGui extends JFrame {
       if (!isEnabled) {
         return;
       }
-      isKeyPressing = false;
       key = 0;
     }
 
