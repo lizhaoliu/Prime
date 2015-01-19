@@ -1,6 +1,5 @@
 Prime
 =====
-<img src="https://avatars1.githubusercontent.com/u/3256712?s=460"/><br/>
 <img src="https://cloud.githubusercontent.com/assets/3256712/2883941/7853bb58-d4a2-11e3-8fe7-b27668eb9366.png"/><br/>
 <img src="https://cloud.githubusercontent.com/assets/3256712/2883601/ef135e2e-d49d-11e3-9150-48f129c5c414.jpg"/><br/>
 <img src="https://cloud.githubusercontent.com/assets/3256712/2883599/eb5b7cda-d49d-11e3-842c-dc63f05b44f3.jpg"/><br/>
