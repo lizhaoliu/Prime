@@ -2,6 +2,9 @@ package prime.physics;
 
 import prime.math.Vec3f;
 
+import static prime.math.MathUtils.add;
+import static prime.math.MathUtils.dot;
+
 public class SchlickModel extends Material {
   private float f0; // specular reflection at normal incidence
   private float sigma; // roughness factor(0 : perfectly smooth; 1 : ideal diffuse
@@ -19,12 +22,12 @@ public class SchlickModel extends Material {
 
   @Override
   public void brdf(Vec3f origin, Vec3f normal, Vec3f inDir, Vec3f outDir, Color3f dest) {
-    Vec3f H = Vec3f.add(inDir, outDir);
+    Vec3f H = add(inDir, outDir);
     H.normalize();
-    float u = Vec3f.dot(outDir, H);
-    float t = Vec3f.dot(normal, H);
-    float v = Vec3f.dot(outDir, normal);
-    float vdot = -Vec3f.dot(inDir, normal);
+    float u = dot(outDir, H);
+    float t = dot(normal, H);
+    float v = dot(outDir, normal);
+    float vdot = -dot(inDir, normal);
     float w = (float) (Math.random());
     float g = 4 * sigma * (1 - sigma);
     float d = (sigma < 0.5f ? 0.0f : 1 - g);
@@ -56,5 +59,6 @@ public class SchlickModel extends Material {
   }
 
   @Override
-  public void btdf(Vec3f origin, Vec3f normal, Vec3f inDir, Vec3f outDir, Color3f dest) {}
+  public void btdf(Vec3f origin, Vec3f normal, Vec3f inDir, Vec3f outDir, Color3f dest) {
+  }
 }

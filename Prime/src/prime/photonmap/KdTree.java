@@ -1,18 +1,20 @@
 package prime.photonmap;
 
+import prime.math.Vec3f;
+import prime.model.BoundingBox;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 
-import prime.math.Vec3f;
-import prime.model.BoundingBox;
+import static prime.math.MathUtils.dist;
+import static prime.math.MathUtils.distSqr;
 
 /**
  * a kd-tree implementation to store photons
- * 
+ *
  * @author lizhaoliu
- * 
  */
 public class KdTree {
   private KdNode head;
@@ -31,7 +33,6 @@ public class KdTree {
   }
 
   /**
-   * 
    * @param p
    * @param initR
    * @param n
@@ -45,7 +46,7 @@ public class KdTree {
       query(p, initR, resList);
     }
     Collections.sort(resList, new DistanceComparator(p));
-    return Vec3f.distance(p, resList.get(n - 1).location);
+    return dist(p, resList.get(n - 1).location);
   }
 
   private void query2(Vec3f center, float r, KdNode currNode, List<Photon> resList) {
@@ -56,7 +57,7 @@ public class KdTree {
       List<Photon> pList = currNode.pList;
       for (int i = 0; i < pList.size(); i++) {
         p = pList.get(i);
-        if (Vec3f.distance(p.location, center) < r) {
+        if (dist(p.location, center) < r) {
           resList.add(p);
         }
       }
@@ -148,7 +149,7 @@ class DistanceComparator implements Comparator<Photon> {
   }
 
   public int compare(Photon o1, Photon o2) {
-    float d1 = Vec3f.distanceSqr(o1.location, center), d2 = Vec3f.distanceSqr(o2.location, center);
+    float d1 = distSqr(o1.location, center), d2 = distSqr(o2.location, center);
     if (d1 < d2) {
       return -1;
     }

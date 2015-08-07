@@ -66,14 +66,14 @@ public abstract class Renderer {
       newRay.setLengthToMax();
       RayTriHitInfo ir = sceneGraph.intersect(newRay);
       triangleLight = ir.getHitTriangle();
-      float cos = Vec3f.dot(newDir, normal);
+      float cos = MathUtils.dot(newDir, normal);
       if (ir.isHit() && triangleLight.getTriangleMesh() == meshLight && cos > 0) {
         float u = ir.getU(), v = ir.getV();
         Vec3f normalLight = new Vec3f();
         normalLight = triangleLight.interpolateNormal(u, v);
 
         color.set(meshLight.getMaterial().getEmittance());
-        color.multiply(cos * Math.abs(Vec3f.dot(newDir, normalLight)) * nLights);// *
+        color.multiply(cos * Math.abs(MathUtils.dot(newDir, normalLight)) * nLights);// *
         // meshLight.getArea());
         color.blend(material.getReflectance());
 

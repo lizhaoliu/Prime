@@ -21,6 +21,7 @@ import org.apache.commons.lang.math.RandomUtils;
 import com.google.common.base.Preconditions;
 
 import prime.math.LHCoordinateSystem;
+import prime.math.MathUtils;
 import prime.math.Transformable;
 import prime.math.Vec3f;
 import prime.model.RayTriHitInfo;
@@ -141,7 +142,7 @@ public class Camera extends Observable implements Serializable, Transformable, D
     d.normalize();
     d.negate();
     up.normalize();
-    Vec3f newX = Vec3f.cross(up, d);
+    Vec3f newX = MathUtils.cross(up, d);
     coordSys.setParentToLocalMatrix(newX.x, up.x, d.x, newX.y, up.y, d.y, newX.z, up.z, d.z);
     coordSys.setOrigin(eye);
   }

@@ -1,15 +1,15 @@
 package prime.photonmap;
 
+import prime.math.Vec3f;
+import prime.physics.Color3f;
+import prime.physics.Material;
+
 import java.io.Serializable;
 
-import prime.math.Vec3f;
-import prime.physics.Material;
-import prime.physics.Color3f;
+import static prime.math.MathUtils.dist;
 
 /**
- * 
  * @author lizhaoliu
- * 
  */
 public class Photon implements Serializable {
   private static final long serialVersionUID = 8286259430083090915L;
@@ -29,6 +29,6 @@ public class Photon implements Serializable {
   }
 
   public float distance(Photon p) {
-    return Vec3f.distance(location, p.location);
+    return dist(location, p.location);
   }
 }

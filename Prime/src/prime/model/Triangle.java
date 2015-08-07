@@ -1,10 +1,13 @@
 package prime.model;
 
-import java.io.Serializable;
-
 import prime.math.Vec3f;
 import prime.physics.Material;
 import prime.physics.Ray;
+
+import java.io.Serializable;
+
+import static prime.math.MathUtils.sub;
+import static prime.math.MathUtils.tripleProduct;
 
 /**
  * Triangles are the atoms of 3D world
@@ -17,11 +20,8 @@ public class Triangle implements Serializable {
   private final float area; // area of this triangle
 
   /**
-   * 
-   * @param triangleMesh
-   *          the {@link TriangleMesh} this triangle belongs to
-   * @param index
-   *          the index of this triangle in its triangle mesh
+   * @param triangleMesh the {@link TriangleMesh} this triangle belongs to
+   * @param index        the index of this triangle in its triangle mesh
    */
   public Triangle(final TriangleMesh triangleMesh, int index) {
     this.triangleMesh = triangleMesh;
@@ -31,9 +31,8 @@ public class Triangle implements Serializable {
 
   /**
    * Get the vertex indexed i
-   * 
-   * @param i
-   *          {0, 1, 2}
+   *
+   * @param i {0, 1, 2}
    * @return
    */
   public Vec3f getVertex(int i) {
@@ -42,7 +41,7 @@ public class Triangle implements Serializable {
 
   /**
    * Ray triangle intersection test
-   * 
+   *
    * @param ray
    */
   public RayTriHitInfo intersect(final Ray ray) {
@@ -53,24 +52,24 @@ public class Triangle implements Serializable {
     Vec3f v1 = getVertex(1);
     Vec3f v2 = getVertex(2);
 
-    Vec3f v10 = Vec3f.sub(v1, v0);
-    Vec3f v20 = Vec3f.sub(v2, v0);
-    Vec3f vo0 = Vec3f.sub(o, v0);
+    Vec3f v10 = sub(v1, v0);
+    Vec3f v20 = sub(v2, v0);
+    Vec3f vo0 = sub(o, v0);
 
     float t, u, v;
-    float invProduct = 1.0f / -Vec3f.tripleProduct(v10, v20, d);
+    float invProduct = 1.0f / -tripleProduct(v10, v20, d);
 
-    u = -Vec3f.tripleProduct(vo0, v20, d) * invProduct;
+    u = -tripleProduct(vo0, v20, d) * invProduct;
     if (u < 0 || u > 1) {
       return new RayTriHitInfo();
     }
 
-    v = -Vec3f.tripleProduct(v10, vo0, d) * invProduct;
+    v = -tripleProduct(v10, vo0, d) * invProduct;
     if (v < 0 || v > 1) {
       return new RayTriHitInfo();
     }
 
-    t = Vec3f.tripleProduct(v10, v20, vo0) * invProduct;
+    t = tripleProduct(v10, v20, vo0) * invProduct;
     if (t < 0 || t > ray.getLength()) {
       return new RayTriHitInfo();
     }
@@ -86,7 +85,7 @@ public class Triangle implements Serializable {
 
   /**
    * Line segment p0-p1 triangle intersection test
-   * 
+   *
    * @param p0
    * @param p1
    * @return
@@ -98,26 +97,26 @@ public class Triangle implements Serializable {
     Vec3f v1 = getVertex(1);
     Vec3f v2 = getVertex(2);
 
-    Vec3f d = Vec3f.sub(p1, p0);
+    Vec3f d = sub(p1, p0);
 
-    Vec3f v10 = Vec3f.sub(v1, v0);
-    Vec3f v20 = Vec3f.sub(v2, v0);
-    Vec3f vo0 = Vec3f.sub(o, v0);
+    Vec3f v10 = sub(v1, v0);
+    Vec3f v20 = sub(v2, v0);
+    Vec3f vo0 = sub(o, v0);
 
     float t, u, v;
-    float invProduct = 1.0f / -Vec3f.tripleProduct(v10, v20, d);
+    float invProduct = 1.0f / -tripleProduct(v10, v20, d);
 
-    u = -Vec3f.tripleProduct(vo0, v20, d) * invProduct;
+    u = -tripleProduct(vo0, v20, d) * invProduct;
     if (u < 0 || u > 1) {
       return false;
     }
 
-    v = -Vec3f.tripleProduct(v10, vo0, d) * invProduct;
+    v = -tripleProduct(v10, vo0, d) * invProduct;
     if (v < 0 || v > 1) {
       return false;
     }
 
-    t = Vec3f.tripleProduct(v10, v20, vo0) * invProduct;
+    t = tripleProduct(v10, v20, vo0) * invProduct;
     if (t < 0 || t > 1) {
       return false;
     }
@@ -131,7 +130,7 @@ public class Triangle implements Serializable {
 
   /**
    * Bi-linearly interpolate a position vector given u, v
-   * 
+   *
    * @param u
    * @param v
    * @return
@@ -146,7 +145,7 @@ public class Triangle implements Serializable {
 
   /**
    * Bi-linearly interpolate a normal vector given u, v
-   * 
+   *
    * @param u
    * @param v
    * @return
@@ -162,7 +161,7 @@ public class Triangle implements Serializable {
 
   /**
    * Bi-linearly interpolate a texture coordinate vector given u, v
-   * 
+   *
    * @param u
    * @param v
    * @return
@@ -177,7 +176,7 @@ public class Triangle implements Serializable {
 
   /**
    * Triangle bounding box intersection test
-   * 
+   *
    * @param box
    * @return
    */
@@ -207,81 +206,81 @@ public class Triangle implements Serializable {
     if (intersect(p0, p1)) {
       return true;
     }
-    
+
     p0.set(min.x, min.y, max.z);
     p1.set(max.x, min.y, max.z);
     if (intersect(p0, p1)) {
       return true;
     }
-    
+
     p0.set(min.x, max.y, min.z);
     p1.set(max.x, max.y, min.z);
     if (intersect(p0, p1)) {
       return true;
     }
-    
+
     p0.set(min.x, max.y, max.z);
     p1.set(max.x, max.y, max.z);
     if (intersect(p0, p1)) {
       return true;
     }
-    
+
     // y series
     p0.set(min.x, min.y, min.z);
     p1.set(min.x, max.y, min.z);
     if (intersect(p0, p1)) {
       return true;
     }
-    
+
     p0.set(min.x, min.y, max.z);
     p1.set(min.x, max.y, max.z);
     if (intersect(p0, p1)) {
       return true;
     }
-    
+
     p0.set(max.x, min.y, min.z);
     p1.set(max.x, max.y, min.z);
     if (intersect(p0, p1)) {
       return true;
     }
-    
+
     p0.set(max.x, min.y, max.z);
     p1.set(max.x, max.y, max.z);
     if (intersect(p0, p1)) {
       return true;
     }
-    
+
     // z series
     p0.set(min.x, min.y, min.z);
     p1.set(min.x, min.y, max.z);
     if (intersect(p0, p1)) {
       return true;
     }
-    
+
     p0.set(max.x, min.y, min.z);
     p1.set(max.x, min.y, max.z);
     if (intersect(p0, p1)) {
       return true;
     }
-    
+
     p0.set(min.x, max.y, min.z);
     p1.set(min.x, max.y, max.z);
     if (intersect(p0, p1)) {
       return true;
     }
-    
+
     p0.set(max.x, max.y, min.z);
     p1.set(max.x, max.y, max.z);
     if (intersect(p0, p1)) {
       return true;
     }
-    
+
     return false;
   }
 
   /**
    * Get a random position vector on the triangle
-   * 
+   *
    * @return
    */
   public Vec3f getRandomPoint() {
@@ -293,8 +292,6 @@ public class Triangle implements Serializable {
   }
 
   /**
-   * 
-   * 
    * @param v0
    * @param v1
    * @param v2
@@ -307,7 +304,7 @@ public class Triangle implements Serializable {
 
   /**
    * Calculate the area of this triangle
-   * 
+   *
    * @param v0
    * @param v1
    * @param v2
@@ -322,7 +319,7 @@ public class Triangle implements Serializable {
 
   /**
    * Get texture coordinate indexed i
-   * 
+   *
    * @param i
    * @return
    */
@@ -332,7 +329,7 @@ public class Triangle implements Serializable {
 
   /**
    * Get the material of its {@link TriangleMesh}
-   * 
+   *
    * @return
    */
   public Material getMaterial() {
@@ -341,7 +338,7 @@ public class Triangle implements Serializable {
 
   /**
    * Get normal vector indexed i
-   * 
+   *
    * @param i
    * @return
    */
@@ -351,7 +348,7 @@ public class Triangle implements Serializable {
 
   /**
    * Get the {@link TriangleMesh} to which triangle belong
-   * 
+   *
    * @return
    */
   public TriangleMesh getTriangleMesh() {
@@ -359,7 +356,6 @@ public class Triangle implements Serializable {
   }
 
   /**
-   * 
    * @return area of this triangle
    */
   public float getArea() {

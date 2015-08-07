@@ -1,13 +1,15 @@
 package prime.math;
 
-import java.io.Serializable;
+import prime.core.Camera;
+import prime.core.Drawable;
 
 import javax.media.opengl.GL2;
 import javax.media.opengl.glu.GLU;
 import javax.media.opengl.glu.GLUquadric;
+import java.io.Serializable;
 
-import prime.core.Camera;
-import prime.core.Drawable;
+import static prime.math.MathUtils.mul;
+import static prime.math.MathUtils.sub;
 
 /**
  * Left-handed coordinate system
@@ -24,7 +26,7 @@ public class LHCoordinateSystem implements Drawable, Transformable, Serializable
 
   /**
    * Copy ctor
-   * 
+   *
    * @param coSys
    */
   public LHCoordinateSystem(LHCoordinateSystem coSys) {
@@ -34,7 +36,7 @@ public class LHCoordinateSystem implements Drawable, Transformable, Serializable
 
   /**
    * Set the origin of it
-   * 
+   *
    * @param o
    */
   public void setOrigin(Vec3f o) {
@@ -43,7 +45,7 @@ public class LHCoordinateSystem implements Drawable, Transformable, Serializable
 
   /**
    * Get the origin of it
-   * 
+   *
    * @return
    */
   public Vec3f getOrigin() {
@@ -51,7 +53,6 @@ public class LHCoordinateSystem implements Drawable, Transformable, Serializable
   }
 
   /**
-   * 
    * @param data
    * @return
    */
@@ -76,12 +77,11 @@ public class LHCoordinateSystem implements Drawable, Transformable, Serializable
   }
 
   /**
-   * 
    * @param data
    * @return
    */
   public float[] getInversedMatrixArrayInColumnOrder(float[] data) {
-    Vec3f v = Vec3f.mul(origin, parentToThisMat);
+    Vec3f v = mul(origin, parentToThisMat);
     v.negate();
     data[0] = parentToThisMat.m00;
     data[1] = parentToThisMat.m01;
@@ -103,7 +103,6 @@ public class LHCoordinateSystem implements Drawable, Transformable, Serializable
   }
 
   /**
-   * 
    * @param data
    * @return
    */
@@ -128,12 +127,11 @@ public class LHCoordinateSystem implements Drawable, Transformable, Serializable
   }
 
   /**
-   * 
    * @param data
    * @return
    */
   public float[] getInversedMatrixArrayInRowOrder(float[] data) {
-    Vec3f v = Vec3f.mul(origin, parentToThisMat);
+    Vec3f v = mul(origin, parentToThisMat);
     v.negate();
     data[0] = parentToThisMat.m00;
     data[1] = parentToThisMat.m10;
@@ -155,7 +153,6 @@ public class LHCoordinateSystem implements Drawable, Transformable, Serializable
   }
 
   /**
-   * 
    * @param mat
    */
   public void setParentToLocalMatrix(Mat3 mat) {
@@ -163,7 +160,6 @@ public class LHCoordinateSystem implements Drawable, Transformable, Serializable
   }
 
   /**
-   * 
    * @param mat
    */
   public void setParentToLocalMatrix(float[] mat) {
@@ -171,7 +167,6 @@ public class LHCoordinateSystem implements Drawable, Transformable, Serializable
   }
 
   /**
-   * 
    * @param t00
    * @param t01
    * @param t02
@@ -183,88 +178,81 @@ public class LHCoordinateSystem implements Drawable, Transformable, Serializable
    * @param t22
    */
   public void setParentToLocalMatrix(float t00, float t01, float t02, float t10, float t11, float t12, float t20,
-      float t21, float t22) {
+                                     float t21, float t22) {
     parentToThisMat.set(t00, t01, t02, t10, t11, t12, t20, t21, t22);
   }
 
   /**
-   * 
    * @param v
    */
   public void translateInLocal(Vec3f v) {
     float x = origin.x, y = origin.y, z = origin.z;
-    origin = Vec3f.mul(parentToThisMat, v);
+    origin = mul(parentToThisMat, v);
     origin.add(x, y, z);
   }
 
   /**
-	 * 
-	 */
+   *
+   */
   public void translate(Vec3f v) {
     origin.add(v);
   }
 
   /**
-	 * 
-	 */
+   *
+   */
   public void rotate(Vec3f axis, float angle) {
     angle = (float) Math.PI * angle / 180;
 
-    float x2 = axis.x * axis.x, y2 = axis.y * axis.y, z2 = axis.z * axis.z, xy = axis.x * axis.y, yz = axis.y * axis.z, xz = axis.x
-        * axis.z, cost = (float) Math.cos(angle), sint = (float) Math.sin(angle), xsint = axis.x * sint, ysint = axis.y
-        * sint, zsint = axis.z * sint, cost1 = 1 - cost, cost1xy = cost1 * xy, cost1yz = cost1 * yz, cost1xz = cost1
+    float x2 = axis.x * axis.x, y2 = axis.y * axis.y, z2 = axis.z * axis.z, xy = axis.x * axis.y, yz = axis.y * axis.z,
+        xz = axis.x
+            * axis.z, cost = (float) Math.cos(angle), sint = (float) Math.sin(angle), xsint = axis.x * sint, ysint =
+        axis.y
+            * sint, zsint = axis.z * sint, cost1 = 1 - cost, cost1xy = cost1 * xy, cost1yz = cost1 * yz, cost1xz = cost1
         * xz;
     Mat3 rot = new Mat3((1 - x2) * cost + x2, cost1xy + zsint, cost1xz - ysint, cost1xy - zsint, (1 - y2) * cost + y2,
         cost1yz + xsint, cost1xz + ysint, cost1yz - xsint, (1 - z2) * cost + z2);
-    parentToThisMat = Mat3.multiply(parentToThisMat, rot);
+    parentToThisMat = mul(parentToThisMat, rot);
   }
 
   /**
-   * 
    * @param v
-   * @param dest
    * @return
    */
   public Vec3f transPointToParent(Vec3f v) {
-    Vec3f dest = Vec3f.mul(parentToThisMat, v);
+    Vec3f dest = mul(parentToThisMat, v);
     dest.add(origin);
     return dest;
   }
 
   /**
-   * 
    * @param d
-   * @param dest
    * @return
    */
   public Vec3f transVectorToParent(Vec3f d) {
-    return Vec3f.mul(parentToThisMat, d);
+    return mul(parentToThisMat, d);
   }
 
   /**
-   * 
    * @param v
-   * @param dest
    * @return
    */
   public Vec3f transPointToLocal(Vec3f v) {
-    Vec3f dest = Vec3f.sub(v, origin);
-    return Vec3f.mul(dest, parentToThisMat);
+    Vec3f dest = sub(v, origin);
+    return mul(dest, parentToThisMat);
   }
 
   /**
-   * 
    * @param d
-   * @param dest
    * @return
    */
   public Vec3f transVectorToLocal(Vec3f d) {
-    return Vec3f.mul(d, parentToThisMat);
+    return mul(d, parentToThisMat);
   }
 
   /**
-	 * 
-	 */
+   *
+   */
   public void draw(GL2 gl, GLU glu, Camera camera) {
     GLUquadric qua = glu.gluNewQuadric();
     glu.gluQuadricDrawStyle(qua, GLU.GLU_FILL);

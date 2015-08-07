@@ -1,34 +1,35 @@
 package prime.core;
 
 import org.apache.commons.lang.math.RandomUtils;
-
-import prime.math.MathUtils;
 import prime.math.Vec3f;
 import prime.model.RayTriHitInfo;
 import prime.model.Triangle;
+import prime.physics.Color3f;
 import prime.physics.Material;
 import prime.physics.Ray;
-import prime.physics.Color3f;
+
+import static prime.math.MathUtils.EPSILON;
+import static prime.math.MathUtils.dot;
 
 /**
  * Path tracing renderer
  */
 public class PathTracer extends Renderer {
 
-  public void preprocess() {}
+  public void preprocess() {
+  }
 
   public void render(Ray ray) {
     render(ray, 1);
   }
 
   /**
-   * 
    * @param srcRay
    * @param depth
    */
   private void render(Ray srcRay, int depth) {
     Color3f finalColor = srcRay.getColor();
-    
+
     srcRay.setLengthToMax();
     RayTriHitInfo hitRes = sceneGraph.intersect(srcRay);
     if (!hitRes.isHit()) {
@@ -93,11 +94,11 @@ public class PathTracer extends Renderer {
       // directIllumination(srcRay, hitPoint, normal, bsdf, destSpectrum);
       return;
     }
-    factor *= (float) (Math.abs(Vec3f.dot(normal, newDir)));
+    factor *= Math.abs(dot(normal, newDir));
     newRay.setOrigin(
-        hitPoint.x + MathUtils.EPSILON * newDir.x, 
-        hitPoint.y + MathUtils.EPSILON * newDir.y, 
-        hitPoint.z + MathUtils.EPSILON * newDir.z);
+        hitPoint.x + EPSILON * newDir.x,
+        hitPoint.y + EPSILON * newDir.y,
+        hitPoint.z + EPSILON * newDir.z);
     newRay.setDirection(newDir);
     newRay.setLengthToMax();
     newRay.getColor().zeroAll();
@@ -110,7 +111,7 @@ public class PathTracer extends Renderer {
 
   /**
    * trace the photon emitting from light
-   * 
+   *
    * @param ray
    * @param depth
    */
@@ -224,7 +225,6 @@ public class PathTracer extends Renderer {
   // }
   // }
   //
-
   @Override
   public String toString() {
     return "Path Tracer";

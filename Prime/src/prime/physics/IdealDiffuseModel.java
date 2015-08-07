@@ -2,10 +2,10 @@ package prime.physics;
 
 import prime.math.Vec3f;
 
+import static prime.math.MathUtils.dot;
+
 /**
- * 
  * @author lizhaoliu
- * 
  */
 public class IdealDiffuseModel extends Material {
 
@@ -13,7 +13,7 @@ public class IdealDiffuseModel extends Material {
   public float samplingReflectionDirection(Vec3f origin, Vec3f normal, Vec3f inDir, Vec3f dest) {
     do {
       dest.set(2 * (float) Math.random() - 1, 2 * (float) Math.random() - 1, 2 * (float) Math.random() - 1);
-    } while (Vec3f.dot(dest, normal) < 0);
+    } while (dot(dest, normal) < 0);
     dest.normalize();
     return INV_2PI;
   }
@@ -30,5 +30,6 @@ public class IdealDiffuseModel extends Material {
   }
 
   @Override
-  public void btdf(Vec3f origin, Vec3f normal, Vec3f inDir, Vec3f outDir, Color3f dest) {}
+  public void btdf(Vec3f origin, Vec3f normal, Vec3f inDir, Vec3f outDir, Color3f dest) {
+  }
 }

@@ -1,80 +1,6 @@
 package prime.gui;
 
-import java.awt.BorderLayout;
-import java.awt.Color;
-import java.awt.Cursor;
-import java.awt.Dimension;
-import java.awt.FlowLayout;
-import java.awt.GradientPaint;
-import java.awt.Graphics;
-import java.awt.Graphics2D;
-import java.awt.GraphicsDevice;
-import java.awt.GraphicsEnvironment;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.awt.event.ComponentAdapter;
-import java.awt.event.ComponentEvent;
-import java.awt.event.FocusEvent;
-import java.awt.event.FocusListener;
-import java.awt.event.ItemEvent;
-import java.awt.event.ItemListener;
-import java.awt.event.KeyEvent;
-import java.awt.event.KeyListener;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
-import java.awt.event.MouseListener;
-import java.awt.event.MouseMotionListener;
-import java.awt.event.MouseWheelEvent;
-import java.awt.event.MouseWheelListener;
-import java.awt.event.WindowAdapter;
-import java.awt.event.WindowEvent;
-import java.awt.image.BufferedImage;
-import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.Executors;
-
-import javax.imageio.ImageIO;
-import javax.media.opengl.GL;
-import javax.media.opengl.GL2;
-import javax.media.opengl.GLAutoDrawable;
-import javax.media.opengl.GLEventListener;
-import javax.media.opengl.awt.GLJPanel;
-import javax.media.opengl.glu.GLU;
-import javax.swing.Box;
-import javax.swing.ImageIcon;
-import javax.swing.JButton;
-import javax.swing.JColorChooser;
-import javax.swing.JComboBox;
-import javax.swing.JDialog;
-import javax.swing.JFileChooser;
-import javax.swing.JFrame;
-import javax.swing.JLabel;
-import javax.swing.JOptionPane;
-import javax.swing.JPanel;
-import javax.swing.JScrollPane;
-import javax.swing.JSlider;
-import javax.swing.JTextArea;
-import javax.swing.JTextField;
-import javax.swing.JTree;
-import javax.swing.SwingUtilities;
-import javax.swing.border.TitledBorder;
-import javax.swing.event.ChangeEvent;
-import javax.swing.event.ChangeListener;
-import javax.swing.event.TreeSelectionEvent;
-import javax.swing.event.TreeSelectionListener;
-import javax.swing.filechooser.FileNameExtensionFilter;
-import javax.swing.tree.DefaultMutableTreeNode;
-import javax.swing.tree.DefaultTreeModel;
-
 import org.apache.log4j.BasicConfigurator;
-
 import prime.core.Camera;
 import prime.core.PathTracer;
 import prime.core.Renderer;
@@ -90,23 +16,56 @@ import prime.physics.IdealDiffuseModel;
 import prime.physics.Material;
 import prime.util.ContentLoader;
 
+import javax.imageio.ImageIO;
+import javax.media.opengl.GL;
+import javax.media.opengl.GL2;
+import javax.media.opengl.GLAutoDrawable;
+import javax.media.opengl.GLEventListener;
+import javax.media.opengl.awt.GLJPanel;
+import javax.media.opengl.glu.GLU;
+import javax.swing.*;
+import javax.swing.border.TitledBorder;
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
+import javax.swing.event.TreeSelectionEvent;
+import javax.swing.event.TreeSelectionListener;
+import javax.swing.filechooser.FileNameExtensionFilter;
+import javax.swing.tree.DefaultMutableTreeNode;
+import javax.swing.tree.DefaultTreeModel;
+import java.awt.*;
+import java.awt.event.*;
+import java.awt.image.BufferedImage;
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.Executors;
+
+import static prime.math.MathUtils.cross;
+import static prime.math.MathUtils.dot;
+import static prime.math.MathUtils.sub;
+
 /**
  * a hand-written gui
- * 
+ *
  * @author lizhaoliu
- * 
  */
 public class MainGui extends JFrame {
   private static final long serialVersionUID = -739564126009719851L;
 
   public static final int PANEL_WIDTH;
   public static final int PANEL_HEIGHT;
-  
+
   static {
     GraphicsEnvironment ge = GraphicsEnvironment.getLocalGraphicsEnvironment();
     GraphicsDevice device = ge.getDefaultScreenDevice();
-    PANEL_WIDTH = (int)(device.getDisplayMode().getWidth() / 1.2);
-    PANEL_HEIGHT = (int)(device.getDisplayMode().getHeight() / 1.2);
+    PANEL_WIDTH = (int) (device.getDisplayMode().getWidth() / 1.2);
+    PANEL_HEIGHT = (int) (device.getDisplayMode().getHeight() / 1.2);
   }
 
   private ViewPanel viewPanel;
@@ -134,19 +93,10 @@ public class MainGui extends JFrame {
   public MainGui() {
     setTitle("Prime");
     setVisible(true);
-    setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
+    setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
     setResizable(true);
     init();
     initDialogs();
-    addWindowListener(new WindowAdapter() {
-      public void windowClosing(WindowEvent e) {
-        int res = JOptionPane.showConfirmDialog(MainGui.this, "Are you sure to quit?", "Confirm exit",
-            JOptionPane.YES_NO_OPTION);
-        if (res == JOptionPane.YES_OPTION) {
-          System.exit(0);
-        }
-      }
-    });
     Box centralBox = Box.createHorizontalBox();
     centralBox.add(viewPanel = new ViewPanel(camera));
     add(new ButtonPanel(), BorderLayout.NORTH);
@@ -190,10 +140,10 @@ public class MainGui extends JFrame {
       tree.addTreeSelectionListener(new TreeSelectionListener() {
         @Override
         public void valueChanged(TreeSelectionEvent arg0) {
-          DefaultMutableTreeNode node = (DefaultMutableTreeNode)tree.getLastSelectedPathComponent();
+          DefaultMutableTreeNode node = (DefaultMutableTreeNode) tree.getLastSelectedPathComponent();
           Object obj = node.getUserObject();
           if (obj instanceof TriangleMesh) {
-            selectedMesh = (TriangleMesh)obj;
+            selectedMesh = (TriangleMesh) obj;
             onMeshSelected();
           }
         }
@@ -238,9 +188,9 @@ public class MainGui extends JFrame {
 
     private ResultImagePanel resPanel;
     private BufferedImage resImage;
-    private Renderer[] renderers = { new PathTracer() };
+    private Renderer[] renderers = {new PathTracer()};
     private Renderer selectedRenderer = renderers[0];
-    private Filter[] filters = { new ConeFilter(1), new GaussianFilter() };
+    private Filter[] filters = {new ConeFilter(1), new GaussianFilter()};
     private Filter selectedFilter = filters[0];
 
     public RenderDialog() {
@@ -258,7 +208,7 @@ public class MainGui extends JFrame {
 
       private int oX, oY;
       private float paintWidth, paintHeight;
-      
+
       private boolean isLButtonDown;
       private int pressX, pressY;
 
@@ -304,7 +254,8 @@ public class MainGui extends JFrame {
       }
 
       @Override
-      public void mouseExited(MouseEvent arg0) {}
+      public void mouseExited(MouseEvent arg0) {
+      }
 
       @Override
       public void mousePressed(MouseEvent arg0) {
@@ -333,7 +284,8 @@ public class MainGui extends JFrame {
       }
 
       @Override
-      public void mouseMoved(MouseEvent arg0) {}
+      public void mouseMoved(MouseEvent arg0) {
+      }
 
       @Override
       public void mouseWheelMoved(MouseWheelEvent arg0) {
@@ -713,7 +665,7 @@ public class MainGui extends JFrame {
     private SliderPanel spRefrInd;
     private JComboBox<Material> cbMaterialList;
     private JComboBox<String> cbIsLight;
-    private String[] isLights = { "Yes", "No" };
+    private String[] isLights = {"Yes", "No"};
 
     public MaterialEditorDialog(int w, int h) {
       super(w, h);
@@ -1014,6 +966,7 @@ public class MainGui extends JFrame {
         public void focusGained(FocusEvent e) {
           display();
         }
+
         public void focusLost(FocusEvent e) {
           display();
         }
@@ -1095,16 +1048,16 @@ public class MainGui extends JFrame {
         return;
       }
       switch (button) {
-      case MouseEvent.BUTTON1:
-        selectedMesh = cam.pick(e.getX(), e.getY());
-        onMeshSelected();
-        break;
+        case MouseEvent.BUTTON1:
+          selectedMesh = cam.pick(e.getX(), e.getY());
+          onMeshSelected();
+          break;
 
-      case MouseEvent.BUTTON3:
-        break;
+        case MouseEvent.BUTTON3:
+          break;
 
-      default:
-        break;
+        default:
+          break;
       }
     }
 
@@ -1120,7 +1073,8 @@ public class MainGui extends JFrame {
       setCursor(Cursor.getDefaultCursor());
     }
 
-    public void mouseReleased(MouseEvent e) {}
+    public void mouseReleased(MouseEvent e) {
+    }
 
     public void mousePressed(MouseEvent e) {
       if (!isEnabled) {
@@ -1141,34 +1095,34 @@ public class MainGui extends JFrame {
       v1 = cam.getLocalPointFromScreen(oldX, oldY);
       v2.z = cam.getZNear();
       v1.z = cam.getZNear();
-      dv = Vec3f.sub(v1, v2);
+      dv = sub(v1, v2);
       dv.normalize();
       switch (button) {
-      case MouseEvent.BUTTON1:
-        break;
+        case MouseEvent.BUTTON1:
+          break;
 
-      case MouseEvent.BUTTON2:
-        setCursor(moveCursor);
-        cam.translate(dv);
-        display();
-        oldX = e.getX();
-        oldY = e.getY();
-        break;
+        case MouseEvent.BUTTON2:
+          setCursor(moveCursor);
+          cam.translate(dv);
+          display();
+          oldX = e.getX();
+          oldY = e.getY();
+          break;
 
-      case MouseEvent.BUTTON3:
-        v1.normalize();
-        v2.normalize();
-        float angle = (float) (3 * Math.acos(Vec3f.dot(v1, v2)) * 180 / Math.PI);
-        n = Vec3f.cross(v1, v2);
-        n.normalize();
-        cam.rotate(n, angle);
-        display();
-        oldX = e.getX();
-        oldY = e.getY();
-        break;
+        case MouseEvent.BUTTON3:
+          v1.normalize();
+          v2.normalize();
+          float angle = (float) (3 * Math.acos(dot(v1, v2)) * 180 / Math.PI);
+          n = cross(v1, v2);
+          n.normalize();
+          cam.rotate(n, angle);
+          display();
+          oldX = e.getX();
+          oldY = e.getY();
+          break;
 
-      default:
-        break;
+        default:
+          break;
       }
     }
 
@@ -1182,12 +1136,12 @@ public class MainGui extends JFrame {
       }
       key = e.getKeyCode();
       switch (key) {
-      case KeyEvent.VK_R:
-        resetCamera();
-        display();
-        break;
-      default:
-        break;
+        case KeyEvent.VK_R:
+          resetCamera();
+          display();
+          break;
+        default:
+          break;
       }
     }
 
@@ -1198,7 +1152,8 @@ public class MainGui extends JFrame {
       key = 0;
     }
 
-    public void keyTyped(KeyEvent e) {}
+    public void keyTyped(KeyEvent e) {
+    }
 
     public void display(GLAutoDrawable drawable) {
       gl.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT);
@@ -1213,13 +1168,13 @@ public class MainGui extends JFrame {
     }
 
     /**
-     * 
      * @param drawable
      * @param arg1
      * @param arg2
      */
     @SuppressWarnings("unused")
-    public void displayChanged(GLAutoDrawable drawable, boolean arg1, boolean arg2) {}
+    public void displayChanged(GLAutoDrawable drawable, boolean arg1, boolean arg2) {
+    }
 
     public void init(GLAutoDrawable drawable) {
       gl = drawable.getGL().getGL2();
@@ -1230,8 +1185,8 @@ public class MainGui extends JFrame {
       gl.glClearColor(0.54f, 0.68f, 0.78f, 1.0f);
 
       gl.glLightModeli(GL2.GL_LIGHT0, GL2.GL_LIGHT_MODEL_TWO_SIDE);
-      gl.glLightfv(GL2.GL_LIGHT0, GL2.GL_DIFFUSE, new float[] { 1f, 1f, 1f, 1f }, 0);
-      gl.glLightfv(GL2.GL_LIGHT0, GL2.GL_POSITION, new float[] { 0f, 0f, 0f, 1f }, 0);
+      gl.glLightfv(GL2.GL_LIGHT0, GL2.GL_DIFFUSE, new float[]{1f, 1f, 1f, 1f}, 0);
+      gl.glLightfv(GL2.GL_LIGHT0, GL2.GL_POSITION, new float[]{0f, 0f, 0f, 1f}, 0);
       gl.glEnable(GL2.GL_LIGHT0);
 
       gl.glEnable(GL2.GL_LIGHTING);
@@ -1263,7 +1218,8 @@ public class MainGui extends JFrame {
     }
 
     @Override
-    public void dispose(GLAutoDrawable arg0) {}
+    public void dispose(GLAutoDrawable arg0) {
+    }
   }
 
   private class SliderPanel extends JPanel {
@@ -1329,7 +1285,7 @@ public class MainGui extends JFrame {
   public void setViewPanelEnabled(boolean isEnabled) {
     viewPanel.setEnabled(isEnabled);
   }
-  
+
   private void onMeshSelected() {
     if (selectedMesh != null) {
       materialEditDialog.loadMaterial(selectedMesh.getMaterial());

@@ -1,15 +1,12 @@
 package prime.physics;
 
-import java.io.Serializable;
-
-import javax.annotation.concurrent.NotThreadSafe;
-
 import prime.math.Vec3f;
 
+import javax.annotation.concurrent.NotThreadSafe;
+import java.io.Serializable;
+
 /**
- * 
  * @author lizhaoliu
- *
  */
 @NotThreadSafe
 public final class Ray implements Serializable {
@@ -22,12 +19,12 @@ public final class Ray implements Serializable {
   private float n = 1.0f; //
 
   /**
-   * 
+   *
    */
-  public Ray() {}
+  public Ray() {
+  }
 
   /**
-   * 
    * @param v
    */
   public final void setOrigin(Vec3f v) {
@@ -35,7 +32,6 @@ public final class Ray implements Serializable {
   }
 
   /**
-   * 
    * @param x
    * @param y
    * @param z
@@ -45,7 +41,6 @@ public final class Ray implements Serializable {
   }
 
   /**
-   * 
    * @param v
    */
   public final void setDirection(Vec3f v) {
@@ -53,7 +48,6 @@ public final class Ray implements Serializable {
   }
 
   /**
-   * 
    * @param x
    * @param y
    * @param z
@@ -63,7 +57,6 @@ public final class Ray implements Serializable {
   }
 
   /**
-   * 
    * @param l
    */
   public final void setLength(float l) {
@@ -71,14 +64,13 @@ public final class Ray implements Serializable {
   }
 
   /**
-     * 
-     */
+   *
+   */
   public final void setLengthToMax() {
     length = Float.MAX_VALUE;
   }
 
   /**
-   * 
    * @param c
    */
   public final void setSpectrum(Color3f c) {
@@ -86,7 +78,6 @@ public final class Ray implements Serializable {
   }
 
   /**
-   * 
    * @param refrac
    */
   public final void setRefrativeIndex(float refrac) {
@@ -94,23 +85,20 @@ public final class Ray implements Serializable {
   }
 
   /**
-   * 
-   * @param dst
+   *
    */
   public final Vec3f getOrigin() {
     return new Vec3f(origin);
   }
 
   /**
-   * 
-   * @param dst
+   *
    */
   public final Vec3f getDirection() {
     return new Vec3f(direction);
   }
 
   /**
-   * 
    * @return
    */
   public final float getLength() {
@@ -118,7 +106,6 @@ public final class Ray implements Serializable {
   }
 
   /**
-   * 
    * @return
    */
   public final float getRefractiveIndex() {
@@ -126,7 +113,6 @@ public final class Ray implements Serializable {
   }
 
   /**
-   * 
    * @return
    */
   public final Color3f getColor() {

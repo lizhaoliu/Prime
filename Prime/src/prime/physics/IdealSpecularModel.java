@@ -2,6 +2,10 @@ package prime.physics;
 
 import prime.math.Vec3f;
 
+import static prime.math.MathUtils.add;
+import static prime.math.MathUtils.cross;
+import static prime.math.MathUtils.dot;
+
 public class IdealSpecularModel extends Material {
 
   @Override
@@ -18,13 +22,13 @@ public class IdealSpecularModel extends Material {
 
   @Override
   public void brdf(Vec3f origin, Vec3f normal, Vec3f inDir, Vec3f outDir, Color3f dest) {
-    Vec3f buf = Vec3f.add(inDir, outDir);
-    if (Math.abs(Vec3f.dot(buf, normal)) > 0.01) {
+    Vec3f buf = add(inDir, outDir);
+    if (Math.abs(dot(buf, normal)) > 0.01) {
       dest.set(0, 0, 0);
     }
 
-    buf = Vec3f.cross(inDir, outDir);
-    if (Math.abs(Vec3f.dot(buf, normal)) > 0.01) {
+    buf = cross(inDir, outDir);
+    if (Math.abs(dot(buf, normal)) > 0.01) {
       dest.set(0, 0, 0);
     }
 
@@ -33,6 +37,7 @@ public class IdealSpecularModel extends Material {
   }
 
   @Override
-  public void btdf(Vec3f origin, Vec3f normal, Vec3f inDir, Vec3f outDir, Color3f dest) {}
+  public void btdf(Vec3f origin, Vec3f normal, Vec3f inDir, Vec3f outDir, Color3f dest) {
+  }
 
 }

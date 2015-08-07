@@ -128,24 +128,6 @@ public class Mat3 implements Serializable {
 
   /**
    * 
-   * @param matLeft
-   * @param matRight
-   * @param dst
-   * @return
-   */
-  public static Mat3 multiply(Mat3 matLeft, Mat3 matRight) {
-    return new Mat3(matLeft.m00 * matRight.m00 + matLeft.m01 * matRight.m10 + matLeft.m02 * matRight.m20, matLeft.m00
-        * matRight.m01 + matLeft.m01 * matRight.m11 + matLeft.m02 * matRight.m21, matLeft.m00 * matRight.m02
-        + matLeft.m01 * matRight.m12 + matLeft.m02 * matRight.m22, matLeft.m10 * matRight.m00 + matLeft.m11
-        * matRight.m10 + matLeft.m12 * matRight.m20, matLeft.m10 * matRight.m01 + matLeft.m11 * matRight.m11
-        + matLeft.m12 * matRight.m21, matLeft.m10 * matRight.m02 + matLeft.m11 * matRight.m12 + matLeft.m12
-        * matRight.m22, matLeft.m20 * matRight.m00 + matLeft.m21 * matRight.m10 + matLeft.m22 * matRight.m20,
-        matLeft.m20 * matRight.m01 + matLeft.m21 * matRight.m11 + matLeft.m22 * matRight.m21, matLeft.m20
-            * matRight.m02 + matLeft.m21 * matRight.m12 + matLeft.m22 * matRight.m22);
-  }
-
-  /**
-   * 
    * @return
    */
   public Mat3 transpose() {

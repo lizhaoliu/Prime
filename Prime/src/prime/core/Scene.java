@@ -97,7 +97,7 @@ public class Scene implements Serializable, Iterable<TriangleMesh> {
   boolean isVisible(Vec3f p0, Vec3f p1) {
     Ray ray = new Ray();
     ray.setLengthToMax();
-    Vec3f d = Vec3f.sub(p1, p0);
+    Vec3f d = MathUtils.sub(p1, p0);
     d.normalize();
     ray.setDirection(d);
     ray.setOrigin(p0.x + d.x * MathUtils.EPSILON, p0.y + d.y * MathUtils.EPSILON, p0.z + d.z * MathUtils.EPSILON);

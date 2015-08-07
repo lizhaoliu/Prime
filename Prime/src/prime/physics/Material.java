@@ -2,11 +2,12 @@ package prime.physics;
 
 import prime.math.Vec3f;
 
+import static prime.math.MathUtils.dot;
+
 /**
  * Bidirectional Scattering Distribution Function (BSDF) which describes a physical surface
- * 
+ *
  * @author lizhaoliu
- * 
  */
 public abstract class Material {
   protected Color3f emittance = new Color3f();
@@ -82,30 +83,30 @@ public abstract class Material {
 
   /**
    * compute sin<n, d>
-   * 
+   *
    * @param normal
    * @param dir
    * @return
    */
   protected float sinTheta(Vec3f normal, Vec3f dir) {
-    float cos = Vec3f.dot(normal, dir);
+    float cos = dot(normal, dir);
     return (float) (Math.sqrt(1 - cos * cos));
   }
 
   /**
    * compute cos<n, d>
-   * 
+   *
    * @param normal
    * @param dir
    * @return
    */
   protected float cosThetaAbsoluteValue(Vec3f normal, Vec3f dir) {
-    return (float) (Math.abs(Vec3f.dot(normal, dir)));
+    return Math.abs(dot(normal, dir));
   }
 
   /**
    * Bidirectional reflectance function
-   * 
+   *
    * @param origin
    * @param normal
    * @param inDir
@@ -115,7 +116,6 @@ public abstract class Material {
   public abstract void brdf(Vec3f origin, Vec3f normal, Vec3f inDir, Vec3f outDir, Color3f dest);
 
   /**
-   * 
    * @param origin
    * @param normal
    * @param inDir
@@ -126,7 +126,7 @@ public abstract class Material {
 
   /**
    * Importance sampling reflection direction according to {@link Material}
-   * 
+   *
    * @param origin
    * @param normal
    * @param inDir
@@ -137,7 +137,7 @@ public abstract class Material {
 
   /**
    * Importance sampling transmission direction according to {@link Material}
-   * 
+   *
    * @param origin
    * @param normal
    * @param inDir
