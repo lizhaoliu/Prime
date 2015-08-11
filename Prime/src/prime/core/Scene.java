@@ -1,11 +1,5 @@
 package prime.core;
 
-import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-
-import prime.math.MathUtils;
 import prime.math.Vec3f;
 import prime.model.BoundingBox;
 import prime.model.RayTriHitInfo;
@@ -14,6 +8,14 @@ import prime.model.TriangleMesh;
 import prime.physics.Ray;
 import prime.physics.Sky;
 import prime.spatial.KdTree;
+
+import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+
+import static prime.math.MathUtils.EPSILON;
+import static prime.math.MathUtils.sub;
 
 /**
  * Scene that adopts one spatial sorting algorithm to accelerate ray-triangle intersection test
@@ -37,7 +39,7 @@ public class Scene implements Serializable, Iterable<TriangleMesh> {
 
   /**
    * get mesh indexed i
-   * 
+   *
    * @param i
    * @return
    */
@@ -97,10 +99,9 @@ public class Scene implements Serializable, Iterable<TriangleMesh> {
   boolean isVisible(Vec3f p0, Vec3f p1) {
     Ray ray = new Ray();
     ray.setLengthToMax();
-    Vec3f d = MathUtils.sub(p1, p0);
-    d.normalize();
+    Vec3f d = sub(p1, p0).normalize();
     ray.setDirection(d);
-    ray.setOrigin(p0.x + d.x * MathUtils.EPSILON, p0.y + d.y * MathUtils.EPSILON, p0.z + d.z * MathUtils.EPSILON);
+    ray.setOrigin(new Vec3f(p0.x + d.x * EPSILON, p0.y + d.y * EPSILON, p0.z + d.z * EPSILON));
     RayTriHitInfo ir = kdTree.intersect(ray);
     return ir.isHit();
   }
@@ -110,7 +111,6 @@ public class Scene implements Serializable, Iterable<TriangleMesh> {
   }
 
   /**
-   * 
    * @return
    */
   public Sky getSky() {
@@ -118,7 +118,6 @@ public class Scene implements Serializable, Iterable<TriangleMesh> {
   }
 
   /**
-   * 
    * @param ray
    */
   public RayTriHitInfo intersect(Ray ray) {

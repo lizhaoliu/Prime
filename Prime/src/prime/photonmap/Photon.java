@@ -21,9 +21,9 @@ public class Photon implements Serializable {
   public Material bsdf;
 
   public Photon(Vec3f location, Vec3f normal, Vec3f inDir, Material bsdf, Color3f spectrum) {
-    this.location.set(location);
-    this.normal.set(normal);
-    this.inDir.set(inDir);
+    this.location = location;
+    this.normal = normal;
+    this.inDir = inDir;
     this.bsdf = bsdf;
     this.spectrum.set(spectrum);
   }

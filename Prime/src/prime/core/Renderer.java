@@ -1,16 +1,19 @@
 package prime.core;
 
-import javax.annotation.Nonnull;
-
 import prime.math.Filter;
-import prime.math.MathUtils;
 import prime.math.Vec3f;
 import prime.model.RayTriHitInfo;
 import prime.model.Triangle;
 import prime.model.TriangleMesh;
+import prime.physics.Color3f;
 import prime.physics.Material;
 import prime.physics.Ray;
-import prime.physics.Color3f;
+
+import javax.annotation.Nonnull;
+
+import static prime.math.MathUtils.EPSILON;
+import static prime.math.MathUtils.dot;
+import static prime.math.MathUtils.sub;
 
 /**
  * Abstract Renderer
@@ -23,7 +26,8 @@ public abstract class Renderer {
   protected Camera camera;
   protected Filter filter;
 
-  public Renderer() {}
+  public Renderer() {
+  }
 
   public void setCamera(@Nonnull Camera camera) {
     this.camera = camera;
@@ -43,7 +47,7 @@ public abstract class Renderer {
 
   /**
    * compute the direct illumination
-   * 
+   *
    * @param hitPoint
    * @param normal
    * @param material
@@ -60,20 +64,20 @@ public abstract class Renderer {
     int nLights = sceneGraph.getLightNum();
     if (nLights > 0) {
       meshLight = sceneGraph.getLight((int) (Math.random() * nLights));
-      newDir = meshLight.randomPoint().sub(hitPoint).normalize();
-      newRay.setOrigin(hitPoint.x + MathUtils.EPSILON * newDir.x, hitPoint.y + MathUtils.EPSILON * newDir.y, hitPoint.z
-          + MathUtils.EPSILON * newDir.z);
+      newDir = sub(meshLight.randomPoint(), hitPoint).normalize();
+      newRay.setOrigin(new Vec3f(hitPoint.x + EPSILON * newDir.x, hitPoint.y + EPSILON * newDir.y, hitPoint.z
+          + EPSILON * newDir.z));
       newRay.setLengthToMax();
       RayTriHitInfo ir = sceneGraph.intersect(newRay);
       triangleLight = ir.getHitTriangle();
-      float cos = MathUtils.dot(newDir, normal);
+      float cos = dot(newDir, normal);
       if (ir.isHit() && triangleLight.getTriangleMesh() == meshLight && cos > 0) {
         float u = ir.getU(), v = ir.getV();
         Vec3f normalLight = new Vec3f();
         normalLight = triangleLight.interpolateNormal(u, v);
 
         color.set(meshLight.getMaterial().getEmittance());
-        color.multiply(cos * Math.abs(MathUtils.dot(newDir, normalLight)) * nLights);// *
+        color.multiply(cos * Math.abs(dot(newDir, normalLight)) * nLights);// *
         // meshLight.getArea());
         color.blend(material.getReflectance());
 
@@ -102,7 +106,6 @@ public abstract class Renderer {
   }
 
   /**
-   * 
    * @param filter
    */
   public void setFilter(Filter filter) {
@@ -117,12 +120,11 @@ public abstract class Renderer {
   }
 
   /**
-   * 
+   *
    */
   public abstract void preprocess();
 
   /**
-   * 
    * @param srcRay
    */
   public abstract void render(Ray srcRay);

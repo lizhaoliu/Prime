@@ -80,8 +80,8 @@ public class MainGui extends JFrame {
   // private TexEditorDialog texEditDialog;
   private WestPanel westPanel;
 
-  private List<Material> materialList = new ArrayList<Material>(10);
-  private List<TriangleMesh> meshesList = new ArrayList<TriangleMesh>();
+  private List<Material> materialList = new ArrayList<>(10);
+  private List<TriangleMesh> meshesList = new ArrayList<>();
 
   private ContentLoader loader = new ContentLoader(MainGui.this);
 
@@ -116,7 +116,6 @@ public class MainGui extends JFrame {
     sceneGraph.setMaxKdTreeDepth(15);
 
     Material defaultMat = new IdealDiffuseModel();
-    // Material defaultMat = new OrenNayerModel();
     defaultMat.setName("default");
     materialList.add(defaultMat);
   }
@@ -1005,8 +1004,8 @@ public class MainGui extends JFrame {
       x = beg;
       n = (n << 1);
       for (int i = 0; i <= n; i++) {
-        v0.set(x, 0, beg);
-        v1.set(x, 0, end);
+        v0 = new Vec3f(x, 0, beg);
+        v1 = new Vec3f(x, 0, end);
         v0 = coSys.transPointToLocal(v0);
         v1 = coSys.transPointToLocal(v1);
         gl.glVertex3f(v0.x, v0.y, v0.z);
@@ -1015,8 +1014,8 @@ public class MainGui extends JFrame {
       }
       z = beg;
       for (int i = 0; i <= n; i++) {
-        v0.set(beg, 0, z);
-        v1.set(end, 0, z);
+        v0 = new Vec3f(beg, 0, z);
+        v1 = new Vec3f(end, 0, z);
         v0 = coSys.transPointToLocal(v0);
         v1 = coSys.transPointToLocal(v1);
         gl.glVertex3f(v0.x, v0.y, v0.z);
@@ -1095,8 +1094,7 @@ public class MainGui extends JFrame {
       v1 = cam.getLocalPointFromScreen(oldX, oldY);
       v2.z = cam.getZNear();
       v1.z = cam.getZNear();
-      dv = sub(v1, v2);
-      dv.normalize();
+      dv = sub(v1, v2).normalize();
       switch (button) {
         case MouseEvent.BUTTON1:
           break;
@@ -1110,11 +1108,10 @@ public class MainGui extends JFrame {
           break;
 
         case MouseEvent.BUTTON3:
-          v1.normalize();
-          v2.normalize();
+          v1 = v1.normalize();
+          v2 = v2.normalize();
           float angle = (float) (3 * Math.acos(dot(v1, v2)) * 180 / Math.PI);
-          n = cross(v1, v2);
-          n.normalize();
+          n = cross(v1, v2).normalize();
           cam.rotate(n, angle);
           display();
           oldX = e.getX();

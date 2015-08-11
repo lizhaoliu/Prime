@@ -8,6 +8,7 @@ import javax.media.opengl.glu.GLU;
 import javax.media.opengl.glu.GLUquadric;
 import java.io.Serializable;
 
+import static prime.math.MathUtils.add;
 import static prime.math.MathUtils.mul;
 import static prime.math.MathUtils.sub;
 
@@ -17,21 +18,11 @@ import static prime.math.MathUtils.sub;
 public class LHCoordinateSystem implements Drawable, Transformable, Serializable, Cloneable {
   private static final long serialVersionUID = -570828196426778877L;
 
-  private Mat3 parentToThisMat = new Mat3();
-  private Vec3f origin = new Vec3f();
+  private Mat3 parentToThisMat = Mat3.UNIT;
+  private Vec3f origin = Vec3f.ZERO;
 
   public LHCoordinateSystem() {
 
-  }
-
-  /**
-   * Copy ctor
-   *
-   * @param coSys
-   */
-  public LHCoordinateSystem(LHCoordinateSystem coSys) {
-    parentToThisMat.set(coSys.parentToThisMat);
-    origin.set(coSys.origin);
   }
 
   /**
@@ -40,7 +31,7 @@ public class LHCoordinateSystem implements Drawable, Transformable, Serializable
    * @param o
    */
   public void setOrigin(Vec3f o) {
-    origin.set(o);
+    origin = o;
   }
 
   /**
@@ -81,8 +72,7 @@ public class LHCoordinateSystem implements Drawable, Transformable, Serializable
    * @return
    */
   public float[] getInversedMatrixArrayInColumnOrder(float[] data) {
-    Vec3f v = mul(origin, parentToThisMat);
-    v.negate();
+    Vec3f v = mul(origin, parentToThisMat).negate();
     data[0] = parentToThisMat.m00;
     data[1] = parentToThisMat.m01;
     data[2] = parentToThisMat.m02;
@@ -131,8 +121,7 @@ public class LHCoordinateSystem implements Drawable, Transformable, Serializable
    * @return
    */
   public float[] getInversedMatrixArrayInRowOrder(float[] data) {
-    Vec3f v = mul(origin, parentToThisMat);
-    v.negate();
+    Vec3f v = mul(origin, parentToThisMat).negate();
     data[0] = parentToThisMat.m00;
     data[1] = parentToThisMat.m10;
     data[2] = parentToThisMat.m20;
@@ -153,20 +142,6 @@ public class LHCoordinateSystem implements Drawable, Transformable, Serializable
   }
 
   /**
-   * @param mat
-   */
-  public void setParentToLocalMatrix(Mat3 mat) {
-    parentToThisMat.set(mat);
-  }
-
-  /**
-   * @param mat
-   */
-  public void setParentToLocalMatrix(float[] mat) {
-    parentToThisMat.set(mat);
-  }
-
-  /**
    * @param t00
    * @param t01
    * @param t02
@@ -179,7 +154,7 @@ public class LHCoordinateSystem implements Drawable, Transformable, Serializable
    */
   public void setParentToLocalMatrix(float t00, float t01, float t02, float t10, float t11, float t12, float t20,
                                      float t21, float t22) {
-    parentToThisMat.set(t00, t01, t02, t10, t11, t12, t20, t21, t22);
+    parentToThisMat = new Mat3(t00, t01, t02, t10, t11, t12, t20, t21, t22);
   }
 
   /**
@@ -187,15 +162,14 @@ public class LHCoordinateSystem implements Drawable, Transformable, Serializable
    */
   public void translateInLocal(Vec3f v) {
     float x = origin.x, y = origin.y, z = origin.z;
-    origin = mul(parentToThisMat, v);
-    origin.add(x, y, z);
+    origin = add(mul(parentToThisMat, v), new Vec3f(x, y, z));
   }
 
   /**
    *
    */
   public void translate(Vec3f v) {
-    origin.add(v);
+    origin = add(origin, v);
   }
 
   /**
@@ -220,9 +194,7 @@ public class LHCoordinateSystem implements Drawable, Transformable, Serializable
    * @return
    */
   public Vec3f transPointToParent(Vec3f v) {
-    Vec3f dest = mul(parentToThisMat, v);
-    dest.add(origin);
-    return dest;
+    return add(mul(parentToThisMat, v), origin);
   }
 
   /**

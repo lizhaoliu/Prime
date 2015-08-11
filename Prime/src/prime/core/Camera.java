@@ -1,6 +1,20 @@
 package prime.core;
 
-import java.awt.Component;
+import com.google.common.base.Preconditions;
+import org.apache.commons.lang.math.RandomUtils;
+import prime.math.LHCoordinateSystem;
+import prime.math.Transformable;
+import prime.math.Vec3f;
+import prime.model.RayTriHitInfo;
+import prime.model.TriangleMesh;
+import prime.physics.Color3f;
+import prime.physics.Ray;
+
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+import javax.media.opengl.GL2;
+import javax.media.opengl.glu.GLU;
+import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.Serializable;
 import java.util.ArrayList;
@@ -11,26 +25,11 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-import javax.media.opengl.GL2;
-import javax.media.opengl.glu.GLU;
-
-import org.apache.commons.lang.math.RandomUtils;
-
-import com.google.common.base.Preconditions;
-
-import prime.math.LHCoordinateSystem;
-import prime.math.MathUtils;
-import prime.math.Transformable;
-import prime.math.Vec3f;
-import prime.model.RayTriHitInfo;
-import prime.model.TriangleMesh;
-import prime.physics.Color3f;
-import prime.physics.Ray;
+import static prime.math.MathUtils.cross;
+import static prime.math.MathUtils.sub;
 
 /**
- * 
+ *
  */
 public class Camera extends Observable implements Serializable, Transformable, Drawable {
   private static final long serialVersionUID = -4797769528520234991L;
@@ -58,7 +57,6 @@ public class Camera extends Observable implements Serializable, Transformable, D
   private transient Renderer renderer;
 
   /**
-   * 
    * @param width
    * @param height
    */
@@ -108,14 +106,13 @@ public class Camera extends Observable implements Serializable, Transformable, D
   }
 
   /**
-	 * 
-	 */
+   *
+   */
   public void stopRendering() {
     isStopRequested = true;
   }
 
   /**
-   * 
    * @param backgroundColor
    */
   public void setBackgroundColor(Color3f backgroundColor) {
@@ -123,7 +120,6 @@ public class Camera extends Observable implements Serializable, Transformable, D
   }
 
   /**
-   *  
    * @return
    */
   public Color3f getBackgoundColor() {
@@ -131,33 +127,27 @@ public class Camera extends Observable implements Serializable, Transformable, D
   }
 
   /**
-   * 
    * @param eye
    * @param focus
    * @param up
    */
   public void lookAt(Vec3f eye, Vec3f focus, Vec3f up) {
-    Vec3f d = new Vec3f(focus);
-    d.sub(eye);
-    d.normalize();
-    d.negate();
-    up.normalize();
-    Vec3f newX = MathUtils.cross(up, d);
+    Vec3f d = sub(focus, eye).normalize().negate();
+    up = up.normalize();
+    Vec3f newX = cross(up, d);
     coordSys.setParentToLocalMatrix(newX.x, up.x, d.x, newX.y, up.y, d.y, newX.z, up.z, d.z);
     coordSys.setOrigin(eye);
   }
 
   /**
-	 * 
-	 */
+   *
+   */
   public void translate(Vec3f displacement) {
     coordSys.translateInLocal(displacement);
   }
 
   /**
-   * 
    * @param p
-   * @param dest
    * @return
    */
   public Vec3f transPointToLocal(Vec3f p) {
@@ -165,9 +155,7 @@ public class Camera extends Observable implements Serializable, Transformable, D
   }
 
   /**
-   * 
    * @param v
-   * @param dest
    * @return
    */
   public Vec3f transVectorToLocal(Vec3f v) {
@@ -175,14 +163,13 @@ public class Camera extends Observable implements Serializable, Transformable, D
   }
 
   /**
-	 * 
-	 */
+   *
+   */
   public void rotate(Vec3f axis, float angle) {
     coordSys.rotate(axis, angle);
   }
 
   /**
-   * 
    * @param width
    * @param height
    */
@@ -193,7 +180,6 @@ public class Camera extends Observable implements Serializable, Transformable, D
   }
 
   /**
-   * 
    * @param n
    */
   public void setSamplesPerPixel(int n) {
@@ -201,17 +187,15 @@ public class Camera extends Observable implements Serializable, Transformable, D
   }
 
   /**
-   * 
    * @param s
    */
   public void setScene(@Nonnull Scene s) {
     Preconditions.checkNotNull(s);
-    
+
     sceneGraph = s;
   }
 
   /**
-   * 
    * @param minX
    * @param minY
    * @param maxX
@@ -225,7 +209,6 @@ public class Camera extends Observable implements Serializable, Transformable, D
   }
 
   /**
-   * 
    * @param zNear
    */
   public void setZNear(float zNear) {
@@ -233,7 +216,6 @@ public class Camera extends Observable implements Serializable, Transformable, D
   }
 
   /**
-   * 
    * @param zFar
    */
   public void setZFar(float zFar) {
@@ -241,7 +223,6 @@ public class Camera extends Observable implements Serializable, Transformable, D
   }
 
   /**
-   * 
    * @param x
    * @param y
    * @return
@@ -255,7 +236,6 @@ public class Camera extends Observable implements Serializable, Transformable, D
   }
 
   /**
-   * 
    * @param x
    * @param y
    * @return
@@ -266,33 +246,6 @@ public class Camera extends Observable implements Serializable, Transformable, D
   }
 
   /**
-   * 
-   * @param p
-   * @return
-   */
-  public int getXFromWorld(Vec3f p) {
-    float px = p.x, py = p.y, pz = p.z;
-    p = coordSys.transPointToLocal(p);
-    float x = p.x * zNear / (zNear + p.z);
-    p.set(px, py, pz);
-    return getXFromViewport(x);
-  }
-
-  /**
-   * 
-   * @param p
-   * @return
-   */
-  public int getYFromWorld(Vec3f p) {
-    float px = p.x, py = p.y, pz = p.z;
-    p = coordSys.transPointToLocal(p);
-    float y = p.y * zNear / (zNear + p.z);
-    p.set(px, py, pz);
-    return getYFromViewport(y);
-  }
-
-  /**
-   * 
    * @param p
    * @return
    */
@@ -302,7 +255,6 @@ public class Camera extends Observable implements Serializable, Transformable, D
   }
 
   /**
-   * 
    * @param p
    * @return
    */
@@ -313,7 +265,7 @@ public class Camera extends Observable implements Serializable, Transformable, D
 
   /**
    * Return the screen coordinate from view port
-   * 
+   *
    * @param x
    * @return
    */
@@ -326,7 +278,7 @@ public class Camera extends Observable implements Serializable, Transformable, D
 
   /**
    * Return the screen coordinate from view port
-   * 
+   *
    * @param y
    * @return
    */
@@ -338,7 +290,6 @@ public class Camera extends Observable implements Serializable, Transformable, D
   }
 
   /**
-   * 
    * @return
    */
   public int getWidth() {
@@ -346,7 +297,6 @@ public class Camera extends Observable implements Serializable, Transformable, D
   }
 
   /**
-   * 
    * @return
    */
   public int getHeight() {
@@ -354,7 +304,6 @@ public class Camera extends Observable implements Serializable, Transformable, D
   }
 
   /**
-   * 
    * @return
    */
   public Scene getSceneGraph() {
@@ -362,7 +311,6 @@ public class Camera extends Observable implements Serializable, Transformable, D
   }
 
   /**
-   * 
    * @return
    */
   public int getSampleNumPerPixel() {
@@ -371,7 +319,7 @@ public class Camera extends Observable implements Serializable, Transformable, D
 
   /**
    * Start rendering task in blocking mode
-   * 
+   *
    * @param img
    * @param panel
    */
@@ -397,7 +345,6 @@ public class Camera extends Observable implements Serializable, Transformable, D
   }
 
   /**
-   * 
    * @param ray
    */
   private void render(Ray ray) {
@@ -405,7 +352,6 @@ public class Camera extends Observable implements Serializable, Transformable, D
   }
 
   /**
-   * 
    * @param x
    * @param y
    * @param xOffset
@@ -414,8 +360,7 @@ public class Camera extends Observable implements Serializable, Transformable, D
    * @return
    */
   public Ray getRayFromViewport(int x, int y, float xOffset, float yOffset, @Nullable Ray dest) {
-    Vec3f o = new Vec3f(), d = getLocalPointFromScreen(x + xOffset, y + yOffset);
-    d.normalize();
+    Vec3f o = new Vec3f(), d = getLocalPointFromScreen(x + xOffset, y + yOffset).normalize();
     o = coordSys.transPointToParent(origin);
     d = coordSys.transVectorToParent(d);
     dest.setOrigin(o);
@@ -425,7 +370,6 @@ public class Camera extends Observable implements Serializable, Transformable, D
   }
 
   /**
-   * 
    * @param gl
    * @param glu
    */
@@ -436,7 +380,7 @@ public class Camera extends Observable implements Serializable, Transformable, D
   }
 
   /**
-   * 
+   *
    */
   private class RenderTask implements Callable<Void> {
     private int nThreads;
@@ -497,7 +441,7 @@ public class Camera extends Observable implements Serializable, Transformable, D
 
   /**
    * Pick a {@link TriangleMesh} from screen
-   * 
+   *
    * @param x
    * @param y
    * @return null if nothing is picked, or a {@link TriangleMesh}
@@ -517,5 +461,6 @@ public class Camera extends Observable implements Serializable, Transformable, D
   }
 
   @Override
-  public void draw(GL2 gl, GLU glu, Camera camera) {}
+  public void draw(GL2 gl, GLU glu, Camera camera) {
+  }
 }

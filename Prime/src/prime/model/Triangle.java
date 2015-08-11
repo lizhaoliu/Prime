@@ -198,79 +198,79 @@ public class Triangle implements Serializable {
     // intersects if any of the box edges intersect with the triangle
     Vec3f min = box.getMinPoint();
     Vec3f max = box.getMaxPoint();
-    Vec3f p0 = new Vec3f(), p1 = new Vec3f();
+    Vec3f p0, p1;
 
     // x series
-    p0.set(min.x, min.y, min.z);
-    p1.set(max.x, min.y, min.z);
+    p0 = new Vec3f(min.x, min.y, min.z);
+    p1 = new Vec3f(max.x, min.y, min.z);
     if (intersect(p0, p1)) {
       return true;
     }
 
-    p0.set(min.x, min.y, max.z);
-    p1.set(max.x, min.y, max.z);
+    p0 = new Vec3f(min.x, min.y, max.z);
+    p1 = new Vec3f(max.x, min.y, max.z);
     if (intersect(p0, p1)) {
       return true;
     }
 
-    p0.set(min.x, max.y, min.z);
-    p1.set(max.x, max.y, min.z);
+    p0 = new Vec3f(min.x, max.y, min.z);
+    p1 = new Vec3f(max.x, max.y, min.z);
     if (intersect(p0, p1)) {
       return true;
     }
 
-    p0.set(min.x, max.y, max.z);
-    p1.set(max.x, max.y, max.z);
+    p0 = new Vec3f(min.x, max.y, max.z);
+    p1 = new Vec3f(max.x, max.y, max.z);
     if (intersect(p0, p1)) {
       return true;
     }
 
     // y series
-    p0.set(min.x, min.y, min.z);
-    p1.set(min.x, max.y, min.z);
+    p0 = new Vec3f(min.x, min.y, min.z);
+    p1 = new Vec3f(min.x, max.y, min.z);
     if (intersect(p0, p1)) {
       return true;
     }
 
-    p0.set(min.x, min.y, max.z);
-    p1.set(min.x, max.y, max.z);
+    p0 = new Vec3f(min.x, min.y, max.z);
+    p1 = new Vec3f(min.x, max.y, max.z);
     if (intersect(p0, p1)) {
       return true;
     }
 
-    p0.set(max.x, min.y, min.z);
-    p1.set(max.x, max.y, min.z);
+    p0 = new Vec3f(max.x, min.y, min.z);
+    p1 = new Vec3f(max.x, max.y, min.z);
     if (intersect(p0, p1)) {
       return true;
     }
 
-    p0.set(max.x, min.y, max.z);
-    p1.set(max.x, max.y, max.z);
+    p0 = new Vec3f(max.x, min.y, max.z);
+    p1 = new Vec3f(max.x, max.y, max.z);
     if (intersect(p0, p1)) {
       return true;
     }
 
     // z series
-    p0.set(min.x, min.y, min.z);
-    p1.set(min.x, min.y, max.z);
+    p0 = new Vec3f(min.x, min.y, min.z);
+    p1 = new Vec3f(min.x, min.y, max.z);
     if (intersect(p0, p1)) {
       return true;
     }
 
-    p0.set(max.x, min.y, min.z);
-    p1.set(max.x, min.y, max.z);
+    p0 = new Vec3f(max.x, min.y, min.z);
+    p1 = new Vec3f(max.x, min.y, max.z);
     if (intersect(p0, p1)) {
       return true;
     }
 
-    p0.set(min.x, max.y, min.z);
-    p1.set(min.x, max.y, max.z);
+    p0 = new Vec3f(min.x, max.y, min.z);
+    p1 = new Vec3f(min.x, max.y, max.z);
     if (intersect(p0, p1)) {
       return true;
     }
 
-    p0.set(max.x, max.y, min.z);
-    p1.set(max.x, max.y, max.z);
+    p0 = new Vec3f(max.x, max.y, min.z);
+    p1 = new Vec3f(max.x, max.y, max.z);
     if (intersect(p0, p1)) {
       return true;
     }

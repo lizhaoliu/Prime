@@ -10,6 +10,11 @@ import java.io.Serializable;
 public class Vec3f implements Serializable, Cloneable {
   private static final long serialVersionUID = 7314440075896007971L;
 
+  public static final Vec3f ZERO = new Vec3f();
+  public static final Vec3f UNIT_X = new Vec3f(1, 0, 0);
+  public static final Vec3f UNIT_Y = new Vec3f(0, 1, 0);
+  public static final Vec3f UNIT_Z = new Vec3f(0, 0, 1);
+
   /**
    * coordinate values
    */
@@ -66,39 +71,6 @@ public class Vec3f implements Serializable, Cloneable {
   }
 
   /**
-   * @param v
-   */
-  public void set(Vec3f v) {
-    x = v.x;
-    y = v.y;
-    z = v.z;
-  }
-
-  /**
-   * @param x
-   * @param y
-   * @param z
-   * @return
-   */
-  public Vec3f set(float x, float y, float z) {
-    this.x = x;
-    this.y = y;
-    this.z = z;
-    return this;
-  }
-
-  /**
-   * @param value
-   * @return
-   */
-  public Vec3f set(float value) {
-    this.x = value;
-    this.y = value;
-    this.z = value;
-    return this;
-  }
-
-  /**
    * @param i
    * @param val
    * @return
@@ -122,79 +94,14 @@ public class Vec3f implements Serializable, Cloneable {
    */
   public Vec3f normalize() {
     float invLen = 1.0f / (float) Math.sqrt(x * x + y * y + z * z);
-    x *= invLen;
-    y *= invLen;
-    z *= invLen;
-    return this;
-  }
-
-  /**
-   * @param v
-   * @return
-   */
-  public Vec3f add(Vec3f v) {
-    x += v.x;
-    y += v.y;
-    z += v.z;
-    return this;
-  }
-
-  /**
-   * @param x
-   * @param y
-   * @param z
-   * @return
-   */
-  public Vec3f add(float x, float y, float z) {
-    this.x += x;
-    this.y += y;
-    this.z += z;
-    return this;
-  }
-
-  /**
-   * @param v
-   * @return
-   */
-  public Vec3f sub(Vec3f v) {
-    x -= v.x;
-    y -= v.y;
-    z -= v.z;
-    return this;
-  }
-
-  /**
-   * @param x
-   * @param y
-   * @param z
-   * @return
-   */
-  public Vec3f sub(float x, float y, float z) {
-    this.x -= x;
-    this.y -= y;
-    this.z -= z;
-    return this;
-  }
-
-  /**
-   * @param a
-   * @return
-   */
-  public Vec3f mul(float a) {
-    x *= a;
-    y *= a;
-    z *= a;
-    return this;
+    return new Vec3f(x * invLen, y * invLen, z * invLen);
   }
 
   /**
    * @return
    */
   public Vec3f negate() {
-    x = -x;
-    y = -y;
-    z = -z;
-    return this;
+    return new Vec3f(-x, -y, -z);
   }
 
   @Override

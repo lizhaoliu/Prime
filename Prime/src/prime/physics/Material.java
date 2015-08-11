@@ -130,10 +130,9 @@ public abstract class Material {
    * @param origin
    * @param normal
    * @param inDir
-   * @param dest
    * @return the probability of sampling direction
    */
-  public abstract float samplingReflectionDirection(Vec3f origin, Vec3f normal, Vec3f inDir, Vec3f dest);
+  public abstract Sample samplingReflectionDirection(Vec3f origin, Vec3f normal, Vec3f inDir);
 
   /**
    * Importance sampling transmission direction according to {@link Material}
@@ -141,8 +140,20 @@ public abstract class Material {
    * @param origin
    * @param normal
    * @param inDir
-   * @param dest
    * @return the probability of sampling direction
    */
-  public abstract float samplingTransmissionDirection(Vec3f origin, Vec3f normal, Vec3f inDir, Vec3f dest);
+  public abstract Sample samplingTransmissionDirection(Vec3f origin, Vec3f normal, Vec3f inDir);
+
+  /**
+   *
+   */
+  public static class Sample {
+    public final Vec3f outDir;
+    public final float prob;
+
+    public Sample(Vec3f outDir, float prob) {
+      this.outDir = outDir;
+      this.prob = prob;
+    }
+  }
 }

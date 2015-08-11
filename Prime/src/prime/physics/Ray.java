@@ -28,32 +28,14 @@ public final class Ray implements Serializable {
    * @param v
    */
   public final void setOrigin(Vec3f v) {
-    origin.set(v);
-  }
-
-  /**
-   * @param x
-   * @param y
-   * @param z
-   */
-  public final void setOrigin(float x, float y, float z) {
-    origin.set(x, y, z);
+    origin = v;
   }
 
   /**
    * @param v
    */
   public final void setDirection(Vec3f v) {
-    direction.set(v);
-  }
-
-  /**
-   * @param x
-   * @param y
-   * @param z
-   */
-  public final void setDirection(float x, float y, float z) {
-    direction.set(x, y, z);
+    direction = v;
   }
 
   /**

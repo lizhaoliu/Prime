@@ -9,15 +9,16 @@ import static prime.math.MathUtils.dot;
 public class IdealSpecularModel extends Material {
 
   @Override
-  public float samplingReflectionDirection(Vec3f origin, Vec3f normal, Vec3f inDir, Vec3f dest) {
+  public Sample samplingReflectionDirection(Vec3f origin, Vec3f normal, Vec3f inDir) {
     float cos = 2 * cosThetaAbsoluteValue(normal, inDir);
-    dest.set(normal.x * cos + inDir.x, normal.y * cos + inDir.y, normal.z * cos + inDir.z);
-    return 1.0f;
+    Vec3f outDir = new Vec3f(normal.x * cos + inDir.x, normal.y * cos + inDir.y, normal.z * cos + inDir.z);
+    return new Sample(outDir, 1.0f);
   }
 
   @Override
-  public float samplingTransmissionDirection(Vec3f origin, Vec3f normal, Vec3f inDir, Vec3f dest) {
-    return 1.0f;
+  public Sample samplingTransmissionDirection(Vec3f origin, Vec3f normal, Vec3f inDir) {
+    // TODO implement this
+    return new Sample(Vec3f.ZERO, 0);
   }
 
   @Override

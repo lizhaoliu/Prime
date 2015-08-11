@@ -1,6 +1,6 @@
 package prime.core;
 
-import org.apache.commons.lang.math.RandomUtils;
+import prime.math.MathUtils;
 import prime.math.Vec3f;
 import prime.model.RayTriHitInfo;
 import prime.model.Triangle;
@@ -79,15 +79,19 @@ public class PathTracer extends Renderer {
     directIllumination(srcRay, hitPoint, normal, material, finalColor);
 
     // perform a Russian Roulette
-    float roulette = RandomUtils.nextFloat() * (refAvg + transAvg + abspAvg);
+    float roulette = MathUtils.rand() * (refAvg + transAvg + abspAvg);
     float factor;
     if (roulette < refAvg) // reflection
     {
-      factor = 1.0f / material.samplingReflectionDirection(hitPoint, normal, srcDir, newDir);
+      Material.Sample sample = material.samplingReflectionDirection(hitPoint, normal, srcDir);
+      newDir = sample.outDir;
+      factor = 1.0f / sample.prob;
       factor /= refAvg;
     } else if (roulette >= refAvg && roulette < (refAvg + transAvg)) // transmit
     {
-      factor = 1.0f / material.samplingTransmissionDirection(hitPoint, normal, srcDir, newDir);
+      Material.Sample sample = material.samplingTransmissionDirection(hitPoint, normal, srcDir);
+      newDir = sample.outDir;
+      factor = 1.0f / sample.prob;
       factor /= transAvg;
     } else {
       // connect(hitPoint, normal, bsdf, destSpectrum);
@@ -95,10 +99,10 @@ public class PathTracer extends Renderer {
       return;
     }
     factor *= Math.abs(dot(normal, newDir));
-    newRay.setOrigin(
+    newRay.setOrigin(new Vec3f(
         hitPoint.x + EPSILON * newDir.x,
         hitPoint.y + EPSILON * newDir.y,
-        hitPoint.z + EPSILON * newDir.z);
+        hitPoint.z + EPSILON * newDir.z));
     newRay.setDirection(newDir);
     newRay.setLengthToMax();
     newRay.getColor().zeroAll();

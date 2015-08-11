@@ -1,14 +1,8 @@
 package prime.model;
 
-import java.io.Serializable;
-import java.util.List;
-import java.util.concurrent.atomic.AtomicInteger;
-
-import javax.media.opengl.GL2;
-import javax.media.opengl.glu.GLU;
-
+import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 import org.apache.commons.collections.CollectionUtils;
-
 import prime.core.Camera;
 import prime.core.Drawable;
 import prime.math.MathUtils;
@@ -18,8 +12,11 @@ import prime.physics.Color3f;
 import prime.physics.Material;
 import prime.physics.Ray;
 
-import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
+import javax.media.opengl.GL2;
+import javax.media.opengl.glu.GLU;
+import java.io.Serializable;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * TriangleMesh is a 3D model consisted of {@link Triangle}s
@@ -67,18 +64,17 @@ public final class TriangleMesh implements Drawable, Serializable {
 
     nTriangles = vertexIndexList.size();
     area = calculateArea();
-    
+
     triangleArray = createTriangleArray();
   }
 
   /**
-   * 
    * @return
    */
   public Triangle[] getTriangleArray() {
     return triangleArray;
   }
-  
+
   private Triangle[] createTriangleArray() {
     Triangle[] triArray = new Triangle[nTriangles];
     for (int i = 0; i < nTriangles; i++) {
@@ -88,7 +84,6 @@ public final class TriangleMesh implements Drawable, Serializable {
   }
 
   /**
-   * 
    * @return
    */
   public String getName() {
@@ -96,7 +91,6 @@ public final class TriangleMesh implements Drawable, Serializable {
   }
 
   /**
-   * 
    * @param triangleId
    * @param vertexId
    * @return
@@ -106,7 +100,6 @@ public final class TriangleMesh implements Drawable, Serializable {
   }
 
   /**
-   * 
    * @param triangleId
    * @param normalId
    * @return
@@ -116,7 +109,6 @@ public final class TriangleMesh implements Drawable, Serializable {
   }
 
   /**
-   * 
    * @param triangleId
    * @param texCoordId
    * @return
@@ -126,7 +118,6 @@ public final class TriangleMesh implements Drawable, Serializable {
   }
 
   /**
-   * 
    * @param gl
    */
   private void genDisplayList(GL2 gl) {
@@ -204,7 +195,6 @@ public final class TriangleMesh implements Drawable, Serializable {
   }
 
   /**
-   * 
    * @return
    */
   public float getArea() {
@@ -212,8 +202,8 @@ public final class TriangleMesh implements Drawable, Serializable {
   }
 
   /**
-	 * 
-	 */
+   *
+   */
   private float calculateArea() {
     float area = 0.0f;
     for (int i = 0; i < nTriangles; i++) {
@@ -223,7 +213,6 @@ public final class TriangleMesh implements Drawable, Serializable {
   }
 
   /**
-   * 
    * @param gl
    * @param glu
    * @param camera
@@ -233,7 +222,6 @@ public final class TriangleMesh implements Drawable, Serializable {
   }
 
   /**
-   * 
    * @param material
    */
   public void setMaterial(Material material) {
@@ -241,7 +229,6 @@ public final class TriangleMesh implements Drawable, Serializable {
   }
 
   /**
-   * 
    * @return
    */
   public Material getMaterial() {
@@ -249,25 +236,22 @@ public final class TriangleMesh implements Drawable, Serializable {
   }
 
   /**
-   * 
    * @return
    */
   public Vec3f randomPoint() {
-    int base = (int) (MathUtils.random() * nTriangles);
+    int base = (int) (MathUtils.rand() * nTriangles);
     return Triangle.getRandomPoint(getVertex(base, 0), getVertex(base, 1), getVertex(base, 2));
   }
 
   /**
-   * 
    * @return
    */
   public Vec3f randomNormal(Vec3f dst) {
-    int base = (int) (MathUtils.random() * nTriangles);
+    int base = (int) (MathUtils.rand() * nTriangles);
     return Triangle.getRandomPoint(getNormal(base, 0), getNormal(base, 1), getNormal(base, 2));
   }
 
   /**
-   * 
    * @param dst
    */
   public void emitRandomRay(Ray dst) {
@@ -282,31 +266,27 @@ public final class TriangleMesh implements Drawable, Serializable {
   }
 
   /**
-   * 
    * @return
    */
   public int getTriangleCount() {
     return vertexIndexList.size();
   }
-  
+
   /**
-   * 
    * @return
    */
   public int getPositionCount() {
     return vertexList.size();
   }
-  
+
   /**
-   * 
    * @return
    */
   public int getNormalCount() {
     return normalList.size();
   }
-  
+
   /**
-   * 
    * @return
    */
   public int getTexCoordCount() {
