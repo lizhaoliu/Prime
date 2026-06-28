@@ -18,6 +18,7 @@ prime cornell -o cornell.png --width 800 --height 800 --samples 256
 | "Ray Tracing in One Weekend" — ~485 random spheres | `prime rtweekend` |
 | Cornell box (global illumination) | `prime cornell` |
 | Sphere field under a sky (defocus blur) | `prime spheres` |
+| Vibrant bunny + buddha (per-group materials, colored lights) | `prime assets/bunny_buddha.ron` |
 | Custom scene from a file | `prime myscene.ron` |
 | A bare mesh, auto-framed | `prime model.obj` |
 | **Interactive viewer in the browser** | `prime-serve` → open http://127.0.0.1:8080 |
@@ -177,9 +178,14 @@ See [`assets/demo.ron`](assets/demo.ron) for a complete example:
     objects: [
         Sphere(center: (x: 0.0, y: 1.0, z: 0.0), radius: 1.0, material: 1),
         Mesh(path: "scene.obj", material: 0, transform: Some((scale: 1.0, translate: (x: 0.0, y: 0.0, z: 0.0)))),
+        // Load just one OBJ group, so a multi-object file can use several materials:
+        Mesh(path: "scene.obj", material: 2, group: Some("bunny.obj")),
     ],
 )
 ```
+
+See [`assets/bunny_buddha.ron`](assets/bunny_buddha.ron) for a full multi-light
+scene that loads each group of `scene.obj` with its own material.
 
 ---
 
