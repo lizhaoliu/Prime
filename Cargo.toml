@@ -1,0 +1,33 @@
+[workspace]
+resolver = "2"
+members = ["crates/prime-core", "crates/prime-cli"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.96"
+license = "MIT"
+authors = ["lizhaoliu <lizhaoliu@gmail.com>"]
+description = "Prime: a headless, physically based path tracer"
+
+[workspace.dependencies]
+prime-core = { path = "crates/prime-core" }
+rayon = "1"
+image = { version = "0.25", default-features = false, features = ["png"] }
+clap = { version = "4", features = ["derive"] }
+rand = { version = "0.8", features = ["small_rng"] }
+serde = { version = "1", features = ["derive"] }
+ron = "0.8"
+thiserror = "1"
+anyhow = "1"
+indicatif = "0.17"
+
+# Optimize the renderer even in dev so test/sample renders aren't painfully slow,
+# while keeping debug assertions on. Release stays fully optimized.
+[profile.dev]
+opt-level = 2
+
+[profile.release]
+opt-level = 3
+lto = "thin"
+codegen-units = 1

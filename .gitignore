@@ -1,0 +1,13 @@
+# Rust
+/target
+**/*.rs.bk
+Cargo.lock.orig
+
+# Render output
+/out
+*.png
+!legacy-java/**/*.png
+
+# Editor / OS
+.DS_Store
+*.swp

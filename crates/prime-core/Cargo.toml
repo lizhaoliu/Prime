@@ -1,0 +1,23 @@
+[package]
+name = "prime-core"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+description = "Core rendering library for the Prime path tracer (headless, no I/O backend)"
+
+[dependencies]
+rayon.workspace = true
+rand.workspace = true
+serde = { workspace = true, optional = true }
+thiserror.workspace = true
+
+[features]
+default = ["serde"]
+# Enables (de)serialization of scene description types.
+serde = ["dep:serde"]
+
+[dev-dependencies]
+# Used to exercise SceneDesc serialization round-trips.
+ron.workspace = true
