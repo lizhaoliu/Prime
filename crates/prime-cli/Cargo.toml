@@ -1,0 +1,21 @@
+[package]
+name = "prime-cli"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+description = "Command-line front-end for the Prime path tracer"
+
+[[bin]]
+name = "prime"
+path = "src/main.rs"
+
+[dependencies]
+prime-core = { workspace = true, features = ["serde"] }
+clap.workspace = true
+image.workspace = true
+ron.workspace = true
+anyhow.workspace = true
+indicatif.workspace = true
+rayon.workspace = true

@@ -1,0 +1,40 @@
+// Example Prime scene in RON — the modern, human-readable replacement for the
+// legacy Java-serialized `.sce` format. Render with:
+//
+//     prime assets/demo.ron -o out/demo.png --samples 128 --tonemap reinhard
+//
+// Materials are referenced from objects by their index in the `materials` list.
+(
+    camera: (
+        look_from: (x: 0.0, y: 1.4, z: 6.5),
+        look_at:   (x: 0.0, y: 0.7, z: 0.0),
+        vup:       (x: 0.0, y: 1.0, z: 0.0),
+        vfov: 45.0,
+        aperture: 0.05,
+        focus_dist: Some(6.5),
+    ),
+    background: Gradient(
+        bottom: (x: 1.0, y: 1.0, z: 1.0),
+        top:    (x: 0.5, y: 0.7, z: 1.0),
+    ),
+    materials: [
+        Lambertian(albedo: (x: 0.5,  y: 0.5,  z: 0.5)),   // 0: ground
+        Lambertian(albedo: (x: 0.75, y: 0.25, z: 0.25)),  // 1: red diffuse
+        Metal(albedo: (x: 0.85, y: 0.85, z: 0.88), fuzz: 0.0), // 2: mirror
+        Dielectric(ior: 1.5),                              // 3: glass
+        Emissive(emit: (x: 8.0, y: 6.5, z: 5.0)),          // 4: warm light
+    ],
+    objects: [
+        Quad(
+            a: (x: -50.0, y: 0.0, z: -50.0),
+            b: (x:  50.0, y: 0.0, z: -50.0),
+            c: (x:  50.0, y: 0.0, z:  50.0),
+            d: (x: -50.0, y: 0.0, z:  50.0),
+            material: 0,
+        ),
+        Sphere(center: (x: -2.1, y: 1.0, z: 0.0), radius: 1.0, material: 1),
+        Sphere(center: (x:  0.0, y: 1.0, z: 0.0), radius: 1.0, material: 2),
+        Sphere(center: (x:  2.1, y: 1.0, z: 0.0), radius: 1.0, material: 3),
+        Sphere(center: (x:  0.0, y: 5.0, z: 3.0), radius: 1.2, material: 4),
+    ],
+)

@@ -1,0 +1,142 @@
+//! Triangle primitive using the Möller–Trumbore intersection test, with
+//! optional per-vertex (smooth) normals.
+
+use crate::aabb::Aabb;
+use crate::hit::HitRecord;
+use crate::math::Vec3;
+use crate::ray::Ray;
+use crate::{Float, MaterialId};
+
+#[derive(Clone, Copy, Debug)]
+pub struct Triangle {
+    pub v0: Vec3,
+    pub v1: Vec3,
+    pub v2: Vec3,
+    /// Optional smooth shading normals at each vertex; falls back to the flat
+    /// geometric normal when absent.
+    pub normals: Option<[Vec3; 3]>,
+    pub material: MaterialId,
+}
+
+impl Triangle {
+    pub fn new(v0: Vec3, v1: Vec3, v2: Vec3, material: MaterialId) -> Self {
+        Triangle {
+            v0,
+            v1,
+            v2,
+            normals: None,
+            material,
+        }
+    }
+
+    pub fn with_normals(mut self, normals: [Vec3; 3]) -> Self {
+        self.normals = Some(normals);
+        self
+    }
+
+    #[inline]
+    fn geometric_normal(&self) -> Vec3 {
+        (self.v1 - self.v0).cross(self.v2 - self.v0).normalize()
+    }
+
+    pub fn hit(&self, ray: &Ray, t_min: Float, t_max: Float) -> Option<HitRecord> {
+        const EPS: Float = 1e-8;
+        let e1 = self.v1 - self.v0;
+        let e2 = self.v2 - self.v0;
+        let pvec = ray.dir.cross(e2);
+        let det = e1.dot(pvec);
+        if det.abs() < EPS {
+            return None; // ray parallel to triangle plane
+        }
+        let inv_det = 1.0 / det;
+
+        let tvec = ray.origin - self.v0;
+        let u = tvec.dot(pvec) * inv_det;
+        if !(0.0..=1.0).contains(&u) {
+            return None;
+        }
+
+        let qvec = tvec.cross(e1);
+        let v = ray.dir.dot(qvec) * inv_det;
+        if v < 0.0 || u + v > 1.0 {
+            return None;
+        }
+
+        let t = e2.dot(qvec) * inv_det;
+        if t < t_min || t > t_max {
+            return None;
+        }
+
+        let w = 1.0 - u - v;
+        let outward = match self.normals {
+            Some([n0, n1, n2]) => (n0 * w + n1 * u + n2 * v).normalize_or(self.geometric_normal()),
+            None => self.geometric_normal(),
+        };
+
+        let p = ray.at(t);
+        Some(HitRecord::with_face_normal(
+            ray,
+            t,
+            p,
+            outward,
+            u,
+            v,
+            self.material,
+        ))
+    }
+
+    pub fn aabb(&self) -> Aabb {
+        // Pad degenerate (axis-aligned) triangles so the box has volume.
+        let mut b = Aabb::from_points(&[self.v0, self.v1, self.v2]);
+        const PAD: Float = 1e-4;
+        let d = b.max - b.min;
+        if d.x < PAD {
+            b.min.x -= PAD;
+            b.max.x += PAD;
+        }
+        if d.y < PAD {
+            b.min.y -= PAD;
+            b.max.y += PAD;
+        }
+        if d.z < PAD {
+            b.min.z -= PAD;
+            b.max.z += PAD;
+        }
+        b
+    }
+
+    pub fn centroid(&self) -> Vec3 {
+        (self.v0 + self.v1 + self.v2) * (1.0 / 3.0)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn ray_hits_triangle_center() {
+        let t = Triangle::new(
+            Vec3::new(-1.0, -1.0, 0.0),
+            Vec3::new(1.0, -1.0, 0.0),
+            Vec3::new(0.0, 1.0, 0.0),
+            0,
+        );
+        let r = Ray::new(Vec3::new(0.0, 0.0, -3.0), Vec3::new(0.0, 0.0, 1.0));
+        let h = t.hit(&r, 0.001, Float::INFINITY).expect("should hit");
+        assert!((h.t - 3.0).abs() < 1e-4);
+        assert!((h.normal - Vec3::new(0.0, 0.0, -1.0)).length() < 1e-4);
+    }
+
+    #[test]
+    fn ray_misses_outside_triangle() {
+        let t = Triangle::new(
+            Vec3::new(-1.0, -1.0, 0.0),
+            Vec3::new(1.0, -1.0, 0.0),
+            Vec3::new(0.0, 1.0, 0.0),
+            0,
+        );
+        let r = Ray::new(Vec3::new(5.0, 5.0, -3.0), Vec3::new(0.0, 0.0, 1.0));
+        assert!(t.hit(&r, 0.001, Float::INFINITY).is_none());
+    }
+}
