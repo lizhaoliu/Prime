@@ -26,8 +26,9 @@ use render::{encode_png, render_loop, Cmd, Orbit, Published, Settings, Shared};
 #[derive(Parser, Debug)]
 #[command(name = "prime-serve", version, about, long_about = None)]
 struct Args {
-    /// Scene: a built-in name (cornell, spheres), a .ron scene, or a .obj mesh.
-    #[arg(default_value = "cornell")]
+    /// Scene: a built-in name (showcase, cornell, spheres), a .ron scene, or a
+    /// .obj mesh.
+    #[arg(default_value = "showcase")]
     scene: String,
 
     /// Address to bind.
@@ -65,6 +66,11 @@ struct Args {
     /// Tonemap operator: clamp | reinhard.
     #[arg(long, default_value = "reinhard")]
     tonemap: String,
+
+    /// Clamp per-sample radiance to suppress fireflies in the live preview
+    /// (0 = disabled).
+    #[arg(long, default_value_t = 8.0)]
+    clamp: Float,
 }
 
 const INDEX: &str = include_str!("index.html");
@@ -102,7 +108,8 @@ fn main() -> Result<()> {
     {
         let shared = shared.clone();
         let scene_name = args.scene.clone();
-        thread::spawn(move || render_loop(rx, shared, scene, settings, orbit, scene_name));
+        let clamp = args.clamp;
+        thread::spawn(move || render_loop(rx, shared, scene, settings, orbit, scene_name, clamp));
     }
 
     let addr = format!("{}:{}", args.addr, args.port);

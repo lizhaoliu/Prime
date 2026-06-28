@@ -120,6 +120,140 @@ pub fn cornell_box() -> Scene {
     Scene::new(materials, prims, camera, Background::Solid(Color::ZERO))
 }
 
+/// A richer Cornell-style enclosure showing off the full material set: glass,
+/// a perfect mirror, brushed and rough GGX metals, and several colored diffuse
+/// spheres — all under a single area light with global illumination and color
+/// bleeding. This is the default scene.
+pub fn showcase() -> Scene {
+    let red = Material::Lambertian {
+        albedo: Color::new(0.65, 0.05, 0.05),
+    };
+    let green = Material::Lambertian {
+        albedo: Color::new(0.12, 0.45, 0.15),
+    };
+    let white = Material::Lambertian {
+        albedo: Color::new(0.73, 0.73, 0.73),
+    };
+    let light = Material::Emissive {
+        emit: Color::splat(18.0),
+    };
+    let glass = Material::Dielectric { ior: 1.5 };
+    let mirror = Material::Metal {
+        albedo: Color::new(0.95, 0.95, 0.97),
+        roughness: 0.0,
+    };
+    let brushed = Material::Metal {
+        albedo: Color::new(0.8, 0.82, 0.85),
+        roughness: 0.12,
+    };
+    let gold = Material::Metal {
+        albedo: Color::new(1.0, 0.78, 0.34),
+        roughness: 0.35,
+    };
+    let teal = Material::Lambertian {
+        albedo: Color::new(0.1, 0.6, 0.6),
+    };
+    let orange = Material::Lambertian {
+        albedo: Color::new(0.85, 0.45, 0.1),
+    };
+
+    let materials = vec![
+        red, green, white, light, glass, mirror, brushed, gold, teal, orange,
+    ];
+    const RED: MaterialId = 0;
+    const GREEN: MaterialId = 1;
+    const WHITE: MaterialId = 2;
+    const LIGHT: MaterialId = 3;
+    const GLASS: MaterialId = 4;
+    const MIRROR: MaterialId = 5;
+    const BRUSHED: MaterialId = 6;
+    const GOLD: MaterialId = 7;
+    const TEAL: MaterialId = 8;
+    const ORANGE: MaterialId = 9;
+
+    let mut prims = Vec::new();
+    // Enclosure (same 0..555 box as the Cornell scene).
+    quad(
+        &mut prims,
+        Vec3::new(555.0, 0.0, 0.0),
+        Vec3::new(555.0, 555.0, 0.0),
+        Vec3::new(555.0, 555.0, 555.0),
+        Vec3::new(555.0, 0.0, 555.0),
+        GREEN,
+    );
+    quad(
+        &mut prims,
+        Vec3::new(0.0, 0.0, 0.0),
+        Vec3::new(0.0, 0.0, 555.0),
+        Vec3::new(0.0, 555.0, 555.0),
+        Vec3::new(0.0, 555.0, 0.0),
+        RED,
+    );
+    quad(
+        &mut prims,
+        Vec3::new(0.0, 0.0, 0.0),
+        Vec3::new(555.0, 0.0, 0.0),
+        Vec3::new(555.0, 0.0, 555.0),
+        Vec3::new(0.0, 0.0, 555.0),
+        WHITE,
+    );
+    quad(
+        &mut prims,
+        Vec3::new(0.0, 555.0, 0.0),
+        Vec3::new(0.0, 555.0, 555.0),
+        Vec3::new(555.0, 555.0, 555.0),
+        Vec3::new(555.0, 555.0, 0.0),
+        WHITE,
+    );
+    quad(
+        &mut prims,
+        Vec3::new(0.0, 0.0, 555.0),
+        Vec3::new(555.0, 0.0, 555.0),
+        Vec3::new(555.0, 555.0, 555.0),
+        Vec3::new(0.0, 555.0, 555.0),
+        WHITE,
+    );
+    // A larger ceiling light for the busier scene.
+    quad(
+        &mut prims,
+        Vec3::new(193.0, 554.0, 207.0),
+        Vec3::new(363.0, 554.0, 207.0),
+        Vec3::new(363.0, 554.0, 352.0),
+        Vec3::new(193.0, 554.0, 352.0),
+        LIGHT,
+    );
+
+    // Back row: three large feature spheres.
+    let big = [
+        (Vec3::new(140.0, 90.0, 260.0), GLASS),
+        (Vec3::new(300.0, 90.0, 160.0), MIRROR),
+        (Vec3::new(430.0, 90.0, 300.0), GOLD),
+    ];
+    for (c, m) in big {
+        prims.push(Primitive::Sphere(Sphere::new(c, 90.0, m)));
+    }
+    // Front row: three smaller spheres.
+    let small = [
+        (Vec3::new(110.0, 55.0, 430.0), TEAL),
+        (Vec3::new(255.0, 55.0, 450.0), ORANGE),
+        (Vec3::new(410.0, 55.0, 440.0), BRUSHED),
+    ];
+    for (c, m) in small {
+        prims.push(Primitive::Sphere(Sphere::new(c, 55.0, m)));
+    }
+
+    let camera = CameraConfig {
+        look_from: Vec3::new(278.0, 278.0, -800.0),
+        look_at: Vec3::new(278.0, 278.0, 0.0),
+        vup: Vec3::new(0.0, 1.0, 0.0),
+        vfov: 40.0,
+        aperture: 0.0,
+        focus_dist: None,
+    };
+
+    Scene::new(materials, prims, camera, Background::Solid(Color::ZERO))
+}
+
 /// A simple outdoor scene: a large ground sphere with diffuse, metal, and glass
 /// spheres under a sky gradient. Fast to converge; good for smoke tests.
 pub fn spheres() -> Scene {
@@ -163,5 +297,9 @@ mod tests {
     fn demo_scenes_build() {
         assert!(cornell_box().primitive_count() > 0);
         assert!(spheres().primitive_count() > 0);
+        // The showcase has an area light, so it must register a light source.
+        let sc = showcase();
+        assert!(sc.primitive_count() > 0);
+        assert!(sc.num_lights() > 0);
     }
 }

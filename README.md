@@ -13,11 +13,12 @@ prime cornell -o cornell.png --width 800 --height 800 --samples 256
 
 | Scene | Command |
 |-------|---------|
-| Cornell box (global illumination, glass + metal) | `prime cornell` |
+| Material showcase — glass, mirror, GGX metals, diffuse (default) | `prime showcase` |
+| Cornell box (global illumination) | `prime cornell` |
 | Sphere field under a sky (defocus blur) | `prime spheres` |
 | Custom scene from a file | `prime myscene.ron` |
 | A bare mesh, auto-framed | `prime model.obj` |
-| **Interactive viewer in the browser** | `prime-serve cornell` → open http://127.0.0.1:8080 |
+| **Interactive viewer in the browser** | `prime-serve` → open http://127.0.0.1:8080 |
 
 ---
 
@@ -69,12 +70,13 @@ hit          intersection record (point, oriented normal, uv, material id)
 material     sealed BSDF enum: Lambertian / Metal / Dielectric / Emissive
 camera       thin-lens pinhole camera (look-at, fov, optional defocus)
 scene        material table + BVH + light list + camera config + background
-integrator   parallel path tracer: next-event estimation + MIS, Russian roulette
+integrator   parallel path tracer: next-event estimation + MIS, stratified
+             anti-aliasing, firefly clamp, Russian roulette
 framebuffer  linear HDR pixel buffer -> sRGB bytes
 color        tonemapping (clamp / Reinhard) + gamma
 obj          Wavefront OBJ loader (no UI dependency)
 desc         serializable `SceneDesc` (RON) -> `Scene`
-demo         built-in Cornell box and sphere scenes
+demo         built-in scenes: showcase, Cornell box, sphere field
 ```
 
 ### Pipeline
@@ -100,8 +102,8 @@ cargo run --release -- cornell -o out/cornell.png --samples 256
 ```
 prime [SCENE] [OPTIONS]
 
-SCENE                     built-in name (cornell, spheres), a .ron scene,
-                          or a .obj mesh                       [default: cornell]
+SCENE                     built-in name (showcase, cornell, spheres), a .ron
+                          scene, or a .obj mesh             [default: showcase]
 -o, --output <FILE>       output PNG                           [default: out.png]
 -w, --width  <N>          image width                          [default: 800]
     --height <N>          image height                         [default: 450]
@@ -111,6 +113,7 @@ SCENE                     built-in name (cornell, spheres), a .ron scene,
 -j, --threads <N>         worker threads                       [default: all cores]
     --tonemap <T>         clamp | reinhard                     [default: clamp]
     --gamma <F>           display gamma                        [default: 2.2]
+    --clamp <F>           firefly clamp; 0 disables (unbiased) [default: 0]
 ```
 
 ---

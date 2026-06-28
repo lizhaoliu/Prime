@@ -34,6 +34,9 @@ pub struct RenderSettings {
     pub max_depth: usize,
     /// Base RNG seed; the same seed reproduces the same image.
     pub seed: u64,
+    /// Clamp each path sample's radiance to this maximum to suppress fireflies.
+    /// `<= 0` disables clamping (keeping the estimator unbiased).
+    pub firefly_clamp: Float,
     pub tonemap: Tonemap,
     pub gamma: Float,
 }
@@ -46,6 +49,7 @@ impl Default for RenderSettings {
             samples_per_pixel: 64,
             max_depth: 32,
             seed: 0,
+            firefly_clamp: 0.0,
             tonemap: Tonemap::Clamp,
             gamma: 2.2,
         }
@@ -68,7 +72,12 @@ where
 
     let width = settings.width;
     let height = settings.height;
-    let inv_spp = 1.0 / settings.samples_per_pixel as Float;
+    let spp = settings.samples_per_pixel;
+    let inv_spp = 1.0 / spp as Float;
+    let max_depth = settings.max_depth;
+    let clamp = settings.firefly_clamp;
+    // Strata per axis for jittered-grid anti-aliasing.
+    let grid = (spp as f64).sqrt() as usize;
 
     fb.pixels_mut()
         .par_chunks_mut(width)
@@ -76,17 +85,11 @@ where
         .for_each(|(y, row)| {
             for (x, pixel) in row.iter_mut().enumerate() {
                 let mut rng = pixel_rng(settings.seed, x, y, 0);
-                let acc = sample_pixel(
-                    scene,
-                    &camera,
-                    x,
-                    y,
-                    width,
-                    height,
-                    settings.max_depth,
-                    settings.samples_per_pixel,
-                    &mut rng,
-                );
+                let mut acc = Color::ZERO;
+                for k in 0..spp {
+                    let (du, dv) = stratified_offset(k, grid, &mut rng);
+                    acc += estimate(scene, &camera, x, y, width, height, max_depth, clamp, du, dv, &mut rng);
+                }
                 *pixel = acc * inv_spp;
             }
             on_row_done();
@@ -116,6 +119,7 @@ pub struct ProgressiveRenderer {
     height: usize,
     max_depth: usize,
     seed: u64,
+    firefly_clamp: Float,
     camera: Camera,
     sum: Vec<Color>,
     samples: usize,
@@ -128,6 +132,7 @@ impl ProgressiveRenderer {
         height: usize,
         max_depth: usize,
         seed: u64,
+        firefly_clamp: Float,
     ) -> ProgressiveRenderer {
         let camera = Camera::new(camera_config, width as Float / height as Float);
         ProgressiveRenderer {
@@ -135,6 +140,7 @@ impl ProgressiveRenderer {
             height,
             max_depth,
             seed,
+            firefly_clamp,
             camera,
             sum: vec![Color::ZERO; width * height],
             samples: 0,
@@ -160,6 +166,7 @@ impl ProgressiveRenderer {
         let height = self.height;
         let max_depth = self.max_depth;
         let seed = self.seed;
+        let clamp = self.firefly_clamp;
         let salt = self.samples as u64;
         let camera = &self.camera;
 
@@ -169,9 +176,15 @@ impl ProgressiveRenderer {
             .for_each(|(y, row)| {
                 for (x, pixel) in row.iter_mut().enumerate() {
                     let mut rng = pixel_rng(seed, x, y, salt);
-                    *pixel += sample_pixel(
-                        scene, camera, x, y, width, height, max_depth, count, &mut rng,
-                    );
+                    let mut acc = Color::ZERO;
+                    for _ in 0..count {
+                        let du = rng.gen::<Float>();
+                        let dv = rng.gen::<Float>();
+                        acc += estimate(
+                            scene, camera, x, y, width, height, max_depth, clamp, du, dv, &mut rng,
+                        );
+                    }
+                    *pixel += acc;
                 }
             });
 
@@ -193,12 +206,12 @@ impl ProgressiveRenderer {
     }
 }
 
-/// Draw `count` jittered samples for pixel `(x, y)` and return their summed
-/// radiance (the caller divides by the sample count). The y axis is flipped so
+/// Trace a single camera sample for pixel `(x, y)` with sub-pixel offset
+/// `(du, dv)` in `[0, 1)`, applying the firefly clamp. The y axis is flipped so
 /// row 0 is the top of the image.
 #[inline]
 #[allow(clippy::too_many_arguments)]
-fn sample_pixel<R: Rng + ?Sized>(
+fn estimate<R: Rng + ?Sized>(
     scene: &Scene,
     camera: &Camera,
     x: usize,
@@ -206,17 +219,35 @@ fn sample_pixel<R: Rng + ?Sized>(
     width: usize,
     height: usize,
     max_depth: usize,
-    count: usize,
+    clamp: Float,
+    du: Float,
+    dv: Float,
     rng: &mut R,
 ) -> Color {
-    let mut acc = Color::ZERO;
-    for _ in 0..count {
-        let s = (x as Float + rng.gen::<Float>()) / width as Float;
-        let t = (height as Float - 1.0 - y as Float + rng.gen::<Float>()) / height as Float;
-        let ray = camera.get_ray(s, t, rng);
-        acc += radiance(scene, ray, max_depth, rng);
+    let s = (x as Float + du) / width as Float;
+    let t = (height as Float - 1.0 - y as Float + dv) / height as Float;
+    let ray = camera.get_ray(s, t, rng);
+    let c = radiance(scene, ray, max_depth, rng);
+    if clamp > 0.0 {
+        c.min(Color::splat(clamp))
+    } else {
+        c
     }
-    acc
+}
+
+/// Jittered-grid stratified sub-pixel offset for sample `k` of a `grid`×`grid`
+/// stratification. Samples beyond `grid²` (or when `grid == 0`) use fully random
+/// jitter, so any sample count is handled gracefully.
+#[inline]
+fn stratified_offset<R: Rng + ?Sized>(k: usize, grid: usize, rng: &mut R) -> (Float, Float) {
+    if grid > 0 && k < grid * grid {
+        let g = grid as Float;
+        let i = (k % grid) as Float;
+        let j = (k / grid) as Float;
+        ((i + rng.gen::<Float>()) / g, (j + rng.gen::<Float>()) / g)
+    } else {
+        (rng.gen::<Float>(), rng.gen::<Float>())
+    }
 }
 
 /// Estimate the radiance arriving along `ray` via iterative path tracing with
@@ -352,7 +383,7 @@ mod tests {
     #[test]
     fn progressive_accumulation_advances_and_renders() {
         let scene = demo::cornell_box();
-        let mut pr = ProgressiveRenderer::new(&scene.camera, 64, 64, 16, 0);
+        let mut pr = ProgressiveRenderer::new(&scene.camera, 64, 64, 16, 0, 0.0);
         assert_eq!(pr.samples(), 0);
         pr.render_pass(&scene, 4);
         pr.render_pass(&scene, 4);
@@ -374,12 +405,13 @@ mod tests {
             samples_per_pixel: 32,
             max_depth: 8,
             seed: 0,
+            firefly_clamp: 0.0,
             tonemap: Tonemap::Clamp,
             gamma: 2.2,
         };
         let batch = render_to_srgb(&scene, &settings, || {});
 
-        let mut pr = ProgressiveRenderer::new(&scene.camera, 48, 32, 8, 0);
+        let mut pr = ProgressiveRenderer::new(&scene.camera, 48, 32, 8, 0, 0.0);
         for _ in 0..32 {
             pr.render_pass(&scene, 1);
         }

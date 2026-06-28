@@ -26,9 +26,9 @@ use prime_core::{demo, integrator, Color, Float};
 #[derive(Parser, Debug)]
 #[command(name = "prime", version, about, long_about = None)]
 struct Args {
-    /// Scene to render: a built-in name (`cornell`, `spheres`), a `.ron` scene
-    /// file, or a `.obj` mesh.
-    #[arg(default_value = "cornell")]
+    /// Scene to render: a built-in name (`showcase`, `cornell`, `spheres`), a
+    /// `.ron` scene file, or a `.obj` mesh.
+    #[arg(default_value = "showcase")]
     scene: String,
 
     /// Output PNG path.
@@ -66,6 +66,11 @@ struct Args {
     /// Display gamma.
     #[arg(long, default_value_t = 2.2)]
     gamma: Float,
+
+    /// Clamp each path sample's radiance to suppress fireflies (0 = disabled,
+    /// keeping the render unbiased).
+    #[arg(long, default_value_t = 0.0)]
+    clamp: Float,
 }
 
 #[derive(Copy, Clone, Debug, ValueEnum)]
@@ -103,6 +108,7 @@ fn main() -> Result<()> {
         samples_per_pixel: args.samples,
         max_depth: args.depth,
         seed: args.seed,
+        firefly_clamp: args.clamp,
         tonemap: args.tonemap.into(),
         gamma: args.gamma,
     };
@@ -153,6 +159,7 @@ fn main() -> Result<()> {
 /// auto-framing a bare OBJ mesh.
 fn load_scene(source: &str, aspect: Float) -> Result<Scene> {
     match source {
+        "showcase" => return Ok(demo::showcase()),
         "cornell" => return Ok(demo::cornell_box()),
         "spheres" => return Ok(demo::spheres()),
         _ => {}
@@ -163,8 +170,8 @@ fn load_scene(source: &str, aspect: Float) -> Result<Scene> {
         Some("ron") => load_ron_scene(path),
         Some("obj") => load_obj_scene(path, aspect),
         _ => bail!(
-            "unknown scene '{source}': expected a built-in name (cornell, spheres), \
-             a .ron scene, or a .obj mesh"
+            "unknown scene '{source}': expected a built-in name (showcase, cornell, \
+             spheres), a .ron scene, or a .obj mesh"
         ),
     }
 }

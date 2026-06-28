@@ -18,6 +18,7 @@ use prime_core::{demo, obj, Color, Float};
 /// bare OBJ meshes.
 pub fn resolve(source: &str, aspect: Float) -> Result<Scene> {
     match source {
+        "showcase" => return Ok(demo::showcase()),
         "cornell" => return Ok(demo::cornell_box()),
         "spheres" => return Ok(demo::spheres()),
         _ => {}

@@ -109,7 +109,9 @@ pub fn encode_png(rgb: &[u8], width: usize, height: usize) -> Vec<u8> {
     out
 }
 
-/// Run the render loop until the command channel disconnects.
+/// Run the render loop until the command channel disconnects. `firefly_clamp`
+/// is a server-wide setting (from the CLI) that suppresses speckles in the live
+/// preview; `<= 0` disables it.
 pub fn render_loop(
     rx: Receiver<Cmd>,
     shared: Arc<Shared>,
@@ -117,8 +119,9 @@ pub fn render_loop(
     mut settings: Settings,
     mut orbit: Orbit,
     mut scene_name: String,
+    firefly_clamp: Float,
 ) {
-    let mut renderer = new_renderer(&orbit, &settings);
+    let mut renderer = new_renderer(&orbit, &settings, firefly_clamp);
 
     loop {
         // If converged, block (with a timeout) so we don't spin; otherwise just
@@ -139,7 +142,7 @@ pub fn render_loop(
             dirty = true;
         }
         if dirty {
-            renderer = new_renderer(&orbit, &settings);
+            renderer = new_renderer(&orbit, &settings, firefly_clamp);
         }
 
         let target = settings.target_spp.max(1);
@@ -152,13 +155,14 @@ pub fn render_loop(
     }
 }
 
-fn new_renderer(orbit: &Orbit, settings: &Settings) -> ProgressiveRenderer {
+fn new_renderer(orbit: &Orbit, settings: &Settings, firefly_clamp: Float) -> ProgressiveRenderer {
     ProgressiveRenderer::new(
         &orbit.to_camera(),
         settings.width.max(1),
         settings.height.max(1),
         settings.max_depth.max(1),
         0,
+        firefly_clamp,
     )
 }
 
