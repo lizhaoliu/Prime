@@ -8,8 +8,8 @@ use crate::hit::HitRecord;
 use crate::material::Material;
 use crate::math::Vec3;
 use crate::ray::Ray;
+use crate::sampler::Sampler;
 use crate::{Color, Float, MaterialId};
-use rand::Rng;
 
 /// What a ray sees when it escapes the scene.
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -104,13 +104,14 @@ impl Scene {
 
     /// Pick a light uniformly and sample a point on it, returning a direction
     /// and the solid-angle pdf for connecting the shading point `p` to it.
-    pub fn sample_light<R: Rng + ?Sized>(&self, p: Vec3, rng: &mut R) -> Option<LightSample> {
+    pub fn sample_light(&self, p: Vec3, sampler: &mut Sampler) -> Option<LightSample> {
         let n = self.lights.len();
         if n == 0 {
             return None;
         }
-        let light = &self.lights[rng.gen_range(0..n)];
-        let (q, n_light) = light.prim.sample(rng);
+        let idx = ((sampler.next_1d() * n as Float) as usize).min(n - 1);
+        let light = &self.lights[idx];
+        let (q, n_light) = light.prim.sample(sampler);
         let d = q - p;
         let dist2 = d.length_squared();
         if dist2 < 1e-8 {

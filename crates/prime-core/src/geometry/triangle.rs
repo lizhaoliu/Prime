@@ -5,8 +5,8 @@ use crate::aabb::Aabb;
 use crate::hit::HitRecord;
 use crate::math::Vec3;
 use crate::ray::Ray;
+use crate::sampler::Sampler;
 use crate::{Float, MaterialId};
-use rand::Rng;
 
 #[derive(Clone, Copy, Debug)]
 pub struct Triangle {
@@ -41,9 +41,8 @@ impl Triangle {
 
     /// Uniformly sample a point on the triangle, returning the point and its
     /// (geometric) normal.
-    pub fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> (Vec3, Vec3) {
-        let mut r1: Float = rng.gen();
-        let mut r2: Float = rng.gen();
+    pub fn sample(&self, sampler: &mut Sampler) -> (Vec3, Vec3) {
+        let (mut r1, mut r2) = sampler.next_2d();
         if r1 + r2 > 1.0 {
             r1 = 1.0 - r1;
             r2 = 1.0 - r2;

@@ -67,11 +67,12 @@ aabb         axis-aligned box + slab test
 geometry/    Sphere, Triangle (Möller–Trumbore), sealed `Primitive` enum
 bvh          binned-SAH bounding volume hierarchy, iterative traversal
 hit          intersection record (point, oriented normal, uv, material id)
-material     sealed BSDF enum: Lambertian / Metal / Dielectric / Emissive
+material     sealed BSDF enum: Lambertian / GGX Metal / Dielectric / Emissive
+sampler      low-discrepancy sampling: Owen-scrambled Sobol (Burley 2020)
 camera       thin-lens pinhole camera (look-at, fov, optional defocus)
 scene        material table + BVH + light list + camera config + background
-integrator   parallel path tracer: next-event estimation + MIS, stratified
-             anti-aliasing, firefly clamp, Russian roulette
+integrator   parallel path tracer: next-event estimation + MIS, quasi-Monte
+             -Carlo sampling, firefly clamp, Russian roulette
 framebuffer  linear HDR pixel buffer -> sRGB bytes
 color        tonemapping (clamp / Reinhard) + gamma
 obj          Wavefront OBJ loader (no UI dependency)
@@ -114,6 +115,7 @@ SCENE                     built-in name (showcase, cornell, spheres), a .ron
     --tonemap <T>         clamp | reinhard                     [default: clamp]
     --gamma <F>           display gamma                        [default: 2.2]
     --clamp <F>           firefly clamp; 0 disables (unbiased) [default: 0]
+    --no-qmc              use white-noise instead of QMC sampling
 ```
 
 ---

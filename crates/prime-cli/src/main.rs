@@ -71,6 +71,11 @@ struct Args {
     /// keeping the render unbiased).
     #[arg(long, default_value_t = 0.0)]
     clamp: Float,
+
+    /// Use plain white-noise sampling instead of the low-discrepancy (QMC)
+    /// sampler. Mostly useful for comparison.
+    #[arg(long)]
+    no_qmc: bool,
 }
 
 #[derive(Copy, Clone, Debug, ValueEnum)]
@@ -108,6 +113,7 @@ fn main() -> Result<()> {
         samples_per_pixel: args.samples,
         max_depth: args.depth,
         seed: args.seed,
+        low_discrepancy: !args.no_qmc,
         firefly_clamp: args.clamp,
         tonemap: args.tonemap.into(),
         gamma: args.gamma,

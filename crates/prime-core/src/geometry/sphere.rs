@@ -6,8 +6,8 @@ use crate::hit::HitRecord;
 use crate::math::sampling::random_unit_vector;
 use crate::math::Vec3;
 use crate::ray::Ray;
+use crate::sampler::Sampler;
 use crate::{Float, MaterialId};
-use rand::Rng;
 use std::f32::consts::PI;
 
 #[derive(Clone, Copy, Debug)]
@@ -77,8 +77,8 @@ impl Sphere {
 
     /// Uniformly sample a point on the sphere surface, returning the point and
     /// its outward normal.
-    pub fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> (Vec3, Vec3) {
-        let dir = random_unit_vector(rng);
+    pub fn sample(&self, sampler: &mut Sampler) -> (Vec3, Vec3) {
+        let dir = random_unit_vector(sampler);
         (self.center + dir * self.radius, dir)
     }
 }

@@ -22,8 +22,8 @@
 use crate::hit::HitRecord;
 use crate::math::sampling::cosine_weighted_hemisphere;
 use crate::math::{Onb, Vec3};
+use crate::sampler::Sampler;
 use crate::{Color, Float};
-use rand::Rng;
 use std::f32::consts::{FRAC_1_PI, PI};
 
 /// Below this roughness a [`Material::Metal`] is treated as a perfect mirror
@@ -81,16 +81,11 @@ impl Material {
     }
 
     /// Importance-sample an outgoing direction, or `None` if absorbed.
-    pub fn sample<R: Rng + ?Sized>(
-        &self,
-        wo: Vec3,
-        hit: &HitRecord,
-        rng: &mut R,
-    ) -> Option<BsdfSample> {
+    pub fn sample(&self, wo: Vec3, hit: &HitRecord, sampler: &mut Sampler) -> Option<BsdfSample> {
         let n = hit.normal;
         match *self {
             Material::Lambertian { albedo } => {
-                let mut wi = cosine_weighted_hemisphere(rng, n);
+                let mut wi = cosine_weighted_hemisphere(sampler, n);
                 if wi.is_near_zero() {
                     wi = n;
                 }
@@ -130,7 +125,7 @@ impl Material {
                 if wo_l.z <= 0.0 {
                     return None;
                 }
-                let h = onb.local(sample_ggx_vndf(wo_l, a, rng));
+                let h = onb.local(sample_ggx_vndf(wo_l, a, sampler));
                 let wi = (-wo).reflect(h);
                 if wi.dot(n) <= 0.0 {
                     return None;
@@ -154,7 +149,7 @@ impl Material {
                 let sin_theta = (1.0 - cos_theta * cos_theta).max(0.0).sqrt();
                 let cannot_refract = eta_ratio * sin_theta > 1.0;
                 let wi = if cannot_refract
-                    || schlick_reflectance(cos_theta, eta_ratio) > rng.gen::<Float>()
+                    || schlick_reflectance(cos_theta, eta_ratio) > sampler.next_1d()
                 {
                     incoming.reflect(n)
                 } else {
@@ -285,7 +280,7 @@ fn fresnel_schlick(cos: Float, f0: Color) -> Color {
 /// Sample the GGX distribution of visible normals (Heitz 2018), isotropic.
 /// `ve` is the view direction in the local frame (z = surface normal); returns
 /// a microfacet normal in the same local frame.
-fn sample_ggx_vndf<R: Rng + ?Sized>(ve: Vec3, alpha: Float, rng: &mut R) -> Vec3 {
+fn sample_ggx_vndf(ve: Vec3, alpha: Float, sampler: &mut Sampler) -> Vec3 {
     // Transform the view direction to the hemisphere configuration.
     let vh = Vec3::new(alpha * ve.x, alpha * ve.y, ve.z).normalize();
     // Orthonormal basis around vh.
@@ -297,8 +292,7 @@ fn sample_ggx_vndf<R: Rng + ?Sized>(ve: Vec3, alpha: Float, rng: &mut R) -> Vec3
     };
     let t2 = vh.cross(t1);
     // Sample a point on the projected disk.
-    let u1: Float = rng.gen();
-    let u2: Float = rng.gen();
+    let (u1, u2) = sampler.next_2d();
     let r = u1.sqrt();
     let phi = 2.0 * PI * u2;
     let p1 = r * phi.cos();
@@ -321,8 +315,6 @@ fn schlick_reflectance(cosine: Float, eta_ratio: Float) -> Float {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use rand::rngs::SmallRng;
-    use rand::SeedableRng;
 
     fn flat_hit(front_face: bool) -> HitRecord {
         HitRecord {
@@ -339,13 +331,13 @@ mod tests {
 
     #[test]
     fn lambertian_sample_eval_pdf_are_consistent() {
-        let mut rng = SmallRng::seed_from_u64(1);
+        let mut sampler = Sampler::random(1);
         let albedo = Color::new(0.5, 0.4, 0.3);
         let m = Material::Lambertian { albedo };
         let hit = flat_hit(true);
         let wo = Vec3::new(0.0, 1.0, 0.0);
         for _ in 0..1000 {
-            let s = m.sample(wo, &hit, &mut rng).unwrap();
+            let s = m.sample(wo, &hit, &mut sampler).unwrap();
             assert!(s.wi.dot(hit.normal) >= -1e-4);
             assert!((s.f - m.eval(wo, s.wi, &hit)).length() < 1e-5);
             assert!((s.pdf - m.pdf(wo, s.wi, &hit)).abs() < 1e-5);
@@ -355,12 +347,12 @@ mod tests {
 
     #[test]
     fn emissive_does_not_scatter_but_emits() {
-        let mut rng = SmallRng::seed_from_u64(2);
+        let mut sampler = Sampler::random(2);
         let m = Material::Emissive {
             emit: Color::new(4.0, 4.0, 4.0),
         };
         assert!(m
-            .sample(Vec3::new(0.0, 1.0, 0.0), &flat_hit(true), &mut rng)
+            .sample(Vec3::new(0.0, 1.0, 0.0), &flat_hit(true), &mut sampler)
             .is_none());
         assert_eq!(m.emitted(), Color::new(4.0, 4.0, 4.0));
         assert!(!m.is_specular());
@@ -368,14 +360,14 @@ mod tests {
 
     #[test]
     fn mirror_metal_reflects_and_is_specular() {
-        let mut rng = SmallRng::seed_from_u64(3);
+        let mut sampler = Sampler::random(3);
         let m = Material::Metal {
             albedo: Color::ONE,
             roughness: 0.0,
         };
         assert!(m.is_specular());
         let wo = Vec3::new(-1.0, 1.0, 0.0).normalize();
-        let s = m.sample(wo, &flat_hit(true), &mut rng).unwrap();
+        let s = m.sample(wo, &flat_hit(true), &mut sampler).unwrap();
         assert!(s.specular);
         let expected = Vec3::new(1.0, 1.0, 0.0).normalize();
         assert!((s.wi - expected).length() < 1e-4);
@@ -385,7 +377,7 @@ mod tests {
     fn rough_metal_is_non_specular_and_energy_conserving() {
         // With F0 = 1 (white), the single-scattering throughput weight is
         // G2/G1 <= 1, so the directional albedo must not exceed ~1.
-        let mut rng = SmallRng::seed_from_u64(7);
+        let mut sampler = Sampler::random(7);
         let m = Material::Metal {
             albedo: Color::ONE,
             roughness: 0.3,
@@ -398,7 +390,7 @@ mod tests {
         for _ in 0..n {
             // Below-surface microfacet reflections are legitimately rejected
             // (None) and contribute zero to the directional albedo.
-            if let Some(s) = m.sample(wo, &hit, &mut rng) {
+            if let Some(s) = m.sample(wo, &hit, &mut sampler) {
                 assert!(!s.specular);
                 let cos = s.wi.dot(hit.normal).max(0.0);
                 let weight = (s.f * (cos / s.pdf)).max_component();
@@ -415,10 +407,10 @@ mod tests {
 
     #[test]
     fn dielectric_is_specular_and_white() {
-        let mut rng = SmallRng::seed_from_u64(4);
+        let mut sampler = Sampler::random(4);
         let m = Material::Dielectric { ior: 1.5 };
         let s = m
-            .sample(Vec3::new(0.0, 1.0, 0.0), &flat_hit(true), &mut rng)
+            .sample(Vec3::new(0.0, 1.0, 0.0), &flat_hit(true), &mut sampler)
             .unwrap();
         assert!(s.specular);
         assert_eq!(s.f, Color::ONE);
