@@ -5,7 +5,9 @@ use crate::geometry::{Primitive, Sphere, Triangle};
 use crate::material::Material;
 use crate::math::Vec3;
 use crate::scene::{Background, Scene};
-use crate::{Color, MaterialId};
+use crate::{Color, Float, MaterialId};
+use rand::rngs::SmallRng;
+use rand::{Rng, SeedableRng};
 
 /// Add a quad (as two triangles) spanning corners `a, b, c, d` (in order).
 fn quad(prims: &mut Vec<Primitive>, a: Vec3, b: Vec3, c: Vec3, d: Vec3, m: MaterialId) {
@@ -289,6 +291,210 @@ pub fn spheres() -> Scene {
     Scene::new(materials, prims, camera, Background::default())
 }
 
+/// The classic "Ray Tracing in One Weekend" final scene: a large ground sphere
+/// strewn with hundreds of small spheres of randomized materials (diffuse,
+/// metal, glass) plus three big feature spheres, under a sky gradient. A good
+/// stress test for the BVH and a busy mix of every material. Generated from a
+/// fixed seed, so it is fully reproducible.
+pub fn rtweekend() -> Scene {
+    let mut rng = SmallRng::seed_from_u64(2024);
+    let mut materials: Vec<Material> = vec![Material::Lambertian {
+        albedo: Color::new(0.5, 0.5, 0.5),
+    }];
+    let mut prims: Vec<Primitive> =
+        vec![Sphere::new(Vec3::new(0.0, -1000.0, 0.0), 1000.0, 0).into()];
+
+    let mut push = |m: Material, center: Vec3, radius: Float, prims: &mut Vec<Primitive>| {
+        materials.push(m);
+        prims.push(Sphere::new(center, radius, materials.len() - 1).into());
+    };
+
+    for a in -11..11 {
+        for b in -11..11 {
+            let choose: Float = rng.gen();
+            let center = Vec3::new(
+                a as Float + 0.9 * rng.gen::<Float>(),
+                0.2,
+                b as Float + 0.9 * rng.gen::<Float>(),
+            );
+            if (center - Vec3::new(4.0, 0.2, 0.0)).length() <= 0.9 {
+                continue; // keep clear of the big glass sphere
+            }
+            let m = if choose < 0.8 {
+                let a = Color::new(
+                    rng.gen::<Float>() * rng.gen::<Float>(),
+                    rng.gen::<Float>() * rng.gen::<Float>(),
+                    rng.gen::<Float>() * rng.gen::<Float>(),
+                );
+                Material::Lambertian { albedo: a }
+            } else if choose < 0.95 {
+                let a = Color::new(
+                    0.5 + 0.5 * rng.gen::<Float>(),
+                    0.5 + 0.5 * rng.gen::<Float>(),
+                    0.5 + 0.5 * rng.gen::<Float>(),
+                );
+                Material::Metal {
+                    albedo: a,
+                    roughness: 0.5 * rng.gen::<Float>(),
+                }
+            } else {
+                Material::Dielectric { ior: 1.5 }
+            };
+            push(m, center, 0.2, &mut prims);
+        }
+    }
+
+    push(Material::Dielectric { ior: 1.5 }, Vec3::new(0.0, 1.0, 0.0), 1.0, &mut prims);
+    push(
+        Material::Lambertian {
+            albedo: Color::new(0.4, 0.2, 0.1),
+        },
+        Vec3::new(-4.0, 1.0, 0.0),
+        1.0,
+        &mut prims,
+    );
+    push(
+        Material::Metal {
+            albedo: Color::new(0.7, 0.6, 0.5),
+            roughness: 0.0,
+        },
+        Vec3::new(4.0, 1.0, 0.0),
+        1.0,
+        &mut prims,
+    );
+
+    let camera = CameraConfig {
+        look_from: Vec3::new(13.0, 2.0, 3.0),
+        look_at: Vec3::new(0.0, 0.0, 0.0),
+        vup: Vec3::new(0.0, 1.0, 0.0),
+        vfov: 20.0,
+        aperture: 0.1,
+        focus_dist: Some(10.0),
+    };
+
+    Scene::new(
+        materials,
+        prims,
+        camera,
+        Background::Gradient {
+            bottom: Color::ONE,
+            top: Color::new(0.5, 0.7, 1.0),
+        },
+    )
+}
+
+/// An area-lit "material studio": a grid of spheres sweeping GGX roughness
+/// left-to-right across three metal tints, with a row of glass and a row of
+/// rainbow diffuse in front, on a neutral floor under a large soft light. Shows
+/// the full BRDF range and exercises next-event estimation.
+pub fn studio() -> Scene {
+    const COLS: usize = 9;
+    const SPACING: Float = 1.15;
+    const RADIUS: Float = 0.45;
+
+    let mut materials: Vec<Material> = Vec::new();
+    let mut prims: Vec<Primitive> = Vec::new();
+
+    // Floor and a big overhead area light.
+    materials.push(Material::Lambertian {
+        albedo: Color::splat(0.55),
+    });
+    let floor = 0;
+    quad(
+        &mut prims,
+        Vec3::new(-25.0, 0.0, -25.0),
+        Vec3::new(25.0, 0.0, -25.0),
+        Vec3::new(25.0, 0.0, 25.0),
+        Vec3::new(-25.0, 0.0, 25.0),
+        floor,
+    );
+    materials.push(Material::Emissive {
+        emit: Color::splat(7.0),
+    });
+    let light = materials.len() - 1;
+    quad(
+        &mut prims,
+        Vec3::new(-6.0, 9.0, -4.0),
+        Vec3::new(6.0, 9.0, -4.0),
+        Vec3::new(6.0, 9.0, 4.0),
+        Vec3::new(-6.0, 9.0, 4.0),
+        light,
+    );
+
+    let x_of = |c: usize| -((COLS - 1) as Float) * SPACING / 2.0 + c as Float * SPACING;
+    let mut add_sphere = |m: Material, x: Float, z: Float, prims: &mut Vec<Primitive>| {
+        materials.push(m);
+        prims.push(Sphere::new(Vec3::new(x, RADIUS, z), RADIUS, materials.len() - 1).into());
+    };
+
+    // Three metal rows (gold, silver, copper), roughness 0 -> 1 across columns.
+    let tints = [
+        Color::new(1.0, 0.78, 0.34),
+        Color::new(0.95, 0.95, 0.97),
+        Color::new(0.95, 0.64, 0.54),
+    ];
+    for (ri, &tint) in tints.iter().enumerate() {
+        let z = ri as Float * SPACING;
+        for c in 0..COLS {
+            let roughness = c as Float / (COLS - 1) as Float;
+            add_sphere(
+                Material::Metal {
+                    albedo: tint,
+                    roughness,
+                },
+                x_of(c),
+                z,
+                &mut prims,
+            );
+        }
+    }
+    // A glass row and a rainbow diffuse row, in front of the metals.
+    for c in 0..COLS {
+        add_sphere(Material::Dielectric { ior: 1.5 }, x_of(c), -SPACING, &mut prims);
+    }
+    for c in 0..COLS {
+        let albedo = hsv(c as Float / COLS as Float, 0.7, 0.9);
+        add_sphere(Material::Lambertian { albedo }, x_of(c), -2.0 * SPACING, &mut prims);
+    }
+
+    let camera = CameraConfig {
+        look_from: Vec3::new(0.0, 6.5, -11.0),
+        look_at: Vec3::new(0.0, 0.3, 0.4),
+        vup: Vec3::new(0.0, 1.0, 0.0),
+        vfov: 38.0,
+        aperture: 0.0,
+        focus_dist: None,
+    };
+
+    Scene::new(
+        materials,
+        prims,
+        camera,
+        Background::Gradient {
+            bottom: Color::new(0.15, 0.16, 0.18),
+            top: Color::new(0.35, 0.4, 0.5),
+        },
+    )
+}
+
+/// HSV (`h, s, v` in `[0, 1]`) to linear RGB, for the rainbow diffuse row.
+fn hsv(h: Float, s: Float, v: Float) -> Color {
+    let h6 = h.fract() * 6.0;
+    let i = h6.floor() as i32;
+    let f = h6 - i as Float;
+    let p = v * (1.0 - s);
+    let q = v * (1.0 - s * f);
+    let t = v * (1.0 - s * (1.0 - f));
+    match i.rem_euclid(6) {
+        0 => Color::new(v, t, p),
+        1 => Color::new(q, v, p),
+        2 => Color::new(p, v, t),
+        3 => Color::new(p, q, v),
+        4 => Color::new(t, p, v),
+        _ => Color::new(v, p, q),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -301,5 +507,10 @@ mod tests {
         let sc = showcase();
         assert!(sc.primitive_count() > 0);
         assert!(sc.num_lights() > 0);
+        // The bigger scenes.
+        assert!(rtweekend().primitive_count() > 100);
+        let studio = studio();
+        assert!(studio.primitive_count() > 0);
+        assert!(studio.num_lights() > 0);
     }
 }

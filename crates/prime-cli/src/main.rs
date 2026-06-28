@@ -26,8 +26,8 @@ use prime_core::{demo, integrator, Color, Float};
 #[derive(Parser, Debug)]
 #[command(name = "prime", version, about, long_about = None)]
 struct Args {
-    /// Scene to render: a built-in name (`showcase`, `cornell`, `spheres`), a
-    /// `.ron` scene file, or a `.obj` mesh.
+    /// Scene to render: a built-in name (`showcase`, `studio`, `rtweekend`,
+    /// `cornell`, `spheres`), a `.ron` scene file, or a `.obj` mesh.
     #[arg(default_value = "showcase")]
     scene: String,
 
@@ -168,6 +168,8 @@ fn load_scene(source: &str, aspect: Float) -> Result<Scene> {
         "showcase" => return Ok(demo::showcase()),
         "cornell" => return Ok(demo::cornell_box()),
         "spheres" => return Ok(demo::spheres()),
+        "rtweekend" => return Ok(demo::rtweekend()),
+        "studio" => return Ok(demo::studio()),
         _ => {}
     }
 
@@ -176,8 +178,8 @@ fn load_scene(source: &str, aspect: Float) -> Result<Scene> {
         Some("ron") => load_ron_scene(path),
         Some("obj") => load_obj_scene(path, aspect),
         _ => bail!(
-            "unknown scene '{source}': expected a built-in name (showcase, cornell, \
-             spheres), a .ron scene, or a .obj mesh"
+            "unknown scene '{source}': expected a built-in name (showcase, studio, \
+             rtweekend, cornell, spheres), a .ron scene, or a .obj mesh"
         ),
     }
 }

@@ -26,8 +26,8 @@ use render::{encode_png, render_loop, Cmd, Orbit, Published, Settings, Shared};
 #[derive(Parser, Debug)]
 #[command(name = "prime-serve", version, about, long_about = None)]
 struct Args {
-    /// Scene: a built-in name (showcase, cornell, spheres), a .ron scene, or a
-    /// .obj mesh.
+    /// Scene: a built-in name (showcase, studio, rtweekend, cornell, spheres),
+    /// a .ron scene, or a .obj mesh.
     #[arg(default_value = "showcase")]
     scene: String,
 

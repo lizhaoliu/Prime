@@ -14,6 +14,8 @@ prime cornell -o cornell.png --width 800 --height 800 --samples 256
 | Scene | Command |
 |-------|---------|
 | Material showcase — glass, mirror, GGX metals, diffuse (default) | `prime showcase` |
+| Material studio — area-lit GGX roughness sweep + glass/diffuse | `prime studio` |
+| "Ray Tracing in One Weekend" — ~485 random spheres | `prime rtweekend` |
 | Cornell box (global illumination) | `prime cornell` |
 | Sphere field under a sky (defocus blur) | `prime spheres` |
 | Custom scene from a file | `prime myscene.ron` |
@@ -77,7 +79,7 @@ framebuffer  linear HDR pixel buffer -> sRGB bytes
 color        tonemapping (clamp / Reinhard) + gamma
 obj          Wavefront OBJ loader (no UI dependency)
 desc         serializable `SceneDesc` (RON) -> `Scene`
-demo         built-in scenes: showcase, Cornell box, sphere field
+demo         built-in scenes: showcase, studio, rtweekend, Cornell, spheres
 ```
 
 ### Pipeline
@@ -103,8 +105,8 @@ cargo run --release -- cornell -o out/cornell.png --samples 256
 ```
 prime [SCENE] [OPTIONS]
 
-SCENE                     built-in name (showcase, cornell, spheres), a .ron
-                          scene, or a .obj mesh             [default: showcase]
+SCENE                     built-in (showcase, studio, rtweekend, cornell,
+                          spheres), a .ron scene, or .obj   [default: showcase]
 -o, --output <FILE>       output PNG                           [default: out.png]
 -w, --width  <N>          image width                          [default: 800]
     --height <N>          image height                         [default: 450]
