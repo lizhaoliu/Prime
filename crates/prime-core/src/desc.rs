@@ -155,7 +155,12 @@ impl SceneDesc {
             }
         }
 
-        Ok(Scene::new(self.materials, prims, self.camera, self.background))
+        Ok(Scene::new(
+            self.materials,
+            prims,
+            self.camera,
+            self.background,
+        ))
     }
 }
 
@@ -189,9 +194,7 @@ mod tests {
         let desc = SceneDesc {
             camera: CameraConfig::default(),
             background: Background::default(),
-            materials: vec![Material::Lambertian {
-                albedo: Color::ONE,
-            }],
+            materials: vec![Material::Lambertian { albedo: Color::ONE }],
             objects: vec![ObjectDesc::Sphere {
                 center: Vec3::ZERO,
                 radius: 1.0,

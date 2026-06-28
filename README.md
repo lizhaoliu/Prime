@@ -28,9 +28,9 @@ prime cornell -o cornell.png --width 800 --height 800 --samples 256
 ## Why this exists / what changed
 
 Prime began as a ~5,700-line Java 1.7 renderer with a Swing + JOGL (OpenGL)
-scene editor. That code is preserved under [`legacy-java/`](legacy-java/) for
-reference. It was rebuilt from scratch in Rust with a focus on **a clean,
-headless, testable architecture**. The most important changes:
+scene editor. That original code lives on in git history at the **`java-final`**
+tag (`git checkout java-final`). It was rebuilt from scratch in Rust with a focus
+on **a clean, headless, testable architecture**. The most important changes:
 
 | Concern | Legacy (Java) | Now (Rust) |
 |--------|----------------|------------|

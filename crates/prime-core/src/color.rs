@@ -20,11 +20,9 @@ impl Tonemap {
     fn apply(self, c: Color) -> Color {
         match self {
             Tonemap::Clamp => c,
-            Tonemap::Reinhard => Color::new(
-                c.x / (1.0 + c.x),
-                c.y / (1.0 + c.y),
-                c.z / (1.0 + c.z),
-            ),
+            Tonemap::Reinhard => {
+                Color::new(c.x / (1.0 + c.x), c.y / (1.0 + c.y), c.z / (1.0 + c.z))
+            }
         }
     }
 }

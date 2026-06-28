@@ -108,7 +108,9 @@ mod tests {
     fn ray_from_inside_hits_far_wall_with_flipped_normal() {
         let s = Sphere::new(Vec3::ZERO, 1.0, 0);
         let r = Ray::new(Vec3::ZERO, Vec3::new(0.0, 0.0, 1.0));
-        let h = s.hit(&r, 0.001, Float::INFINITY).expect("should hit from inside");
+        let h = s
+            .hit(&r, 0.001, Float::INFINITY)
+            .expect("should hit from inside");
         assert!((h.t - 1.0).abs() < 1e-4);
         assert!(!h.front_face);
         // Normal points back toward the ray origin (inward).

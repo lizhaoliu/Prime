@@ -111,8 +111,14 @@ pub fn load_filtered(
                 }
                 // Fan-triangulate the (possibly n-gon) face.
                 for i in 1..verts.len() - 1 {
-                    let tri =
-                        make_triangle(&positions, &normals, verts[0], verts[i], verts[i + 1], material)?;
+                    let tri = make_triangle(
+                        &positions,
+                        &normals,
+                        verts[0],
+                        verts[i],
+                        verts[i + 1],
+                        material,
+                    )?;
                     triangles.push(tri);
                 }
             }
@@ -133,7 +139,12 @@ struct FaceVert {
 impl FaceVert {
     /// Parse a `v`, `v/t`, `v//n`, or `v/t/n` token, resolving 1-based and
     /// negative (relative) indices into 0-based ones.
-    fn parse(token: &str, n_pos: usize, n_norm: usize, line_no: usize) -> Result<FaceVert, ObjError> {
+    fn parse(
+        token: &str,
+        n_pos: usize,
+        n_norm: usize,
+        line_no: usize,
+    ) -> Result<FaceVert, ObjError> {
         let mut parts = token.split('/');
         let pos = resolve_index(parts.next().unwrap_or(""), n_pos, line_no)?;
         let _tex = parts.next(); // texture coords ignored
@@ -177,7 +188,12 @@ fn make_triangle(
     c: FaceVert,
     material: MaterialId,
 ) -> Result<Triangle, ObjError> {
-    let tri = Triangle::new(positions[a.pos], positions[b.pos], positions[c.pos], material);
+    let tri = Triangle::new(
+        positions[a.pos],
+        positions[b.pos],
+        positions[c.pos],
+        material,
+    );
     match (a.normal, b.normal, c.normal) {
         (Some(na), Some(nb), Some(nc)) => {
             Ok(tri.with_normals([normals[na], normals[nb], normals[nc]]))

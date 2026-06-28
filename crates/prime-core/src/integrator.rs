@@ -74,7 +74,10 @@ where
     F: Fn() + Sync + Send,
 {
     let mut fb = Framebuffer::new(settings.width, settings.height);
-    let camera = Camera::new(&scene.camera, settings.width as Float / settings.height as Float);
+    let camera = Camera::new(
+        &scene.camera,
+        settings.width as Float / settings.height as Float,
+    );
 
     let width = settings.width;
     let height = settings.height;
@@ -97,7 +100,17 @@ where
                     } else {
                         Sampler::pixel_random(seed, x, y, k as u32)
                     };
-                    acc += sample_once(scene, &camera, x, y, width, height, max_depth, clamp, &mut sampler);
+                    acc += sample_once(
+                        scene,
+                        &camera,
+                        x,
+                        y,
+                        width,
+                        height,
+                        max_depth,
+                        clamp,
+                        &mut sampler,
+                    );
                 }
                 *pixel = acc * inv_spp;
             }
@@ -188,7 +201,15 @@ impl ProgressiveRenderer {
                     for local in 0..count {
                         let mut sampler = Sampler::pixel(seed, x, y, (base + local) as u32);
                         acc += sample_once(
-                            scene, camera, x, y, width, height, max_depth, clamp, &mut sampler,
+                            scene,
+                            camera,
+                            x,
+                            y,
+                            width,
+                            height,
+                            max_depth,
+                            clamp,
+                            &mut sampler,
                         );
                     }
                     *pixel += acc;

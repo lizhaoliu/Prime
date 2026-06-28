@@ -93,7 +93,11 @@ fn main() -> Result<()> {
     };
 
     // A neutral placeholder so /frame.png is valid before the first pass lands.
-    let placeholder = encode_png(&vec![32u8; args.width * args.height * 3], args.width, args.height);
+    let placeholder = encode_png(
+        &vec![32u8; args.width * args.height * 3],
+        args.width,
+        args.height,
+    );
     let shared = Arc::new(Shared {
         published: Mutex::new(Published {
             png: placeholder,
@@ -132,7 +136,8 @@ fn handle(mut req: Request, shared: &Arc<Shared>, tx: &Sender<Cmd>) {
 
     let result = match (&method, path) {
         (&Method::Get, "/") => req.respond(
-            Response::from_string(INDEX).with_header(header("Content-Type", "text/html; charset=utf-8")),
+            Response::from_string(INDEX)
+                .with_header(header("Content-Type", "text/html; charset=utf-8")),
         ),
         (&Method::Get, "/frame.png") => {
             let png = shared.published.lock().unwrap().png.clone();
@@ -144,7 +149,9 @@ fn handle(mut req: Request, shared: &Arc<Shared>, tx: &Sender<Cmd>) {
         }
         (&Method::Get, "/status") => {
             let body = status_json(shared);
-            req.respond(Response::from_string(body).with_header(header("Content-Type", "application/json")))
+            req.respond(
+                Response::from_string(body).with_header(header("Content-Type", "application/json")),
+            )
         }
         (&Method::Post, "/camera") => {
             if let Ok(c) = serde_json::from_str::<CameraReq>(&read_body(&mut req)) {

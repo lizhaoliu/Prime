@@ -104,8 +104,8 @@ fn main() -> Result<()> {
     }
 
     let aspect = args.width as Float / args.height as Float;
-    let scene =
-        load_scene(&args.scene, aspect).with_context(|| format!("loading scene '{}'", args.scene))?;
+    let scene = load_scene(&args.scene, aspect)
+        .with_context(|| format!("loading scene '{}'", args.scene))?;
 
     let settings = integrator::RenderSettings {
         width: args.width,
@@ -205,9 +205,7 @@ fn load_obj_scene(path: &Path, aspect: Float) -> Result<Scene> {
         bail!("OBJ mesh {} contains no triangles", path.display());
     }
 
-    let bounds = triangles
-        .iter()
-        .fold(Aabb::EMPTY, |b, t| b.union(t.aabb()));
+    let bounds = triangles.iter().fold(Aabb::EMPTY, |b, t| b.union(t.aabb()));
     let camera = frame_camera(bounds, aspect);
 
     let prims: Vec<Primitive> = triangles.into_iter().map(Primitive::from).collect();

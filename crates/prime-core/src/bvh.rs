@@ -213,9 +213,7 @@ fn build_recursive(
     nodes: &mut Vec<LinearNode>,
     ordered: &mut Vec<Primitive>,
 ) -> usize {
-    let bounds = info
-        .iter()
-        .fold(Aabb::EMPTY, |b, p| b.union(p.bbox));
+    let bounds = info.iter().fold(Aabb::EMPTY, |b, p| b.union(p.bbox));
 
     let node_index = nodes.len();
     nodes.push(LinearNode {
@@ -225,18 +223,19 @@ fn build_recursive(
         axis: 0,
     });
 
-    let make_leaf = |nodes: &mut Vec<LinearNode>, ordered: &mut Vec<Primitive>, info: &[BuildInfo]| {
-        let first = ordered.len() as u32;
-        for p in info.iter() {
-            ordered.push(source[p.prim_index]);
-        }
-        nodes[node_index] = LinearNode {
-            bbox: bounds,
-            offset: first,
-            n_prims: info.len() as u32,
-            axis: 0,
+    let make_leaf =
+        |nodes: &mut Vec<LinearNode>, ordered: &mut Vec<Primitive>, info: &[BuildInfo]| {
+            let first = ordered.len() as u32;
+            for p in info.iter() {
+                ordered.push(source[p.prim_index]);
+            }
+            nodes[node_index] = LinearNode {
+                bbox: bounds,
+                offset: first,
+                n_prims: info.len() as u32,
+                axis: 0,
+            };
         };
-    };
 
     if info.len() <= MAX_LEAF_PRIMS {
         make_leaf(nodes, ordered, info);
@@ -412,7 +411,12 @@ mod tests {
             let b = naive_hit(&prims, &ray);
             match (a, b) {
                 (Some(ha), Some(hb)) => {
-                    assert!((ha.t - hb.t).abs() < 1e-3, "t mismatch: {} vs {}", ha.t, hb.t)
+                    assert!(
+                        (ha.t - hb.t).abs() < 1e-3,
+                        "t mismatch: {} vs {}",
+                        ha.t,
+                        hb.t
+                    )
                 }
                 (None, None) => {}
                 _ => panic!("hit/miss disagreement between BVH and brute force"),

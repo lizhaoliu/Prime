@@ -23,7 +23,11 @@ use crate::loader;
 /// Commands from HTTP handlers to the render thread.
 pub enum Cmd {
     /// Relative orbit: add to yaw/pitch, multiply distance by `zoom`.
-    Camera { dyaw: Float, dpitch: Float, zoom: Float },
+    Camera {
+        dyaw: Float,
+        dpitch: Float,
+        zoom: Float,
+    },
     /// Replace render settings (resolution, quality, tonemap).
     Settings(Settings),
     /// Switch to a different scene by source string.
@@ -104,7 +108,12 @@ pub struct Shared {
 pub fn encode_png(rgb: &[u8], width: usize, height: usize) -> Vec<u8> {
     let mut out = Vec::new();
     image::codecs::png::PngEncoder::new(&mut out)
-        .write_image(rgb, width as u32, height as u32, image::ExtendedColorType::Rgb8)
+        .write_image(
+            rgb,
+            width as u32,
+            height as u32,
+            image::ExtendedColorType::Rgb8,
+        )
         .expect("PNG encode should not fail for a valid RGB buffer");
     out
 }
@@ -166,7 +175,13 @@ fn new_renderer(orbit: &Orbit, settings: &Settings, firefly_clamp: Float) -> Pro
     )
 }
 
-fn apply(cmd: Cmd, settings: &mut Settings, orbit: &mut Orbit, scene: &mut Scene, scene_name: &mut String) {
+fn apply(
+    cmd: Cmd,
+    settings: &mut Settings,
+    orbit: &mut Orbit,
+    scene: &mut Scene,
+    scene_name: &mut String,
+) {
     match cmd {
         Cmd::Camera { dyaw, dpitch, zoom } => {
             orbit.yaw += dyaw;

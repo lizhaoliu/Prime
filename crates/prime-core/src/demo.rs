@@ -344,7 +344,12 @@ pub fn rtweekend() -> Scene {
         }
     }
 
-    push(Material::Dielectric { ior: 1.5 }, Vec3::new(0.0, 1.0, 0.0), 1.0, &mut prims);
+    push(
+        Material::Dielectric { ior: 1.5 },
+        Vec3::new(0.0, 1.0, 0.0),
+        1.0,
+        &mut prims,
+    );
     push(
         Material::Lambertian {
             albedo: Color::new(0.4, 0.2, 0.1),
@@ -450,11 +455,21 @@ pub fn studio() -> Scene {
     }
     // A glass row and a rainbow diffuse row, in front of the metals.
     for c in 0..COLS {
-        add_sphere(Material::Dielectric { ior: 1.5 }, x_of(c), -SPACING, &mut prims);
+        add_sphere(
+            Material::Dielectric { ior: 1.5 },
+            x_of(c),
+            -SPACING,
+            &mut prims,
+        );
     }
     for c in 0..COLS {
         let albedo = hsv(c as Float / COLS as Float, 0.7, 0.9);
-        add_sphere(Material::Lambertian { albedo }, x_of(c), -2.0 * SPACING, &mut prims);
+        add_sphere(
+            Material::Lambertian { albedo },
+            x_of(c),
+            -2.0 * SPACING,
+            &mut prims,
+        );
     }
 
     let camera = CameraConfig {
