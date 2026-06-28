@@ -39,6 +39,7 @@ pub mod material;
 pub mod math;
 pub mod obj;
 pub mod ray;
+pub mod sampler;
 pub mod scene;
 
 #[cfg(feature = "serde")]
@@ -51,7 +52,7 @@ pub mod prelude {
     pub use crate::camera::CameraConfig;
     pub use crate::color::Tonemap;
     pub use crate::geometry::{Primitive, Sphere, Triangle};
-    pub use crate::integrator::{render, render_to_srgb, RenderSettings};
+    pub use crate::integrator::{render, render_to_srgb, ProgressiveRenderer, RenderSettings};
     pub use crate::material::Material;
     pub use crate::math::Vec3;
     pub use crate::scene::{Background, Scene};

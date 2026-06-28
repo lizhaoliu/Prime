@@ -13,25 +13,30 @@ prime cornell -o cornell.png --width 800 --height 800 --samples 256
 
 | Scene | Command |
 |-------|---------|
-| Cornell box (global illumination, glass + metal) | `prime cornell` |
+| Material showcase — glass, mirror, GGX metals, diffuse (default) | `prime showcase` |
+| Material studio — area-lit GGX roughness sweep + glass/diffuse | `prime studio` |
+| "Ray Tracing in One Weekend" — ~485 random spheres | `prime rtweekend` |
+| Cornell box (global illumination) | `prime cornell` |
 | Sphere field under a sky (defocus blur) | `prime spheres` |
+| Vibrant bunny + buddha (per-group materials, colored lights) | `prime assets/bunny_buddha.ron` |
 | Custom scene from a file | `prime myscene.ron` |
 | A bare mesh, auto-framed | `prime model.obj` |
+| **Interactive viewer in the browser** | `prime-serve` → open http://127.0.0.1:8080 |
 
 ---
 
 ## Why this exists / what changed
 
 Prime began as a ~5,700-line Java 1.7 renderer with a Swing + JOGL (OpenGL)
-scene editor. That code is preserved under [`legacy-java/`](legacy-java/) for
-reference. It was rebuilt from scratch in Rust with a focus on **a clean,
-headless, testable architecture**. The most important changes:
+scene editor. That original code lives on in git history at the **`java-final`**
+tag (`git checkout java-final`). It was rebuilt from scratch in Rust with a focus
+on **a clean, headless, testable architecture**. The most important changes:
 
 | Concern | Legacy (Java) | Now (Rust) |
 |--------|----------------|------------|
 | Entry point | 1,292-line `MainGui` god class (Swing/JOGL, IO, render loop, dialogs all in one) | A pure `prime-core` library + a thin `prime` CLI |
 | Math types | Mutable `Vec3f`/`Color3f` with public fields and shared mutable `ZERO`/`UNIT_*` singletons | Immutable `Copy` `Vec3`; no aliasing hazards, **zero heap allocation** in hot loops |
-| Materials | Abstract base + subclasses, transmission never implemented, dead BRDF branches | Sealed `enum Material` (Lambertian / Metal / **Dielectric** / Emissive), exhaustively checked, no virtual dispatch |
+| Materials | Abstract base + subclasses, transmission never implemented, unused microfacet stub, dead BRDF branches | Sealed `enum Material`: Lambertian, **GGX microfacet** Metal, **Dielectric** (real refraction), Emissive — exhaustively checked, no virtual dispatch |
 | Acceleration | kd-tree whose traversal mutated the ray's length to prune | Binned-SAH **BVH** in a flat node array, iterative stack traversal, cross-checked against brute force |
 | Parallelism | A fresh `ExecutorService` leaked on every render | Rayon over the global pool; deterministic per-pixel RNG (reproducible images) |
 | Scene I/O | Java `Serializable` + `ObjectOutputStream` (fragile, unsafe) | Human-readable **RON** scene files via Serde |
@@ -43,13 +48,18 @@ headless, testable architecture**. The most important changes:
 
 ## Architecture
 
-A Cargo workspace with two crates:
+A Cargo workspace with three crates:
 
 ```
 crates/
   prime-core/   # the renderer as a pure library (no windowing, no image codec)
   prime-cli/    # the `prime` binary: argument parsing, PNG output, progress bar
+  prime-serve/  # the `prime-serve` binary: an interactive web viewer
 ```
+
+Both front-ends are thin shells over `prime-core`. The library knows nothing
+about PNGs, HTTP, or argument parsing — exactly the decoupling the legacy
+GUI-coupled design lacked.
 
 ### `prime-core` modules
 
@@ -60,15 +70,17 @@ aabb         axis-aligned box + slab test
 geometry/    Sphere, Triangle (Möller–Trumbore), sealed `Primitive` enum
 bvh          binned-SAH bounding volume hierarchy, iterative traversal
 hit          intersection record (point, oriented normal, uv, material id)
-material     sealed BSDF enum: Lambertian / Metal / Dielectric / Emissive
+material     sealed BSDF enum: Lambertian / GGX Metal / Dielectric / Emissive
+sampler      low-discrepancy sampling: Owen-scrambled Sobol (Burley 2020)
 camera       thin-lens pinhole camera (look-at, fov, optional defocus)
-scene        material table + BVH + camera config + background
-integrator   the parallel path tracer (Russian roulette, RR-unbiased)
+scene        material table + BVH + light list + camera config + background
+integrator   parallel path tracer: next-event estimation + MIS, quasi-Monte
+             -Carlo sampling, firefly clamp, Russian roulette
 framebuffer  linear HDR pixel buffer -> sRGB bytes
 color        tonemapping (clamp / Reinhard) + gamma
 obj          Wavefront OBJ loader (no UI dependency)
 desc         serializable `SceneDesc` (RON) -> `Scene`
-demo         built-in Cornell box and sphere scenes
+demo         built-in scenes: showcase, studio, rtweekend, Cornell, spheres
 ```
 
 ### Pipeline
@@ -94,8 +106,8 @@ cargo run --release -- cornell -o out/cornell.png --samples 256
 ```
 prime [SCENE] [OPTIONS]
 
-SCENE                     built-in name (cornell, spheres), a .ron scene,
-                          or a .obj mesh                       [default: cornell]
+SCENE                     built-in (showcase, studio, rtweekend, cornell,
+                          spheres), a .ron scene, or .obj   [default: showcase]
 -o, --output <FILE>       output PNG                           [default: out.png]
 -w, --width  <N>          image width                          [default: 800]
     --height <N>          image height                         [default: 450]
@@ -105,7 +117,44 @@ SCENE                     built-in name (cornell, spheres), a .ron scene,
 -j, --threads <N>         worker threads                       [default: all cores]
     --tonemap <T>         clamp | reinhard                     [default: clamp]
     --gamma <F>           display gamma                        [default: 2.2]
+    --clamp <F>           firefly clamp; 0 disables (unbiased) [default: 0]
+    --no-qmc              use white-noise instead of QMC sampling
 ```
+
+---
+
+## Interactive web viewer
+
+`prime-serve` renders a scene **progressively** on a background thread and
+streams the accumulating image to a browser. Drag to orbit, scroll to zoom, and
+tweak quality/tonemap/resolution live — every change restarts accumulation and
+the image refines while idle.
+
+```bash
+cargo run --release -p prime-serve -- cornell --width 720 --height 540
+# then open http://127.0.0.1:8080
+```
+
+```
+prime-serve [SCENE] [OPTIONS]
+
+SCENE                       built-in name, .ron, or .obj          [default: cornell]
+    --addr <ADDR>           bind address                          [default: 127.0.0.1]
+-p, --port <N>              port                                  [default: 8080]
+-w, --width / --height      render resolution                    [default: 640x400]
+-d, --depth <N>             max bounce depth                      [default: 12]
+    --samples-per-pass <N>  samples added per progressive pass    [default: 2]
+    --target-spp <N>        stop accumulating at this many spp    [default: 1024]
+    --tonemap <T>           clamp | reinhard                      [default: reinhard]
+    --gamma <F>             display gamma                         [default: 2.2]
+```
+
+Design: a single render thread owns all mutable state (scene, orbit camera,
+accumulation buffer) and is driven by commands from the HTTP handlers over a
+channel; handlers only read the latest published frame under a mutex. The
+renderer never locks on its hot path, and data races are structurally
+impossible. Endpoints: `GET /` (page), `GET /frame.png`, `GET /status`,
+`POST /camera`, `POST /settings`, `POST /scene`.
 
 ---
 
@@ -122,16 +171,21 @@ See [`assets/demo.ron`](assets/demo.ron) for a complete example:
     background: Gradient( bottom: (x: 1.0, y: 1.0, z: 1.0), top: (x: 0.5, y: 0.7, z: 1.0) ),
     materials: [
         Lambertian(albedo: (x: 0.5, y: 0.5, z: 0.5)),
-        Metal(albedo: (x: 0.85, y: 0.85, z: 0.88), fuzz: 0.0),
+        Metal(albedo: (x: 0.85, y: 0.85, z: 0.88), roughness: 0.1),
         Dielectric(ior: 1.5),
         Emissive(emit: (x: 8.0, y: 6.5, z: 5.0)),
     ],
     objects: [
         Sphere(center: (x: 0.0, y: 1.0, z: 0.0), radius: 1.0, material: 1),
         Mesh(path: "scene.obj", material: 0, transform: Some((scale: 1.0, translate: (x: 0.0, y: 0.0, z: 0.0)))),
+        // Load just one OBJ group, so a multi-object file can use several materials:
+        Mesh(path: "scene.obj", material: 2, group: Some("bunny.obj")),
     ],
 )
 ```
+
+See [`assets/bunny_buddha.ron`](assets/bunny_buddha.ron) for a full multi-light
+scene that loads each group of `scene.obj` with its own material.
 
 ---
 

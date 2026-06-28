@@ -9,8 +9,8 @@
 use crate::math::sampling::random_in_unit_disk;
 use crate::math::Vec3;
 use crate::ray::Ray;
+use crate::sampler::Sampler;
 use crate::Float;
-use rand::Rng;
 use std::f32::consts::PI;
 
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -83,9 +83,9 @@ impl Camera {
 
     /// Generate a (normalized-direction) ray through normalized screen
     /// coordinates `s, t` in `[0, 1]`, where `(0, 0)` is bottom-left.
-    pub fn get_ray<R: Rng + ?Sized>(&self, s: Float, t: Float, rng: &mut R) -> Ray {
+    pub fn get_ray(&self, s: Float, t: Float, sampler: &mut Sampler) -> Ray {
         let (origin, offset) = if self.lens_radius > 0.0 {
-            let rd = random_in_unit_disk(rng) * self.lens_radius;
+            let rd = random_in_unit_disk(sampler) * self.lens_radius;
             let offset = self.u * rd.x + self.v * rd.y;
             (self.origin + offset, offset)
         } else {
@@ -100,8 +100,7 @@ impl Camera {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use rand::rngs::SmallRng;
-    use rand::SeedableRng;
+    use crate::sampler::Sampler;
 
     #[test]
     fn center_ray_points_at_look_at() {
@@ -111,18 +110,18 @@ mod tests {
             ..Default::default()
         };
         let cam = Camera::new(&cfg, 1.0);
-        let mut rng = SmallRng::seed_from_u64(0);
-        let ray = cam.get_ray(0.5, 0.5, &mut rng);
+        let mut sampler = Sampler::random(0);
+        let ray = cam.get_ray(0.5, 0.5, &mut sampler);
         assert!((ray.dir - Vec3::new(0.0, 0.0, -1.0)).length() < 1e-4);
     }
 
     #[test]
     fn rays_are_unit_length() {
         let cam = Camera::new(&CameraConfig::default(), 16.0 / 9.0);
-        let mut rng = SmallRng::seed_from_u64(0);
+        let mut sampler = Sampler::random(0);
         for i in 0..10 {
             let s = i as Float / 10.0;
-            let ray = cam.get_ray(s, 1.0 - s, &mut rng);
+            let ray = cam.get_ray(s, 1.0 - s, &mut sampler);
             assert!((ray.dir.length() - 1.0).abs() < 1e-4);
         }
     }

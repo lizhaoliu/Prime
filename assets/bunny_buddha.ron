@@ -1,0 +1,52 @@
+// A vibrant, multi-light scene built around assets/scene.obj (a Blender export
+// with three groups: "Plane", "bunny.obj", "buddha.obj"). Each group is loaded
+// as a separate object with its own material, lit by warm + colored rim lights,
+// and surrounded by glass/metal/diffuse spheres.
+//
+//   prime assets/bunny_buddha.ron --samples 256 --tonemap reinhard -o out/bb.png
+(
+    camera: (
+        look_from: (x: 3.0, y: 7.0, z: 19.0),
+        look_at:   (x: 0.5, y: 3.0, z: 0.0),
+        vup:       (x: 0.0, y: 1.0, z: 0.0),
+        vfov: 42.0,
+        aperture: 0.0,
+        focus_dist: None,
+    ),
+    background: Gradient(
+        bottom: (x: 0.02, y: 0.02, z: 0.03),
+        top:    (x: 0.06, y: 0.07, z: 0.12),
+    ),
+    materials: [
+        Metal(albedo: (x: 0.15, y: 0.16, z: 0.20), roughness: 0.30),  // 0 floor: dark glossy
+        Metal(albedo: (x: 0.95, y: 0.25, z: 0.55), roughness: 0.12),  // 1 bunny: polished rose
+        Metal(albedo: (x: 1.00, y: 0.78, z: 0.34), roughness: 0.08),  // 2 buddha: gold
+        Emissive(emit: (x: 12.0, y: 11.0, z: 9.0)),                   // 3 warm key light
+        Emissive(emit: (x: 11.0, y: 1.5,  z: 9.0)),                   // 4 magenta rim
+        Emissive(emit: (x: 1.5,  y: 9.0,  z: 11.0)),                  // 5 cyan rim
+        Dielectric(ior: 1.5),                                         // 6 glass
+        Metal(albedo: (x: 0.20, y: 0.50, z: 1.00), roughness: 0.08), // 7 blue metal
+        Lambertian(albedo: (x: 0.90, y: 0.15, z: 0.10)),             // 8 red diffuse
+        Lambertian(albedo: (x: 0.10, y: 0.70, z: 0.25)),             // 9 green diffuse
+    ],
+    objects: [
+        // The OBJ, split by group into three materials.
+        Mesh(path: "scene.obj", material: 0, group: Some("Plane")),
+        Mesh(path: "scene.obj", material: 1, group: Some("bunny.obj")),
+        Mesh(path: "scene.obj", material: 2, group: Some("buddha.obj")),
+
+        // Warm key light overhead, colored rim lights on each side.
+        Quad(a: (x: -7.0, y: 15.0, z: -5.0), b: (x: 7.0, y: 15.0, z: -5.0),
+             c: (x: 7.0, y: 15.0, z: 10.0), d: (x: -7.0, y: 15.0, z: 10.0), material: 3),
+        Quad(a: (x: -14.0, y: 3.0, z: -7.0), b: (x: -14.0, y: 3.0, z: 7.0),
+             c: (x: -14.0, y: 13.0, z: 7.0), d: (x: -14.0, y: 13.0, z: -7.0), material: 4),
+        Quad(a: (x: 14.0, y: 3.0, z: -7.0), b: (x: 14.0, y: 3.0, z: 7.0),
+             c: (x: 14.0, y: 13.0, z: 7.0), d: (x: 14.0, y: 13.0, z: -7.0), material: 5),
+
+        // Foreground spheres for extra interest.
+        Sphere(center: (x: -4.0, y: 1.6, z: 6.0), radius: 1.6, material: 6),
+        Sphere(center: (x:  5.0, y: 1.2, z: 7.0), radius: 1.2, material: 7),
+        Sphere(center: (x:  1.5, y: 1.0, z: 8.5), radius: 1.0, material: 8),
+        Sphere(center: (x: -1.5, y: 0.8, z: 9.0), radius: 0.8, material: 9),
+    ],
+)

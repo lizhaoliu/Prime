@@ -54,6 +54,18 @@ pub fn load(
     material: MaterialId,
     transform: Transform,
 ) -> Result<Vec<Triangle>, ObjError> {
+    load_filtered(path, None, material, transform)
+}
+
+/// Like [`load`], but if `group` is `Some(name)` only faces belonging to the
+/// matching `g`/`o` group are loaded. This lets a multi-object OBJ be placed as
+/// several scene objects with different materials.
+pub fn load_filtered(
+    path: impl AsRef<Path>,
+    group: Option<&str>,
+    material: MaterialId,
+    transform: Transform,
+) -> Result<Vec<Triangle>, ObjError> {
     let path = path.as_ref();
     let file = File::open(path).map_err(|source| ObjError::Io {
         path: path.display().to_string(),
@@ -64,6 +76,7 @@ pub fn load(
     let mut positions: Vec<Vec3> = Vec::new();
     let mut normals: Vec<Vec3> = Vec::new();
     let mut triangles: Vec<Triangle> = Vec::new();
+    let mut current_group: Option<String> = None;
 
     for (line_no, line) in reader.lines().enumerate() {
         let line = line.map_err(|source| ObjError::Io {
@@ -79,7 +92,14 @@ pub fn load(
         match tokens.next() {
             Some("v") => positions.push(transform.point(parse_vec3(tokens, line_no)?)),
             Some("vn") => normals.push(parse_vec3(tokens, line_no)?),
+            // Track the current group/object name.
+            Some("g") | Some("o") => current_group = tokens.next().map(|s| s.to_string()),
             Some("f") => {
+                // Skip faces outside the requested group (vertices/normals still
+                // accumulate globally, so indices stay valid).
+                if group.is_some() && group != current_group.as_deref() {
+                    continue;
+                }
                 let verts: Vec<FaceVert> = tokens
                     .map(|t| FaceVert::parse(t, positions.len(), normals.len(), line_no))
                     .collect::<Result<_, _>>()?;
@@ -91,12 +111,18 @@ pub fn load(
                 }
                 // Fan-triangulate the (possibly n-gon) face.
                 for i in 1..verts.len() - 1 {
-                    let tri =
-                        make_triangle(&positions, &normals, verts[0], verts[i], verts[i + 1], material)?;
+                    let tri = make_triangle(
+                        &positions,
+                        &normals,
+                        verts[0],
+                        verts[i],
+                        verts[i + 1],
+                        material,
+                    )?;
                     triangles.push(tri);
                 }
             }
-            // Groups, smoothing, materials, texcoords: ignored for now.
+            // Smoothing, materials, texcoords: ignored for now.
             _ => {}
         }
     }
@@ -113,7 +139,12 @@ struct FaceVert {
 impl FaceVert {
     /// Parse a `v`, `v/t`, `v//n`, or `v/t/n` token, resolving 1-based and
     /// negative (relative) indices into 0-based ones.
-    fn parse(token: &str, n_pos: usize, n_norm: usize, line_no: usize) -> Result<FaceVert, ObjError> {
+    fn parse(
+        token: &str,
+        n_pos: usize,
+        n_norm: usize,
+        line_no: usize,
+    ) -> Result<FaceVert, ObjError> {
         let mut parts = token.split('/');
         let pos = resolve_index(parts.next().unwrap_or(""), n_pos, line_no)?;
         let _tex = parts.next(); // texture coords ignored
@@ -157,7 +188,12 @@ fn make_triangle(
     c: FaceVert,
     material: MaterialId,
 ) -> Result<Triangle, ObjError> {
-    let tri = Triangle::new(positions[a.pos], positions[b.pos], positions[c.pos], material);
+    let tri = Triangle::new(
+        positions[a.pos],
+        positions[b.pos],
+        positions[c.pos],
+        material,
+    );
     match (a.normal, b.normal, c.normal) {
         (Some(na), Some(nb), Some(nc)) => {
             Ok(tri.with_normals([normals[na], normals[nb], normals[nc]]))
@@ -207,6 +243,29 @@ mod tests {
         let tris = load(&tmp, 0, Transform::default()).unwrap();
         assert_eq!(tris.len(), 2);
         assert!(tris[0].normals.is_some());
+        std::fs::remove_file(&tmp).ok();
+    }
+
+    #[test]
+    fn group_filter_loads_only_matching_faces() {
+        let tmp = tempfile_path();
+        {
+            let mut f = File::create(&tmp).unwrap();
+            for line in ["v 0 0 0", "v 1 0 0", "v 0 1 0", "v 0 0 1"] {
+                writeln!(f, "{line}").unwrap();
+            }
+            writeln!(f, "g alpha").unwrap();
+            writeln!(f, "f 1 2 3").unwrap();
+            writeln!(f, "g beta").unwrap();
+            writeln!(f, "f 1 2 4").unwrap();
+            writeln!(f, "f 2 3 4").unwrap();
+        }
+        let all = load(&tmp, 0, Transform::default()).unwrap();
+        let alpha = load_filtered(&tmp, Some("alpha"), 0, Transform::default()).unwrap();
+        let beta = load_filtered(&tmp, Some("beta"), 0, Transform::default()).unwrap();
+        assert_eq!(all.len(), 3);
+        assert_eq!(alpha.len(), 1);
+        assert_eq!(beta.len(), 2);
         std::fs::remove_file(&tmp).ok();
     }
 

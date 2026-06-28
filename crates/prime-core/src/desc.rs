@@ -63,6 +63,9 @@ pub enum ObjectDesc {
         material: MaterialId,
         #[serde(default)]
         transform: Option<TransformDesc>,
+        /// If set, load only the faces of this OBJ `g`/`o` group.
+        #[serde(default)]
+        group: Option<String>,
     },
 }
 
@@ -141,17 +144,23 @@ impl SceneDesc {
                     path,
                     material,
                     transform,
+                    group,
                 } => {
                     let m = check(material)?;
                     let full = base_dir.join(&path);
                     let t = transform.map(Transform::from).unwrap_or_default();
-                    let tris = obj::load(&full, m, t)?;
+                    let tris = obj::load_filtered(&full, group.as_deref(), m, t)?;
                     prims.extend(tris.into_iter().map(Primitive::from));
                 }
             }
         }
 
-        Ok(Scene::new(self.materials, prims, self.camera, self.background))
+        Ok(Scene::new(
+            self.materials,
+            prims,
+            self.camera,
+            self.background,
+        ))
     }
 }
 
@@ -185,9 +194,7 @@ mod tests {
         let desc = SceneDesc {
             camera: CameraConfig::default(),
             background: Background::default(),
-            materials: vec![Material::Lambertian {
-                albedo: Color::ONE,
-            }],
+            materials: vec![Material::Lambertian { albedo: Color::ONE }],
             objects: vec![ObjectDesc::Sphere {
                 center: Vec3::ZERO,
                 radius: 1.0,

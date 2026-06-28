@@ -26,9 +26,9 @@ use prime_core::{demo, integrator, Color, Float};
 #[derive(Parser, Debug)]
 #[command(name = "prime", version, about, long_about = None)]
 struct Args {
-    /// Scene to render: a built-in name (`cornell`, `spheres`), a `.ron` scene
-    /// file, or a `.obj` mesh.
-    #[arg(default_value = "cornell")]
+    /// Scene to render: a built-in name (`showcase`, `studio`, `rtweekend`,
+    /// `cornell`, `spheres`), a `.ron` scene file, or a `.obj` mesh.
+    #[arg(default_value = "showcase")]
     scene: String,
 
     /// Output PNG path.
@@ -66,6 +66,16 @@ struct Args {
     /// Display gamma.
     #[arg(long, default_value_t = 2.2)]
     gamma: Float,
+
+    /// Clamp each path sample's radiance to suppress fireflies (0 = disabled,
+    /// keeping the render unbiased).
+    #[arg(long, default_value_t = 0.0)]
+    clamp: Float,
+
+    /// Use plain white-noise sampling instead of the low-discrepancy (QMC)
+    /// sampler. Mostly useful for comparison.
+    #[arg(long)]
+    no_qmc: bool,
 }
 
 #[derive(Copy, Clone, Debug, ValueEnum)]
@@ -94,8 +104,8 @@ fn main() -> Result<()> {
     }
 
     let aspect = args.width as Float / args.height as Float;
-    let scene =
-        load_scene(&args.scene, aspect).with_context(|| format!("loading scene '{}'", args.scene))?;
+    let scene = load_scene(&args.scene, aspect)
+        .with_context(|| format!("loading scene '{}'", args.scene))?;
 
     let settings = integrator::RenderSettings {
         width: args.width,
@@ -103,6 +113,8 @@ fn main() -> Result<()> {
         samples_per_pixel: args.samples,
         max_depth: args.depth,
         seed: args.seed,
+        low_discrepancy: !args.no_qmc,
+        firefly_clamp: args.clamp,
         tonemap: args.tonemap.into(),
         gamma: args.gamma,
     };
@@ -153,8 +165,11 @@ fn main() -> Result<()> {
 /// auto-framing a bare OBJ mesh.
 fn load_scene(source: &str, aspect: Float) -> Result<Scene> {
     match source {
+        "showcase" => return Ok(demo::showcase()),
         "cornell" => return Ok(demo::cornell_box()),
         "spheres" => return Ok(demo::spheres()),
+        "rtweekend" => return Ok(demo::rtweekend()),
+        "studio" => return Ok(demo::studio()),
         _ => {}
     }
 
@@ -163,8 +178,8 @@ fn load_scene(source: &str, aspect: Float) -> Result<Scene> {
         Some("ron") => load_ron_scene(path),
         Some("obj") => load_obj_scene(path, aspect),
         _ => bail!(
-            "unknown scene '{source}': expected a built-in name (cornell, spheres), \
-             a .ron scene, or a .obj mesh"
+            "unknown scene '{source}': expected a built-in name (showcase, studio, \
+             rtweekend, cornell, spheres), a .ron scene, or a .obj mesh"
         ),
     }
 }
@@ -190,9 +205,7 @@ fn load_obj_scene(path: &Path, aspect: Float) -> Result<Scene> {
         bail!("OBJ mesh {} contains no triangles", path.display());
     }
 
-    let bounds = triangles
-        .iter()
-        .fold(Aabb::EMPTY, |b, t| b.union(t.aabb()));
+    let bounds = triangles.iter().fold(Aabb::EMPTY, |b, t| b.union(t.aabb()));
     let camera = frame_camera(bounds, aspect);
 
     let prims: Vec<Primitive> = triangles.into_iter().map(Primitive::from).collect();

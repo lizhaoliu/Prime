@@ -8,17 +8,24 @@
 //!   bounded by a loop, not the call stack;
 //! * **data-parallel** — rows are rendered concurrently with Rayon over the
 //!   global pool, nothing is leaked;
-//! * **deterministic** — each pixel seeds its own RNG from `(seed, x, y)`, so a
-//!   render is byte-for-byte reproducible regardless of thread scheduling.
+//! * **quasi-Monte-Carlo** — every decision is drawn from a per-pixel-sample
+//!   [`Sampler`] (scrambled Halton, see [`crate::sampler`]), so a render is
+//!   deterministic *and* converges with much less noise than white noise;
+//! * **next-event estimated** — direct light sampling + multiple importance
+//!   sampling clean up scenes with area lights.
+//!
+//! Two front-ends share the same machinery: [`render`] does a one-shot batch
+//! render; [`ProgressiveRenderer`] accumulates samples pass-by-pass for
+//! interactive viewers (each pass advances the global sample index, so passes
+//! continue the low-discrepancy sequence rather than repeating it).
 
-use crate::camera::Camera;
-use crate::color::Tonemap;
+use crate::camera::{Camera, CameraConfig};
+use crate::color::{self, Tonemap};
 use crate::framebuffer::Framebuffer;
 use crate::ray::Ray;
+use crate::sampler::Sampler;
 use crate::scene::Scene;
 use crate::{Color, Float};
-use rand::rngs::SmallRng;
-use rand::{Rng, SeedableRng};
 use rayon::prelude::*;
 
 #[derive(Clone, Copy, Debug)]
@@ -29,6 +36,12 @@ pub struct RenderSettings {
     pub max_depth: usize,
     /// Base RNG seed; the same seed reproduces the same image.
     pub seed: u64,
+    /// Use the low-discrepancy (quasi-Monte-Carlo) sampler. Disable for plain
+    /// white-noise sampling (mostly useful for comparison).
+    pub low_discrepancy: bool,
+    /// Clamp each path sample's radiance to this maximum to suppress fireflies.
+    /// `<= 0` disables clamping (keeping the estimator unbiased).
+    pub firefly_clamp: Float,
     pub tonemap: Tonemap,
     pub gamma: Float,
 }
@@ -41,6 +54,8 @@ impl Default for RenderSettings {
             samples_per_pixel: 64,
             max_depth: 32,
             seed: 0,
+            low_discrepancy: true,
+            firefly_clamp: 0.0,
             tonemap: Tonemap::Clamp,
             gamma: 2.2,
         }
@@ -59,27 +74,43 @@ where
     F: Fn() + Sync + Send,
 {
     let mut fb = Framebuffer::new(settings.width, settings.height);
-    let camera = Camera::new(&scene.camera, settings.width as Float / settings.height as Float);
+    let camera = Camera::new(
+        &scene.camera,
+        settings.width as Float / settings.height as Float,
+    );
 
     let width = settings.width;
     let height = settings.height;
-    let inv_spp = 1.0 / settings.samples_per_pixel as Float;
+    let spp = settings.samples_per_pixel;
+    let inv_spp = 1.0 / spp as Float;
+    let max_depth = settings.max_depth;
+    let clamp = settings.firefly_clamp;
+    let seed = settings.seed;
+    let qmc = settings.low_discrepancy;
 
     fb.pixels_mut()
         .par_chunks_mut(width)
         .enumerate()
         .for_each(|(y, row)| {
             for (x, pixel) in row.iter_mut().enumerate() {
-                let mut rng = pixel_rng(settings.seed, x, y);
                 let mut acc = Color::ZERO;
-                for _ in 0..settings.samples_per_pixel {
-                    // Jittered sample within the pixel; flip y so row 0 is the
-                    // top of the image.
-                    let s = (x as Float + rng.gen::<Float>()) / width as Float;
-                    let t = (height as Float - 1.0 - y as Float + rng.gen::<Float>())
-                        / height as Float;
-                    let ray = camera.get_ray(s, t, &mut rng);
-                    acc += radiance(scene, ray, settings.max_depth, &mut rng);
+                for k in 0..spp {
+                    let mut sampler = if qmc {
+                        Sampler::pixel(seed, x, y, k as u32)
+                    } else {
+                        Sampler::pixel_random(seed, x, y, k as u32)
+                    };
+                    acc += sample_once(
+                        scene,
+                        &camera,
+                        x,
+                        y,
+                        width,
+                        height,
+                        max_depth,
+                        clamp,
+                        &mut sampler,
+                    );
                 }
                 *pixel = acc * inv_spp;
             }
@@ -89,60 +120,6 @@ where
     fb
 }
 
-/// Estimate the radiance arriving along `ray` via iterative path tracing.
-fn radiance<R: Rng + ?Sized>(
-    scene: &Scene,
-    mut ray: Ray,
-    max_depth: usize,
-    rng: &mut R,
-) -> Color {
-    let mut radiance = Color::ZERO;
-    let mut throughput = Color::ONE;
-
-    for depth in 0..max_depth {
-        let Some(hit) = scene.hit(&ray, T_MIN, Float::INFINITY) else {
-            radiance += throughput * scene.background.sample(ray.dir);
-            break;
-        };
-
-        let material = scene.material(hit.material);
-        radiance += throughput * material.emitted();
-
-        let Some(scatter) = material.scatter(&ray, &hit, rng) else {
-            break; // absorbed (or a light, which only emits)
-        };
-
-        throughput = throughput * scatter.attenuation;
-        ray = Ray::new(hit.p, scatter.direction);
-
-        // Russian roulette: unbiasedly terminate dim paths once they have had a
-        // chance to gather light.
-        if depth >= RR_START_DEPTH {
-            let survive = throughput.max_component().clamp(0.05, 0.95);
-            if rng.gen::<Float>() > survive {
-                break;
-            }
-            throughput = throughput / survive;
-        }
-    }
-
-    radiance
-}
-
-/// Deterministic per-pixel RNG derived from the base seed and pixel coordinates
-/// via a SplitMix64-style hash, so threads never share or contend on state.
-#[inline]
-fn pixel_rng(seed: u64, x: usize, y: usize) -> SmallRng {
-    let mut z = seed
-        .wrapping_add((y as u64).wrapping_mul(0x9E37_79B9_7F4A_7C15))
-        .wrapping_add((x as u64).wrapping_mul(0xD1B5_4A32_D192_ED03))
-        .wrapping_add(0x1234_5678_9ABC_DEF0);
-    z = (z ^ (z >> 30)).wrapping_mul(0xBF58_476D_1CE4_E5B9);
-    z = (z ^ (z >> 27)).wrapping_mul(0x94D0_49BB_1331_11EB);
-    z ^= z >> 31;
-    SmallRng::seed_from_u64(z)
-}
-
 /// Convenience: render and resolve to interleaved RGB8 bytes.
 pub fn render_to_srgb<F>(scene: &Scene, settings: &RenderSettings, on_row_done: F) -> Vec<u8>
 where
@@ -150,4 +127,283 @@ where
 {
     let fb = render(scene, settings, on_row_done);
     fb.to_srgb_bytes(settings.tonemap, settings.gamma)
+}
+
+/// An accumulating renderer for interactive/progressive use.
+///
+/// Call [`ProgressiveRenderer::render_pass`] repeatedly; each call adds samples
+/// to a running per-pixel sum. [`ProgressiveRenderer::to_srgb_bytes`] resolves
+/// the current average at any time. To change the camera or resolution, build a
+/// new renderer — construction is cheap (it only allocates the accumulation
+/// buffer; the scene/BVH is borrowed at render time).
+pub struct ProgressiveRenderer {
+    width: usize,
+    height: usize,
+    max_depth: usize,
+    seed: u64,
+    firefly_clamp: Float,
+    camera: Camera,
+    sum: Vec<Color>,
+    samples: usize,
+}
+
+impl ProgressiveRenderer {
+    pub fn new(
+        camera_config: &CameraConfig,
+        width: usize,
+        height: usize,
+        max_depth: usize,
+        seed: u64,
+        firefly_clamp: Float,
+    ) -> ProgressiveRenderer {
+        let camera = Camera::new(camera_config, width as Float / height as Float);
+        ProgressiveRenderer {
+            width,
+            height,
+            max_depth,
+            seed,
+            firefly_clamp,
+            camera,
+            sum: vec![Color::ZERO; width * height],
+            samples: 0,
+        }
+    }
+
+    pub fn width(&self) -> usize {
+        self.width
+    }
+
+    pub fn height(&self) -> usize {
+        self.height
+    }
+
+    /// Total samples-per-pixel accumulated so far.
+    pub fn samples(&self) -> usize {
+        self.samples
+    }
+
+    /// Add `count` more samples per pixel to the accumulation buffer.
+    pub fn render_pass(&mut self, scene: &Scene, count: usize) {
+        let width = self.width;
+        let height = self.height;
+        let max_depth = self.max_depth;
+        let seed = self.seed;
+        let clamp = self.firefly_clamp;
+        let base = self.samples;
+        let camera = &self.camera;
+
+        self.sum
+            .par_chunks_mut(width)
+            .enumerate()
+            .for_each(|(y, row)| {
+                for (x, pixel) in row.iter_mut().enumerate() {
+                    let mut acc = Color::ZERO;
+                    for local in 0..count {
+                        let mut sampler = Sampler::pixel(seed, x, y, (base + local) as u32);
+                        acc += sample_once(
+                            scene,
+                            camera,
+                            x,
+                            y,
+                            width,
+                            height,
+                            max_depth,
+                            clamp,
+                            &mut sampler,
+                        );
+                    }
+                    *pixel += acc;
+                }
+            });
+
+        self.samples += count;
+    }
+
+    /// Resolve the current average to interleaved RGB8 bytes.
+    pub fn to_srgb_bytes(&self, tonemap: Tonemap, gamma: Float) -> Vec<u8> {
+        let inv = if self.samples > 0 {
+            1.0 / self.samples as Float
+        } else {
+            0.0
+        };
+        let mut out = Vec::with_capacity(self.width * self.height * 3);
+        for &c in &self.sum {
+            out.extend_from_slice(&color::to_srgb8(c * inv, tonemap, gamma));
+        }
+        out
+    }
+}
+
+/// Trace one camera sample for pixel `(x, y)`: QMC dimensions 0–1 jitter the
+/// pixel, 2–3 sample the lens (for defocus), and the rest drive the path. The y
+/// axis is flipped so row 0 is the top of the image. Applies the firefly clamp.
+#[inline]
+#[allow(clippy::too_many_arguments)]
+fn sample_once(
+    scene: &Scene,
+    camera: &Camera,
+    x: usize,
+    y: usize,
+    width: usize,
+    height: usize,
+    max_depth: usize,
+    clamp: Float,
+    sampler: &mut Sampler,
+) -> Color {
+    let (du, dv) = sampler.next_2d();
+    let s = (x as Float + du) / width as Float;
+    let t = (height as Float - 1.0 - y as Float + dv) / height as Float;
+    let ray = camera.get_ray(s, t, sampler);
+    let c = radiance(scene, ray, max_depth, sampler);
+    if clamp > 0.0 {
+        c.min(Color::splat(clamp))
+    } else {
+        c
+    }
+}
+
+/// Estimate the radiance arriving along `ray` via iterative path tracing with
+/// next-event estimation and multiple importance sampling.
+fn radiance(scene: &Scene, mut ray: Ray, max_depth: usize, sampler: &mut Sampler) -> Color {
+    let mut l = Color::ZERO;
+    let mut throughput = Color::ONE;
+    let mut specular_bounce = true;
+    let mut prev_bsdf_pdf = 0.0;
+
+    for depth in 0..max_depth {
+        let Some(hit) = scene.hit(&ray, T_MIN, Float::INFINITY) else {
+            // Escaped to the background, which is not a sampled light, so take
+            // it at full weight.
+            l += throughput * scene.background.sample(ray.dir);
+            break;
+        };
+
+        let material = scene.material(hit.material);
+
+        // Emission at the hit. If we arrived here by BSDF sampling from a
+        // non-specular vertex, MIS-weight it against direct light sampling.
+        let emit = material.emitted();
+        if emit.max_component() > 0.0 {
+            if specular_bounce {
+                l += throughput * emit;
+            } else {
+                let light_pdf = scene.light_pdf(ray.dir, &hit);
+                l += throughput * emit * power_heuristic(prev_bsdf_pdf, light_pdf);
+            }
+            break; // emitters do not scatter
+        }
+
+        let wo = -ray.dir;
+
+        // (a) Next-event estimation: connect to a sampled light.
+        if !material.is_specular() {
+            if let Some(ls) = scene.sample_light(hit.p, sampler) {
+                let cos_surf = ls.wi.dot(hit.normal);
+                if ls.pdf > 0.0 && cos_surf > 0.0 && ls.emit.max_component() > 0.0 {
+                    // Shadow ray, stopping just short of the light surface.
+                    if !scene.occluded(hit.p, ls.wi, T_MIN, ls.dist * (1.0 - 1e-3)) {
+                        let f = material.eval(wo, ls.wi, &hit);
+                        let scattering_pdf = material.pdf(wo, ls.wi, &hit);
+                        let w = power_heuristic(ls.pdf, scattering_pdf);
+                        l += throughput * f * ls.emit * (cos_surf * w / ls.pdf);
+                    }
+                }
+            }
+        }
+
+        // (b) BSDF sampling: extend the path.
+        let Some(bs) = material.sample(wo, &hit, sampler) else {
+            break; // absorbed
+        };
+        if bs.specular {
+            throughput = throughput * bs.f;
+            specular_bounce = true;
+            prev_bsdf_pdf = 0.0;
+        } else {
+            if bs.pdf <= 0.0 {
+                break;
+            }
+            let cos = bs.wi.dot(hit.normal).abs();
+            throughput = throughput * bs.f * (cos / bs.pdf);
+            specular_bounce = false;
+            prev_bsdf_pdf = bs.pdf;
+        }
+        ray = Ray::new(hit.p, bs.wi);
+
+        // Russian roulette: unbiasedly terminate dim paths once they have had a
+        // chance to gather light.
+        if depth >= RR_START_DEPTH {
+            let survive = throughput.max_component().clamp(0.05, 0.95);
+            if sampler.next_1d() > survive {
+                break;
+            }
+            throughput = throughput / survive;
+        }
+    }
+
+    l
+}
+
+/// MIS power heuristic (β = 2) for combining two sampling strategies.
+#[inline]
+fn power_heuristic(a: Float, b: Float) -> Float {
+    let (a2, b2) = (a * a, b * b);
+    let s = a2 + b2;
+    if s > 0.0 {
+        a2 / s
+    } else {
+        0.0
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::demo;
+
+    fn mean_luma(bytes: &[u8]) -> f64 {
+        let sum: u64 = bytes.iter().map(|&b| b as u64).sum();
+        sum as f64 / bytes.len() as f64
+    }
+
+    #[test]
+    fn progressive_accumulation_advances_and_renders() {
+        let scene = demo::cornell_box();
+        let mut pr = ProgressiveRenderer::new(&scene.camera, 64, 64, 16, 0, 0.0);
+        assert_eq!(pr.samples(), 0);
+        pr.render_pass(&scene, 4);
+        pr.render_pass(&scene, 4);
+        assert_eq!(pr.samples(), 8);
+        let bytes = pr.to_srgb_bytes(Tonemap::Clamp, 2.2);
+        assert_eq!(bytes.len(), 64 * 64 * 3);
+        assert!(mean_luma(&bytes) > 1.0, "image should not be all black");
+    }
+
+    #[test]
+    fn progressive_matches_batch_within_noise() {
+        // Progressive accumulation and a batch render at the same total spp
+        // should converge to roughly the same image.
+        let scene = demo::spheres();
+        let settings = RenderSettings {
+            width: 48,
+            height: 32,
+            samples_per_pixel: 32,
+            max_depth: 8,
+            seed: 0,
+            low_discrepancy: true,
+            firefly_clamp: 0.0,
+            tonemap: Tonemap::Clamp,
+            gamma: 2.2,
+        };
+        let batch = render_to_srgb(&scene, &settings, || {});
+
+        let mut pr = ProgressiveRenderer::new(&scene.camera, 48, 32, 8, 0, 0.0);
+        for _ in 0..32 {
+            pr.render_pass(&scene, 1);
+        }
+        let prog = pr.to_srgb_bytes(Tonemap::Clamp, 2.2);
+
+        let d = (mean_luma(&batch) - mean_luma(&prog)).abs();
+        assert!(d < 6.0, "mean luma differs too much: {d}");
+    }
 }

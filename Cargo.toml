@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["crates/prime-core", "crates/prime-cli"]
+members = ["crates/prime-core", "crates/prime-cli", "crates/prime-serve"]
 
 [workspace.package]
 version = "0.1.0"
@@ -21,6 +21,8 @@ ron = "0.8"
 thiserror = "1"
 anyhow = "1"
 indicatif = "0.17"
+tiny_http = "0.12"
+serde_json = "1"
 
 # Optimize the renderer even in dev so test/sample renders aren't painfully slow,
 # while keeping debug assertions on. Release stays fully optimized.

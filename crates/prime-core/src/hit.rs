@@ -17,6 +17,10 @@ pub struct HitRecord {
     /// Surface texture coordinates.
     pub u: Float,
     pub v: Float,
+    /// Surface area of the primitive that was hit. Used to compute the
+    /// area-measure light pdf for multiple importance sampling when a path ray
+    /// lands on an emitter.
+    pub area: Float,
     /// Index into the scene's material table.
     pub material: MaterialId,
 }
@@ -25,6 +29,7 @@ impl HitRecord {
     /// Orient `outward_normal` (which must be unit length) to face the ray and
     /// record which side was hit.
     #[inline]
+    #[allow(clippy::too_many_arguments)]
     pub fn with_face_normal(
         ray: &Ray,
         t: Float,
@@ -32,6 +37,7 @@ impl HitRecord {
         outward_normal: Vec3,
         u: Float,
         v: Float,
+        area: Float,
         material: MaterialId,
     ) -> HitRecord {
         let front_face = ray.dir.dot(outward_normal) < 0.0;
@@ -47,6 +53,7 @@ impl HitRecord {
             front_face,
             u,
             v,
+            area,
             material,
         }
     }

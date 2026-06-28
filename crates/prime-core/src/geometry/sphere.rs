@@ -3,8 +3,10 @@
 
 use crate::aabb::Aabb;
 use crate::hit::HitRecord;
+use crate::math::sampling::random_unit_vector;
 use crate::math::Vec3;
 use crate::ray::Ray;
+use crate::sampler::Sampler;
 use crate::{Float, MaterialId};
 use std::f32::consts::PI;
 
@@ -54,6 +56,7 @@ impl Sphere {
             outward,
             u,
             v,
+            self.area(),
             self.material,
         ))
     }
@@ -65,6 +68,18 @@ impl Sphere {
 
     pub fn centroid(&self) -> Vec3 {
         self.center
+    }
+
+    #[inline]
+    pub fn area(&self) -> Float {
+        4.0 * PI * self.radius * self.radius
+    }
+
+    /// Uniformly sample a point on the sphere surface, returning the point and
+    /// its outward normal.
+    pub fn sample(&self, sampler: &mut Sampler) -> (Vec3, Vec3) {
+        let dir = random_unit_vector(sampler);
+        (self.center + dir * self.radius, dir)
     }
 }
 
@@ -93,7 +108,9 @@ mod tests {
     fn ray_from_inside_hits_far_wall_with_flipped_normal() {
         let s = Sphere::new(Vec3::ZERO, 1.0, 0);
         let r = Ray::new(Vec3::ZERO, Vec3::new(0.0, 0.0, 1.0));
-        let h = s.hit(&r, 0.001, Float::INFINITY).expect("should hit from inside");
+        let h = s
+            .hit(&r, 0.001, Float::INFINITY)
+            .expect("should hit from inside");
         assert!((h.t - 1.0).abs() < 1e-4);
         assert!(!h.front_face);
         // Normal points back toward the ray origin (inward).

@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Prime — interactive path tracer</title>
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; font: 14px/1.4 system-ui, sans-serif;
+    background: #14161a; color: #d7dbe0; display: flex; height: 100vh;
+  }
+  #panel {
+    width: 280px; flex: none; padding: 16px; overflow-y: auto;
+    background: #1b1e24; border-right: 1px solid #2a2f37;
+  }
+  #panel h1 { font-size: 16px; margin: 0 0 4px; letter-spacing: .04em; }
+  #panel .sub { color: #8a929c; font-size: 12px; margin-bottom: 16px; }
+  label { display: block; margin: 14px 0 4px; color: #9aa3ad; font-size: 12px; }
+  input[type=range] { width: 100%; }
+  select, input[type=number] {
+    width: 100%; padding: 6px 8px; background: #14161a; color: #d7dbe0;
+    border: 1px solid #2a2f37; border-radius: 6px;
+  }
+  .row { display: flex; gap: 8px; }
+  .row > div { flex: 1; }
+  .val { float: right; color: #d7dbe0; font-variant-numeric: tabular-nums; }
+  #stage {
+    flex: 1; display: flex; align-items: center; justify-content: center;
+    overflow: hidden; background:
+      repeating-conic-gradient(#1a1d22 0% 25%, #16191e 0% 50%) 50% / 24px 24px;
+  }
+  #view {
+    max-width: 100%; max-height: 100%; cursor: grab; user-select: none;
+    image-rendering: auto; box-shadow: 0 8px 40px #0008;
+  }
+  #view.drag { cursor: grabbing; }
+  #status {
+    position: fixed; bottom: 12px; right: 16px; padding: 6px 10px;
+    background: #0009; border-radius: 6px; font-variant-numeric: tabular-nums;
+    color: #c8ccd2;
+  }
+  .hint { color: #6f7884; font-size: 11px; margin-top: 18px; }
+</style>
+</head>
+<body>
+  <div id="panel">
+    <h1>PRIME</h1>
+    <div class="sub">interactive path tracer</div>
+
+    <label>Scene</label>
+    <select id="scene"></select>
+
+    <label>Tonemap</label>
+    <select id="tonemap">
+      <option value="reinhard">Reinhard</option>
+      <option value="clamp">Clamp</option>
+    </select>
+
+    <label>Max depth <span class="val" id="depthVal"></span></label>
+    <input type="range" id="depth" min="1" max="32" step="1" />
+
+    <label>Samples / pass <span class="val" id="sppVal"></span></label>
+    <input type="range" id="spp" min="1" max="16" step="1" />
+
+    <label>Target samples <span class="val" id="targetVal"></span></label>
+    <input type="range" id="target" min="16" max="4096" step="16" />
+
+    <label>Gamma <span class="val" id="gammaVal"></span></label>
+    <input type="range" id="gamma" min="1" max="3" step="0.1" />
+
+    <label>Resolution</label>
+    <div class="row">
+      <div><input type="number" id="width" min="64" max="2000" step="1" /></div>
+      <div><input type="number" id="height" min="64" max="2000" step="1" /></div>
+    </div>
+
+    <div class="hint">
+      Drag to orbit · scroll to zoom.<br />
+      Each change restarts accumulation; the image refines while idle.
+    </div>
+  </div>
+
+  <div id="stage">
+    <img id="view" alt="render" draggable="false" />
+  </div>
+
+  <div id="status">…</div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const view = $('view');
+
+// ---- state synced from the server ----
+let settings = null;        // {width,height,max_depth,samples_per_pass,target_spp,gamma,tonemap}
+let knownScenes = new Set();
+
+function postJSON(url, body) {
+  return fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+}
+
+// ---- camera orbit (accumulate deltas, flush on a timer) ----
+let pending = { dyaw: 0, dpitch: 0, zoom: 1 };
+let dragging = false, lastX = 0, lastY = 0;
+
+view.addEventListener('mousedown', (e) => {
+  dragging = true; lastX = e.clientX; lastY = e.clientY; view.classList.add('drag');
+});
+window.addEventListener('mouseup', () => { dragging = false; view.classList.remove('drag'); });
+window.addEventListener('mousemove', (e) => {
+  if (!dragging) return;
+  const dx = e.clientX - lastX, dy = e.clientY - lastY;
+  lastX = e.clientX; lastY = e.clientY;
+  pending.dyaw += -dx * 0.005;
+  pending.dpitch += dy * 0.005;
+});
+view.addEventListener('wheel', (e) => {
+  e.preventDefault();
+  pending.zoom *= e.deltaY > 0 ? 1.1 : 0.9;
+}, { passive: false });
+
+setInterval(() => {
+  if (pending.dyaw || pending.dpitch || pending.zoom !== 1) {
+    postJSON('/camera', pending);
+    pending = { dyaw: 0, dpitch: 0, zoom: 1 };
+  }
+}, 50);
+
+// ---- settings controls ----
+function sendSettings() {
+  if (!settings) return;
+  settings.max_depth = +$('depth').value;
+  settings.samples_per_pass = +$('spp').value;
+  settings.target_spp = +$('target').value;
+  settings.gamma = +$('gamma').value;
+  settings.tonemap = $('tonemap').value;
+  settings.width = +$('width').value;
+  settings.height = +$('height').value;
+  refreshLabels();
+  postJSON('/settings', settings);
+}
+['depth','spp','target','gamma','tonemap','width','height'].forEach((id) =>
+  $(id).addEventListener('change', sendSettings));
+['depth','spp','target','gamma'].forEach((id) =>
+  $(id).addEventListener('input', refreshLabels));
+
+$('scene').addEventListener('change', async () => {
+  await postJSON('/scene', { name: $('scene').value });
+  // The new scene resets the camera; re-sync after the server applies it.
+  setTimeout(syncStatus, 100);
+});
+
+function refreshLabels() {
+  $('depthVal').textContent = $('depth').value;
+  $('sppVal').textContent = $('spp').value;
+  $('targetVal').textContent = $('target').value;
+  $('gammaVal').textContent = (+$('gamma').value).toFixed(1);
+}
+
+function applyStatusToControls(s) {
+  settings = {
+    width: s.width, height: s.height, max_depth: s.maxDepth,
+    samples_per_pass: s.samplesPerPass, target_spp: s.target,
+    gamma: s.gamma, tonemap: s.tonemap,
+  };
+  $('depth').value = s.maxDepth;
+  $('spp').value = s.samplesPerPass;
+  $('target').value = s.target;
+  $('gamma').value = s.gamma;
+  $('tonemap').value = s.tonemap;
+  $('width').value = s.width;
+  $('height').value = s.height;
+  // Ensure the active scene appears in the picker.
+  if (!knownScenes.has(s.scene)) {
+    const opt = document.createElement('option');
+    opt.value = s.scene; opt.textContent = s.scene;
+    $('scene').appendChild(opt); knownScenes.add(s.scene);
+  }
+  $('scene').value = s.scene;
+  refreshLabels();
+}
+
+async function syncStatus() {
+  const s = await (await fetch('/status')).json();
+  applyStatusToControls(s);
+}
+
+// ---- frame + status polling loop ----
+async function tick() {
+  try {
+    const s = await (await fetch('/status')).json();
+    $('status').textContent =
+      `${s.scene} — ${s.samples}/${s.target} spp  ·  ${s.width}×${s.height}`;
+    if (!settings) applyStatusToControls(s);
+
+    const blob = await (await fetch('/frame.png?t=' + Date.now())).blob();
+    const url = URL.createObjectURL(blob);
+    const old = view.src;
+    view.src = url;
+    if (old.startsWith('blob:')) URL.revokeObjectURL(old);
+  } catch (e) { /* server momentarily busy; retry next tick */ }
+  setTimeout(tick, 250);
+}
+
+// built-in scenes are injected by the server template below
+const BUILTINS = window.__BUILTINS__ || ['showcase', 'studio', 'rtweekend', 'cornell', 'spheres'];
+for (const name of BUILTINS) {
+  const opt = document.createElement('option');
+  opt.value = name; opt.textContent = name;
+  $('scene').appendChild(opt); knownScenes.add(name);
+}
+
+syncStatus().then(tick);
+</script>
+</body>
+</html>
