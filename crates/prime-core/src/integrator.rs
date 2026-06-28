@@ -219,26 +219,83 @@ fn sample_pixel<R: Rng + ?Sized>(
     acc
 }
 
-/// Estimate the radiance arriving along `ray` via iterative path tracing.
+/// Estimate the radiance arriving along `ray` via iterative path tracing with
+/// next-event estimation (direct light sampling) and multiple importance
+/// sampling.
+///
+/// At each non-specular vertex we both (a) connect directly to a sampled light
+/// via a shadow ray, and (b) continue the path by BSDF sampling. MIS (the power
+/// heuristic) weights the two strategies so neither double-counts: light
+/// sampling handles small/bright lights cleanly, BSDF sampling handles glossy
+/// reflections of them. Emission reached by a BSDF ray is MIS-weighted against
+/// the light-sampling pdf for that direction; emission after a specular bounce
+/// (or directly from the camera) is taken in full, since light sampling cannot
+/// connect through a delta.
 fn radiance<R: Rng + ?Sized>(scene: &Scene, mut ray: Ray, max_depth: usize, rng: &mut R) -> Color {
-    let mut radiance = Color::ZERO;
+    let mut l = Color::ZERO;
     let mut throughput = Color::ONE;
+    let mut specular_bounce = true;
+    let mut prev_bsdf_pdf = 0.0;
 
     for depth in 0..max_depth {
         let Some(hit) = scene.hit(&ray, T_MIN, Float::INFINITY) else {
-            radiance += throughput * scene.background.sample(ray.dir);
+            // Escaped to the background, which is not a sampled light, so take
+            // it at full weight.
+            l += throughput * scene.background.sample(ray.dir);
             break;
         };
 
         let material = scene.material(hit.material);
-        radiance += throughput * material.emitted();
 
-        let Some(scatter) = material.scatter(&ray, &hit, rng) else {
-            break; // absorbed (or a light, which only emits)
+        // Emission at the hit. If we arrived here by BSDF sampling from a
+        // non-specular vertex, MIS-weight it against direct light sampling.
+        let emit = material.emitted();
+        if emit.max_component() > 0.0 {
+            if specular_bounce {
+                l += throughput * emit;
+            } else {
+                let light_pdf = scene.light_pdf(ray.dir, &hit);
+                l += throughput * emit * power_heuristic(prev_bsdf_pdf, light_pdf);
+            }
+            break; // emitters do not scatter
+        }
+
+        let wo = -ray.dir;
+
+        // (a) Next-event estimation: connect to a sampled light.
+        if !material.is_specular() {
+            if let Some(ls) = scene.sample_light(hit.p, rng) {
+                let cos_surf = ls.wi.dot(hit.normal);
+                if ls.pdf > 0.0 && cos_surf > 0.0 && ls.emit.max_component() > 0.0 {
+                    // Shadow ray, stopping just short of the light surface.
+                    if !scene.occluded(hit.p, ls.wi, T_MIN, ls.dist * (1.0 - 1e-3)) {
+                        let f = material.eval(wo, ls.wi, &hit);
+                        let scattering_pdf = material.pdf(wo, ls.wi, &hit);
+                        let w = power_heuristic(ls.pdf, scattering_pdf);
+                        l += throughput * f * ls.emit * (cos_surf * w / ls.pdf);
+                    }
+                }
+            }
+        }
+
+        // (b) BSDF sampling: extend the path.
+        let Some(bs) = material.sample(wo, &hit, rng) else {
+            break; // absorbed
         };
-
-        throughput = throughput * scatter.attenuation;
-        ray = Ray::new(hit.p, scatter.direction);
+        if bs.specular {
+            throughput = throughput * bs.f;
+            specular_bounce = true;
+            prev_bsdf_pdf = 0.0;
+        } else {
+            if bs.pdf <= 0.0 {
+                break;
+            }
+            let cos = bs.wi.dot(hit.normal).abs();
+            throughput = throughput * bs.f * (cos / bs.pdf);
+            specular_bounce = false;
+            prev_bsdf_pdf = bs.pdf;
+        }
+        ray = Ray::new(hit.p, bs.wi);
 
         // Russian roulette: unbiasedly terminate dim paths once they have had a
         // chance to gather light.
@@ -251,7 +308,19 @@ fn radiance<R: Rng + ?Sized>(scene: &Scene, mut ray: Ray, max_depth: usize, rng:
         }
     }
 
-    radiance
+    l
+}
+
+/// MIS power heuristic (β = 2) for combining two sampling strategies.
+#[inline]
+fn power_heuristic(a: Float, b: Float) -> Float {
+    let (a2, b2) = (a * a, b * b);
+    let s = a2 + b2;
+    if s > 0.0 {
+        a2 / s
+    } else {
+        0.0
+    }
 }
 
 /// Deterministic per-pixel RNG derived from the base seed, pixel coordinates,

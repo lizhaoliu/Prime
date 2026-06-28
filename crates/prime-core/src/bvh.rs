@@ -160,6 +160,48 @@ impl Bvh {
 
         result
     }
+
+    /// Any-hit occlusion test: returns `true` as soon as *any* primitive is hit
+    /// within `[t_min, t_max]`. Much cheaper than [`Bvh::hit`] for shadow rays,
+    /// since it stops at the first hit and ignores near/far ordering.
+    pub fn occluded(&self, ray: &Ray, t_min: Float, t_max: Float) -> bool {
+        if self.nodes.is_empty() {
+            return false;
+        }
+        let mut stack = [0u32; 64];
+        let mut sp = 0usize;
+        let mut node_idx = 0usize;
+
+        loop {
+            let node = &self.nodes[node_idx];
+            if node.bbox.hit(ray, t_min, t_max) {
+                if node.n_prims > 0 {
+                    let start = node.offset as usize;
+                    for p in &self.prims[start..start + node.n_prims as usize] {
+                        if p.hit(ray, t_min, t_max).is_some() {
+                            return true;
+                        }
+                    }
+                    if sp == 0 {
+                        break;
+                    }
+                    sp -= 1;
+                    node_idx = stack[sp] as usize;
+                } else {
+                    stack[sp] = node.offset; // far child
+                    sp += 1;
+                    node_idx += 1; // near child
+                }
+            } else {
+                if sp == 0 {
+                    break;
+                }
+                sp -= 1;
+                node_idx = stack[sp] as usize;
+            }
+        }
+        false
+    }
 }
 
 /// Recursively build the subtree for `info`, returning the index of the node
@@ -383,5 +425,17 @@ mod tests {
         let bvh = Bvh::build(Vec::new());
         let ray = Ray::new(Vec3::ZERO, Vec3::new(0.0, 0.0, 1.0));
         assert!(bvh.hit(&ray, 0.001, Float::INFINITY).is_none());
+    }
+
+    #[test]
+    fn occluded_respects_range_and_misses() {
+        // Unit sphere at the origin; a +z ray from z=-5 hits it at t in [4, 6].
+        let bvh = Bvh::build(vec![Primitive::Sphere(Sphere::new(Vec3::ZERO, 1.0, 0))]);
+        let ray = Ray::new(Vec3::new(0.0, 0.0, -5.0), Vec3::new(0.0, 0.0, 1.0));
+        assert!(bvh.occluded(&ray, 0.001, 10.0), "blocker within range");
+        assert!(!bvh.occluded(&ray, 0.001, 3.0), "blocker is beyond t_max");
+
+        let miss = Ray::new(Vec3::new(5.0, 0.0, -5.0), Vec3::new(0.0, 0.0, 1.0));
+        assert!(!bvh.occluded(&miss, 0.001, 100.0), "ray misses entirely");
     }
 }

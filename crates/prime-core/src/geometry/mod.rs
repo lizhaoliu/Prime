@@ -11,8 +11,10 @@ pub use triangle::Triangle;
 
 use crate::aabb::Aabb;
 use crate::hit::HitRecord;
+use crate::math::Vec3;
 use crate::ray::Ray;
 use crate::{Float, MaterialId};
+use rand::Rng;
 
 #[derive(Clone, Copy, Debug)]
 pub enum Primitive {
@@ -38,7 +40,7 @@ impl Primitive {
     }
 
     #[inline]
-    pub fn centroid(&self) -> crate::math::Vec3 {
+    pub fn centroid(&self) -> Vec3 {
         match self {
             Primitive::Sphere(s) => s.centroid(),
             Primitive::Triangle(t) => t.centroid(),
@@ -50,6 +52,23 @@ impl Primitive {
         match self {
             Primitive::Sphere(s) => s.material,
             Primitive::Triangle(t) => t.material,
+        }
+    }
+
+    #[inline]
+    pub fn area(&self) -> Float {
+        match self {
+            Primitive::Sphere(s) => s.area(),
+            Primitive::Triangle(t) => t.area(),
+        }
+    }
+
+    /// Uniformly sample a point on the primitive's surface, returning the point
+    /// and its surface normal.
+    pub fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> (Vec3, Vec3) {
+        match self {
+            Primitive::Sphere(s) => s.sample(rng),
+            Primitive::Triangle(t) => t.sample(rng),
         }
     }
 }

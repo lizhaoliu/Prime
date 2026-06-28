@@ -68,8 +68,8 @@ bvh          binned-SAH bounding volume hierarchy, iterative traversal
 hit          intersection record (point, oriented normal, uv, material id)
 material     sealed BSDF enum: Lambertian / Metal / Dielectric / Emissive
 camera       thin-lens pinhole camera (look-at, fov, optional defocus)
-scene        material table + BVH + camera config + background
-integrator   the parallel path tracer (Russian roulette, RR-unbiased)
+scene        material table + BVH + light list + camera config + background
+integrator   parallel path tracer: next-event estimation + MIS, Russian roulette
 framebuffer  linear HDR pixel buffer -> sRGB bytes
 color        tonemapping (clamp / Reinhard) + gamma
 obj          Wavefront OBJ loader (no UI dependency)

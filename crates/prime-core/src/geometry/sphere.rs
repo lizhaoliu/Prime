@@ -3,9 +3,11 @@
 
 use crate::aabb::Aabb;
 use crate::hit::HitRecord;
+use crate::math::sampling::random_unit_vector;
 use crate::math::Vec3;
 use crate::ray::Ray;
 use crate::{Float, MaterialId};
+use rand::Rng;
 use std::f32::consts::PI;
 
 #[derive(Clone, Copy, Debug)]
@@ -54,6 +56,7 @@ impl Sphere {
             outward,
             u,
             v,
+            self.area(),
             self.material,
         ))
     }
@@ -65,6 +68,18 @@ impl Sphere {
 
     pub fn centroid(&self) -> Vec3 {
         self.center
+    }
+
+    #[inline]
+    pub fn area(&self) -> Float {
+        4.0 * PI * self.radius * self.radius
+    }
+
+    /// Uniformly sample a point on the sphere surface, returning the point and
+    /// its outward normal.
+    pub fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> (Vec3, Vec3) {
+        let dir = random_unit_vector(rng);
+        (self.center + dir * self.radius, dir)
     }
 }
 

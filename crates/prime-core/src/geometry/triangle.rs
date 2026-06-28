@@ -6,6 +6,7 @@ use crate::hit::HitRecord;
 use crate::math::Vec3;
 use crate::ray::Ray;
 use crate::{Float, MaterialId};
+use rand::Rng;
 
 #[derive(Clone, Copy, Debug)]
 pub struct Triangle {
@@ -16,17 +17,39 @@ pub struct Triangle {
     /// geometric normal when absent.
     pub normals: Option<[Vec3; 3]>,
     pub material: MaterialId,
+    /// Precomputed surface area (for light sampling).
+    area: Float,
 }
 
 impl Triangle {
     pub fn new(v0: Vec3, v1: Vec3, v2: Vec3, material: MaterialId) -> Self {
+        let area = 0.5 * (v1 - v0).cross(v2 - v0).length();
         Triangle {
             v0,
             v1,
             v2,
             normals: None,
             material,
+            area,
         }
+    }
+
+    #[inline]
+    pub fn area(&self) -> Float {
+        self.area
+    }
+
+    /// Uniformly sample a point on the triangle, returning the point and its
+    /// (geometric) normal.
+    pub fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> (Vec3, Vec3) {
+        let mut r1: Float = rng.gen();
+        let mut r2: Float = rng.gen();
+        if r1 + r2 > 1.0 {
+            r1 = 1.0 - r1;
+            r2 = 1.0 - r2;
+        }
+        let p = self.v0 + (self.v1 - self.v0) * r1 + (self.v2 - self.v0) * r2;
+        (p, self.geometric_normal())
     }
 
     pub fn with_normals(mut self, normals: [Vec3; 3]) -> Self {
@@ -81,6 +104,7 @@ impl Triangle {
             outward,
             u,
             v,
+            self.area,
             self.material,
         ))
     }
