@@ -17,6 +17,7 @@ prime cornell -o cornell.png --width 800 --height 800 --samples 256
 | Sphere field under a sky (defocus blur) | `prime spheres` |
 | Custom scene from a file | `prime myscene.ron` |
 | A bare mesh, auto-framed | `prime model.obj` |
+| **Interactive viewer in the browser** | `prime-serve cornell` → open http://127.0.0.1:8080 |
 
 ---
 
@@ -43,13 +44,18 @@ headless, testable architecture**. The most important changes:
 
 ## Architecture
 
-A Cargo workspace with two crates:
+A Cargo workspace with three crates:
 
 ```
 crates/
   prime-core/   # the renderer as a pure library (no windowing, no image codec)
   prime-cli/    # the `prime` binary: argument parsing, PNG output, progress bar
+  prime-serve/  # the `prime-serve` binary: an interactive web viewer
 ```
+
+Both front-ends are thin shells over `prime-core`. The library knows nothing
+about PNGs, HTTP, or argument parsing — exactly the decoupling the legacy
+GUI-coupled design lacked.
 
 ### `prime-core` modules
 
@@ -106,6 +112,41 @@ SCENE                     built-in name (cornell, spheres), a .ron scene,
     --tonemap <T>         clamp | reinhard                     [default: clamp]
     --gamma <F>           display gamma                        [default: 2.2]
 ```
+
+---
+
+## Interactive web viewer
+
+`prime-serve` renders a scene **progressively** on a background thread and
+streams the accumulating image to a browser. Drag to orbit, scroll to zoom, and
+tweak quality/tonemap/resolution live — every change restarts accumulation and
+the image refines while idle.
+
+```bash
+cargo run --release -p prime-serve -- cornell --width 720 --height 540
+# then open http://127.0.0.1:8080
+```
+
+```
+prime-serve [SCENE] [OPTIONS]
+
+SCENE                       built-in name, .ron, or .obj          [default: cornell]
+    --addr <ADDR>           bind address                          [default: 127.0.0.1]
+-p, --port <N>              port                                  [default: 8080]
+-w, --width / --height      render resolution                    [default: 640x400]
+-d, --depth <N>             max bounce depth                      [default: 12]
+    --samples-per-pass <N>  samples added per progressive pass    [default: 2]
+    --target-spp <N>        stop accumulating at this many spp    [default: 1024]
+    --tonemap <T>           clamp | reinhard                      [default: reinhard]
+    --gamma <F>             display gamma                         [default: 2.2]
+```
+
+Design: a single render thread owns all mutable state (scene, orbit camera,
+accumulation buffer) and is driven by commands from the HTTP handlers over a
+channel; handlers only read the latest published frame under a mutex. The
+renderer never locks on its hot path, and data races are structurally
+impossible. Endpoints: `GET /` (page), `GET /frame.png`, `GET /status`,
+`POST /camera`, `POST /settings`, `POST /scene`.
 
 ---
 
