@@ -32,7 +32,7 @@ headless, testable architecture**. The most important changes:
 |--------|----------------|------------|
 | Entry point | 1,292-line `MainGui` god class (Swing/JOGL, IO, render loop, dialogs all in one) | A pure `prime-core` library + a thin `prime` CLI |
 | Math types | Mutable `Vec3f`/`Color3f` with public fields and shared mutable `ZERO`/`UNIT_*` singletons | Immutable `Copy` `Vec3`; no aliasing hazards, **zero heap allocation** in hot loops |
-| Materials | Abstract base + subclasses, transmission never implemented, dead BRDF branches | Sealed `enum Material` (Lambertian / Metal / **Dielectric** / Emissive), exhaustively checked, no virtual dispatch |
+| Materials | Abstract base + subclasses, transmission never implemented, unused microfacet stub, dead BRDF branches | Sealed `enum Material`: Lambertian, **GGX microfacet** Metal, **Dielectric** (real refraction), Emissive — exhaustively checked, no virtual dispatch |
 | Acceleration | kd-tree whose traversal mutated the ray's length to prune | Binned-SAH **BVH** in a flat node array, iterative stack traversal, cross-checked against brute force |
 | Parallelism | A fresh `ExecutorService` leaked on every render | Rayon over the global pool; deterministic per-pixel RNG (reproducible images) |
 | Scene I/O | Java `Serializable` + `ObjectOutputStream` (fragile, unsafe) | Human-readable **RON** scene files via Serde |
@@ -163,7 +163,7 @@ See [`assets/demo.ron`](assets/demo.ron) for a complete example:
     background: Gradient( bottom: (x: 1.0, y: 1.0, z: 1.0), top: (x: 0.5, y: 0.7, z: 1.0) ),
     materials: [
         Lambertian(albedo: (x: 0.5, y: 0.5, z: 0.5)),
-        Metal(albedo: (x: 0.85, y: 0.85, z: 0.88), fuzz: 0.0),
+        Metal(albedo: (x: 0.85, y: 0.85, z: 0.88), roughness: 0.1),
         Dielectric(ior: 1.5),
         Emissive(emit: (x: 8.0, y: 6.5, z: 5.0)),
     ],

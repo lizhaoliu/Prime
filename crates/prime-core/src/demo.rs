@@ -31,7 +31,7 @@ pub fn cornell_box() -> Scene {
     let glass = Material::Dielectric { ior: 1.5 };
     let metal = Material::Metal {
         albedo: Color::new(0.8, 0.85, 0.88),
-        fuzz: 0.0,
+        roughness: 0.08,
     };
 
     let materials = vec![red, green, white, light, glass, metal];
@@ -132,7 +132,7 @@ pub fn spheres() -> Scene {
     let glass = Material::Dielectric { ior: 1.5 };
     let metal = Material::Metal {
         albedo: Color::new(0.8, 0.6, 0.2),
-        fuzz: 0.05,
+        roughness: 0.25,
     };
 
     let materials = vec![ground, diffuse, glass, metal];
