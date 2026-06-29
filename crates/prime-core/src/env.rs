@@ -100,6 +100,23 @@ impl EnvMap {
     }
 
     /// Radiance arriving from direction `dir` (for escaped rays / lookups).
+    pub fn width(&self) -> usize {
+        self.width
+    }
+    pub fn height(&self) -> usize {
+        self.height
+    }
+    pub fn intensity(&self) -> Float {
+        self.intensity
+    }
+    pub fn rotation(&self) -> Float {
+        self.rotation
+    }
+    /// The raw equirectangular pixels (row 0 = +y pole), for a backend to upload.
+    pub fn pixels(&self) -> &[Color] {
+        &self.pixels
+    }
+
     pub fn radiance(&self, dir: Vec3) -> Color {
         let (u, v) = dir_to_uv(rotate_y(dir, -self.rotation));
         self.bilinear(u, v) * self.intensity

@@ -348,6 +348,35 @@ __device__ inline V3 background(V3 dir, int bg_kind, const float* bg) {
     return add(scale(v3(bg[0], bg[1], bg[2]), 1.0f - tt), scale(v3(bg[3], bg[4], bg[5]), tt));
 }
 
+// Equirectangular environment radiance along `dir` (bilinear, wrap u / clamp v),
+// matching prime-core EnvMap::radiance. `w == 0` means no env map.
+__device__ V3 env_radiance(V3 dir, int w, int h, float intensity, float rotation,
+                           const float* px) {
+    V3 d = dir;
+    if (rotation != 0.0f) {
+        float s = sinf(-rotation), c = cosf(-rotation);
+        d = v3(c * dir.x + s * dir.z, dir.y, -s * dir.x + c * dir.z);
+    }
+    float theta = acosf(clampf(d.y, -1.0f, 1.0f));
+    float phi = atan2f(d.z, d.x);
+    if (phi < 0.0f) phi += TWO_PI;
+    float u = phi / TWO_PI, v = theta / PI;
+    float fx = u * w - 0.5f, fy = v * h - 0.5f;
+    int x0 = (int)floorf(fx), y0 = (int)floorf(fy);
+    float dx = fx - x0, dy = fy - y0;
+    // wrap x, clamp y
+    int xa = ((x0 % w) + w) % w, xb = (((x0 + 1) % w) + w) % w;
+    int ya = y0 < 0 ? 0 : (y0 >= h ? h - 1 : y0);
+    int yb = (y0 + 1) < 0 ? 0 : ((y0 + 1) >= h ? h - 1 : y0 + 1);
+    const float* p00 = &px[(ya * w + xa) * 3];
+    const float* p10 = &px[(ya * w + xb) * 3];
+    const float* p01 = &px[(yb * w + xa) * 3];
+    const float* p11 = &px[(yb * w + xb) * 3];
+    V3 top = add(scale(v3(p00[0], p00[1], p00[2]), 1.0f - dx), scale(v3(p10[0], p10[1], p10[2]), dx));
+    V3 bot = add(scale(v3(p01[0], p01[1], p01[2]), 1.0f - dx), scale(v3(p11[0], p11[1], p11[2]), dx));
+    return scale(add(scale(top, 1.0f - dy), scale(bot, dy)), intensity);
+}
+
 // Texture coordinates at the hit: analytic for spheres, barycentric-interpolated
 // per-vertex UVs for triangles (matching the CPU's Triangle::hit).
 __device__ void hit_uv(int best, V3 p, const unsigned int* pkind, const float* pdata,
@@ -416,7 +445,9 @@ extern "C" __global__ void pathtrace(float* out, int W, int H, int spp, int max_
                                      const unsigned int* pmat, const float* mats,
                                      const float* albedo_tex, const float* tex_pixels,
                                      const unsigned int* light_prims, int n_lights,
-                                     const float* cam, int bg_kind, const float* bg) {
+                                     const float* cam, int bg_kind, const float* bg, int env_w,
+                                     int env_h, float env_intensity, float env_rotation,
+                                     const float* env_px) {
     int px = blockIdx.x * blockDim.x + threadIdx.x;
     int py = blockIdx.y * blockDim.y + threadIdx.y;
     if (px >= W || py >= H) return;
@@ -446,7 +477,10 @@ extern "C" __global__ void pathtrace(float* out, int W, int H, int spp, int max_
             float t_hit;
             int best = closest_hit(ro, dir, 1e-3f, &t_hit, nbounds, nmeta, pkind, pdata);
             if (best < 0) {
-                L = add(L, mulv(thr, background(dir, bg_kind, bg)));
+                V3 bgc = env_w > 0
+                             ? env_radiance(dir, env_w, env_h, env_intensity, env_rotation, env_px)
+                             : background(dir, bg_kind, bg);
+                L = add(L, mulv(thr, bgc));
                 break;
             }
             const float* m = &mats[pmat[best] * 8];
