@@ -271,14 +271,29 @@ fn radiance(scene: &Scene, mut ray: Ray, max_depth: usize, sampler: &mut Sampler
     let mut prev_bsdf_pdf = 0.0;
 
     for depth in 0..max_depth {
-        let Some(hit) = scene.hit(&ray, T_MIN, Float::INFINITY) else {
-            // Escaped to the background, which is not a sampled light, so take
-            // it at full weight.
-            l += throughput * scene.background.sample(ray.dir);
+        let Some(mut hit) = scene.hit(&ray, T_MIN, Float::INFINITY) else {
+            // Ray escaped. If an importance-sampled environment is present,
+            // MIS-weight its radiance against the env-sampling pdf; otherwise
+            // take the (non-sampled) background at full weight.
+            if let Some(env) = scene.environment() {
+                let le = env.radiance(ray.dir);
+                if specular_bounce {
+                    l += throughput * le;
+                } else {
+                    l += throughput * le * power_heuristic(prev_bsdf_pdf, env.pdf(ray.dir));
+                }
+            } else {
+                l += throughput * scene.background.sample(ray.dir);
+            }
             break;
         };
 
         let material = scene.material(hit.material);
+
+        // Apply a normal map (if any) before shading.
+        if let Some(nm) = material.normal_map() {
+            hit.normal = crate::material::apply_normal_map(&hit, nm);
+        }
 
         // Emission at the hit. If we arrived here by BSDF sampling from a
         // non-specular vertex, MIS-weight it against direct light sampling.
@@ -295,7 +310,7 @@ fn radiance(scene: &Scene, mut ray: Ray, max_depth: usize, sampler: &mut Sampler
 
         let wo = -ray.dir;
 
-        // (a) Next-event estimation: connect to a sampled light.
+        // (a) Next-event estimation: connect to a sampled area light.
         if !material.is_specular() {
             if let Some(ls) = scene.sample_light(hit.p, sampler) {
                 let cos_surf = ls.wi.dot(hit.normal);
@@ -306,6 +321,22 @@ fn radiance(scene: &Scene, mut ray: Ray, max_depth: usize, sampler: &mut Sampler
                         let scattering_pdf = material.pdf(wo, ls.wi, &hit);
                         let w = power_heuristic(ls.pdf, scattering_pdf);
                         l += throughput * f * ls.emit * (cos_surf * w / ls.pdf);
+                    }
+                }
+            }
+
+            // (a2) Next-event estimation against the environment map.
+            if let Some(env) = scene.environment() {
+                if let Some(es) = env.sample(sampler) {
+                    let cos_surf = es.dir.dot(hit.normal);
+                    if es.pdf > 0.0 && cos_surf > 0.0 && es.radiance.max_component() > 0.0 {
+                        // The environment is at infinity: test occlusion all the way.
+                        if !scene.occluded(hit.p, es.dir, T_MIN, Float::INFINITY) {
+                            let f = material.eval(wo, es.dir, &hit);
+                            let scattering_pdf = material.pdf(wo, es.dir, &hit);
+                            let w = power_heuristic(es.pdf, scattering_pdf);
+                            l += throughput * f * es.radiance * (cos_surf * w / es.pdf);
+                        }
                     }
                 }
             }

@@ -16,6 +16,9 @@ prime cornell -o cornell.png --width 800 --height 800 --samples 256
 | Material showcase — glass, mirror, GGX metals, diffuse (default) | `prime showcase` |
 | Material studio — area-lit GGX roughness sweep + glass/diffuse | `prime studio` |
 | "Ray Tracing in One Weekend" — ~485 random spheres | `prime rtweekend` |
+| Procedural-sky IBL with a sun (directional shadows) | `prime sky` |
+| Textured checker floor under a sky | `prime textured` |
+| Any scene under an HDR environment | `prime studio --env sky.hdr` |
 | Cornell box (global illumination) | `prime cornell` |
 | Sphere field under a sky (defocus blur) | `prime spheres` |
 | Vibrant bunny + buddha (per-group materials, colored lights) | `prime assets/bunny_buddha.ron` |
@@ -72,6 +75,8 @@ bvh          binned-SAH bounding volume hierarchy, iterative traversal
 hit          intersection record (point, oriented normal, uv, material id)
 material     sealed BSDF enum: Lambertian / GGX Metal / Dielectric / Emissive
 sampler      low-discrepancy sampling: Owen-scrambled Sobol (Burley 2020)
+env          image-based lighting: equirect HDR env map, importance-sampled
+texture      constant / checker / image textures (bilinear, sRGB); normal maps
 camera       thin-lens pinhole camera (look-at, fov, optional defocus)
 scene        material table + BVH + light list + camera config + background
 integrator   parallel path tracer: next-event estimation + MIS, quasi-Monte
@@ -80,7 +85,7 @@ framebuffer  linear HDR pixel buffer -> sRGB bytes
 color        tonemapping (clamp / Reinhard) + gamma
 obj          Wavefront OBJ loader (no UI dependency)
 desc         serializable `SceneDesc` (RON) -> `Scene`
-demo         built-in scenes: showcase, studio, rtweekend, Cornell, spheres
+demo         built-in scenes: showcase, studio, rtweekend, sky, textured, Cornell, spheres
 ```
 
 ### Pipeline
@@ -106,8 +111,8 @@ cargo run --release -- cornell -o out/cornell.png --samples 256
 ```
 prime [SCENE] [OPTIONS]
 
-SCENE                     built-in (showcase, studio, rtweekend, cornell,
-                          spheres), a .ron scene, or .obj   [default: showcase]
+SCENE                     built-in (showcase, studio, rtweekend, sky, textured,
+                          cornell, spheres), .ron, or .obj  [default: showcase]
 -o, --output <FILE>       output PNG                           [default: out.png]
 -w, --width  <N>          image width                          [default: 800]
     --height <N>          image height                         [default: 450]
@@ -119,6 +124,9 @@ SCENE                     built-in (showcase, studio, rtweekend, cornell,
     --gamma <F>           display gamma                        [default: 2.2]
     --clamp <F>           firefly clamp; 0 disables (unbiased) [default: 0]
     --no-qmc              use white-noise instead of QMC sampling
+    --env <FILE.hdr>      equirectangular HDR environment (image-based lighting)
+    --env-intensity <F>   scale env radiance                    [default: 1.0]
+    --env-rotation <DEG>  spin the env about the vertical axis  [default: 0]
 ```
 
 ---
@@ -169,9 +177,14 @@ See [`assets/demo.ron`](assets/demo.ron) for a complete example:
     camera: ( look_from: (x: 0.0, y: 1.4, z: 6.5), look_at: (x: 0.0, y: 0.7, z: 0.0),
               vup: (x: 0.0, y: 1.0, z: 0.0), vfov: 45.0, aperture: 0.05, focus_dist: Some(6.5) ),
     background: Gradient( bottom: (x: 1.0, y: 1.0, z: 1.0), top: (x: 0.5, y: 0.7, z: 1.0) ),
+    // A material's albedo is a Texture: Constant, Checker, or Image. A
+    // Lambertian/Metal may also carry a tangent-space `normal` map (srgb: false).
     materials: [
-        Lambertian(albedo: (x: 0.5, y: 0.5, z: 0.5)),
-        Metal(albedo: (x: 0.85, y: 0.85, z: 0.88), roughness: 0.1),
+        Lambertian(albedo: Constant((x: 0.5, y: 0.5, z: 0.5))),
+        Lambertian(albedo: Checker(even: (x: 0.9, y: 0.9, z: 0.9), odd: (x: 0.1, y: 0.1, z: 0.1), scale: 8.0)),
+        Lambertian(albedo: Image(path: "wood.png", srgb: true)),
+        Lambertian(albedo: Image(path: "brick.png", srgb: true), normal: Some(Image(path: "brick_n.png", srgb: false))),
+        Metal(albedo: Constant((x: 0.85, y: 0.85, z: 0.88)), roughness: 0.1),
         Dielectric(ior: 1.5),
         Emissive(emit: (x: 8.0, y: 6.5, z: 5.0)),
     ],

@@ -75,6 +75,7 @@ pub fn load_filtered(
 
     let mut positions: Vec<Vec3> = Vec::new();
     let mut normals: Vec<Vec3> = Vec::new();
+    let mut texcoords: Vec<[Float; 2]> = Vec::new();
     let mut triangles: Vec<Triangle> = Vec::new();
     let mut current_group: Option<String> = None;
 
@@ -92,6 +93,7 @@ pub fn load_filtered(
         match tokens.next() {
             Some("v") => positions.push(transform.point(parse_vec3(tokens, line_no)?)),
             Some("vn") => normals.push(parse_vec3(tokens, line_no)?),
+            Some("vt") => texcoords.push(parse_uv(tokens, line_no)?),
             // Track the current group/object name.
             Some("g") | Some("o") => current_group = tokens.next().map(|s| s.to_string()),
             Some("f") => {
@@ -101,7 +103,9 @@ pub fn load_filtered(
                     continue;
                 }
                 let verts: Vec<FaceVert> = tokens
-                    .map(|t| FaceVert::parse(t, positions.len(), normals.len(), line_no))
+                    .map(|t| {
+                        FaceVert::parse(t, positions.len(), texcoords.len(), normals.len(), line_no)
+                    })
                     .collect::<Result<_, _>>()?;
                 if verts.len() < 3 {
                     return Err(ObjError::Parse {
@@ -114,6 +118,7 @@ pub fn load_filtered(
                     let tri = make_triangle(
                         &positions,
                         &normals,
+                        &texcoords,
                         verts[0],
                         verts[i],
                         verts[i + 1],
@@ -133,6 +138,7 @@ pub fn load_filtered(
 #[derive(Clone, Copy)]
 struct FaceVert {
     pos: usize,
+    tex: Option<usize>,
     normal: Option<usize>,
 }
 
@@ -142,17 +148,21 @@ impl FaceVert {
     fn parse(
         token: &str,
         n_pos: usize,
+        n_tex: usize,
         n_norm: usize,
         line_no: usize,
     ) -> Result<FaceVert, ObjError> {
         let mut parts = token.split('/');
         let pos = resolve_index(parts.next().unwrap_or(""), n_pos, line_no)?;
-        let _tex = parts.next(); // texture coords ignored
+        let tex = match parts.next() {
+            Some(s) if !s.is_empty() => Some(resolve_index(s, n_tex, line_no)?),
+            _ => None,
+        };
         let normal = match parts.next() {
             Some(s) if !s.is_empty() => Some(resolve_index(s, n_norm, line_no)?),
             _ => None,
         };
-        Ok(FaceVert { pos, normal })
+        Ok(FaceVert { pos, tex, normal })
     }
 }
 
@@ -180,26 +190,53 @@ fn resolve_index(s: &str, count: usize, line_no: usize) -> Result<usize, ObjErro
     Ok(resolved as usize)
 }
 
+#[allow(clippy::too_many_arguments)]
 fn make_triangle(
     positions: &[Vec3],
     normals: &[Vec3],
+    texcoords: &[[Float; 2]],
     a: FaceVert,
     b: FaceVert,
     c: FaceVert,
     material: MaterialId,
 ) -> Result<Triangle, ObjError> {
-    let tri = Triangle::new(
+    let mut tri = Triangle::new(
         positions[a.pos],
         positions[b.pos],
         positions[c.pos],
         material,
     );
-    match (a.normal, b.normal, c.normal) {
-        (Some(na), Some(nb), Some(nc)) => {
-            Ok(tri.with_normals([normals[na], normals[nb], normals[nc]]))
-        }
-        _ => Ok(tri),
+    if let (Some(na), Some(nb), Some(nc)) = (a.normal, b.normal, c.normal) {
+        tri = tri.with_normals([normals[na], normals[nb], normals[nc]]);
     }
+    if let (Some(ta), Some(tb), Some(tc)) = (a.tex, b.tex, c.tex) {
+        tri = tri.with_uvs([texcoords[ta], texcoords[tb], texcoords[tc]]);
+    }
+    Ok(tri)
+}
+
+/// Parse the first two floats of a `vt` line as `(u, v)`. The `v` axis is
+/// flipped (OBJ origin is bottom-left, image origin is top-left).
+fn parse_uv<'a>(
+    mut tokens: impl Iterator<Item = &'a str>,
+    line_no: usize,
+) -> Result<[Float; 2], ObjError> {
+    let mut next = || -> Result<Float, ObjError> {
+        tokens
+            .next()
+            .ok_or_else(|| ObjError::Parse {
+                line: line_no + 1,
+                reason: "expected 2 texture coordinates".into(),
+            })?
+            .parse::<Float>()
+            .map_err(|_| ObjError::Parse {
+                line: line_no + 1,
+                reason: "invalid texture coordinate".into(),
+            })
+    };
+    let u = next()?;
+    let v = next()?;
+    Ok([u, 1.0 - v])
 }
 
 fn parse_vec3<'a>(
@@ -243,6 +280,33 @@ mod tests {
         let tris = load(&tmp, 0, Transform::default()).unwrap();
         assert_eq!(tris.len(), 2);
         assert!(tris[0].normals.is_some());
+        std::fs::remove_file(&tmp).ok();
+    }
+
+    #[test]
+    fn loads_texture_coordinates() {
+        let tmp = tempfile_path();
+        {
+            let mut f = File::create(&tmp).unwrap();
+            for line in [
+                "v 0 0 0",
+                "v 1 0 0",
+                "v 0 1 0",
+                "vt 0 0",
+                "vt 1 0",
+                "vt 0 1",
+                "vn 0 0 1",
+                "f 1/1/1 2/2/1 3/3/1",
+            ] {
+                writeln!(f, "{line}").unwrap();
+            }
+        }
+        let tris = load(&tmp, 0, Transform::default()).unwrap();
+        assert_eq!(tris.len(), 1);
+        let uvs = tris[0].uvs.expect("uvs should be loaded");
+        // v is flipped (1 - obj_v): vt "0 0" -> [0, 1].
+        assert_eq!(uvs[0], [0.0, 1.0]);
+        assert_eq!(uvs[1], [1.0, 1.0]);
         std::fs::remove_file(&tmp).ok();
     }
 

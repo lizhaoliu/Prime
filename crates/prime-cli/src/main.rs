@@ -15,11 +15,13 @@ use prime_core::aabb::Aabb;
 use prime_core::camera::CameraConfig;
 use prime_core::color::Tonemap;
 use prime_core::desc::SceneDesc;
+use prime_core::env::EnvMap;
 use prime_core::geometry::Primitive;
 use prime_core::material::Material;
 use prime_core::math::Vec3;
 use prime_core::obj;
 use prime_core::scene::{Background, Scene};
+use prime_core::texture::ImageData;
 use prime_core::{demo, integrator, Color, Float};
 
 /// A headless physically based path tracer.
@@ -27,7 +29,7 @@ use prime_core::{demo, integrator, Color, Float};
 #[command(name = "prime", version, about, long_about = None)]
 struct Args {
     /// Scene to render: a built-in name (`showcase`, `studio`, `rtweekend`,
-    /// `cornell`, `spheres`), a `.ron` scene file, or a `.obj` mesh.
+    /// `sky`, `textured`, `cornell`, `spheres`), a `.ron` scene file, or a `.obj` mesh.
     #[arg(default_value = "showcase")]
     scene: String,
 
@@ -76,6 +78,18 @@ struct Args {
     /// sampler. Mostly useful for comparison.
     #[arg(long)]
     no_qmc: bool,
+
+    /// Equirectangular HDR environment map for image-based lighting (.hdr).
+    #[arg(long)]
+    env: Option<PathBuf>,
+
+    /// Scale applied to the environment-map radiance.
+    #[arg(long, default_value_t = 1.0)]
+    env_intensity: Float,
+
+    /// Rotate the environment map about the vertical axis (degrees).
+    #[arg(long, default_value_t = 0.0)]
+    env_rotation: Float,
 }
 
 #[derive(Copy, Clone, Debug, ValueEnum)]
@@ -104,8 +118,14 @@ fn main() -> Result<()> {
     }
 
     let aspect = args.width as Float / args.height as Float;
-    let scene = load_scene(&args.scene, aspect)
+    let mut scene = load_scene(&args.scene, aspect)
         .with_context(|| format!("loading scene '{}'", args.scene))?;
+
+    if let Some(env_path) = &args.env {
+        let env = load_env(env_path, args.env_intensity, args.env_rotation.to_radians())
+            .with_context(|| format!("loading environment map '{}'", env_path.display()))?;
+        scene.set_environment(env);
+    }
 
     let settings = integrator::RenderSettings {
         width: args.width,
@@ -170,6 +190,8 @@ fn load_scene(source: &str, aspect: Float) -> Result<Scene> {
         "spheres" => return Ok(demo::spheres()),
         "rtweekend" => return Ok(demo::rtweekend()),
         "studio" => return Ok(demo::studio()),
+        "sky" => return Ok(demo::sky()),
+        "textured" => return Ok(demo::textured()),
         _ => {}
     }
 
@@ -179,7 +201,7 @@ fn load_scene(source: &str, aspect: Float) -> Result<Scene> {
         Some("obj") => load_obj_scene(path, aspect),
         _ => bail!(
             "unknown scene '{source}': expected a built-in name (showcase, studio, \
-             rtweekend, cornell, spheres), a .ron scene, or a .obj mesh"
+             rtweekend, sky, textured, cornell, spheres), a .ron scene, or a .obj mesh"
         ),
     }
 }
@@ -189,15 +211,48 @@ fn load_ron_scene(path: &Path) -> Result<Scene> {
         .with_context(|| format!("reading scene file {}", path.display()))?;
     let desc: SceneDesc = ron::from_str(&text).context("parsing RON scene")?;
     let base_dir = path.parent().unwrap_or_else(|| Path::new("."));
-    let scene = desc.build(base_dir).context("building scene")?;
+    let scene = desc
+        .build(base_dir, &mut decode_image)
+        .context("building scene")?;
     Ok(scene)
+}
+
+/// Decode an image file into linear-ish RGB pixels (used for textures and HDR
+/// environments). sRGB→linear conversion for color textures happens later, in
+/// `Texture::resolve`.
+fn decode_image(path: &Path) -> Result<ImageData, String> {
+    let img = image::open(path).map_err(|e| e.to_string())?.into_rgb32f();
+    let (w, h) = img.dimensions();
+    let pixels = img
+        .pixels()
+        .map(|p| Color::new(p.0[0], p.0[1], p.0[2]))
+        .collect();
+    Ok(ImageData {
+        width: w as usize,
+        height: h as usize,
+        pixels,
+    })
+}
+
+/// Decode an equirectangular Radiance HDR file into an environment map.
+fn load_env(path: &Path, intensity: Float, rotation_radians: Float) -> Result<EnvMap> {
+    let data =
+        decode_image(path).map_err(|e| anyhow::anyhow!("reading {}: {e}", path.display()))?;
+    Ok(EnvMap::from_pixels(
+        data.width,
+        data.height,
+        data.pixels,
+        intensity,
+        rotation_radians,
+    ))
 }
 
 /// Wrap a bare OBJ mesh in a scene: a neutral diffuse material, a sky-gradient
 /// background, and a camera auto-framed to the mesh bounds.
 fn load_obj_scene(path: &Path, aspect: Float) -> Result<Scene> {
     let material = Material::Lambertian {
-        albedo: Color::new(0.73, 0.73, 0.73),
+        albedo: Color::new(0.73, 0.73, 0.73).into(),
+        normal: None,
     };
     let triangles = obj::load(path, 0, obj::Transform::default())
         .with_context(|| format!("loading OBJ mesh {}", path.display()))?;

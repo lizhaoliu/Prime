@@ -49,16 +49,14 @@ impl Sphere {
         let p = ray.at(root);
         let outward = (p - self.center) * (1.0 / self.radius);
         let (u, v) = sphere_uv(outward);
-        Some(HitRecord::with_face_normal(
-            ray,
-            root,
-            p,
-            outward,
-            u,
-            v,
-            self.area(),
-            self.material,
-        ))
+        let mut hit =
+            HitRecord::with_face_normal(ray, root, p, outward, u, v, self.area(), self.material);
+        // Tangent along increasing longitude (dP/dφ), for normal mapping.
+        let tang = Vec3::new(-outward.z, 0.0, outward.x);
+        if tang.length_squared() > 1e-12 {
+            hit.tangent = tang.normalize();
+        }
+        Some(hit)
     }
 
     pub fn aabb(&self) -> Aabb {

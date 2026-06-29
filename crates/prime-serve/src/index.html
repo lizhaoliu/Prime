@@ -208,7 +208,7 @@ async function tick() {
 }
 
 // built-in scenes are injected by the server template below
-const BUILTINS = window.__BUILTINS__ || ['showcase', 'studio', 'rtweekend', 'cornell', 'spheres'];
+const BUILTINS = window.__BUILTINS__ || ['showcase', 'studio', 'rtweekend', 'sky', 'textured', 'cornell', 'spheres'];
 for (const name of BUILTINS) {
   const opt = document.createElement('option');
   opt.value = name; opt.textContent = name;

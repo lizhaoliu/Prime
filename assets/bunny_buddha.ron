@@ -18,16 +18,16 @@
         top:    (x: 0.06, y: 0.07, z: 0.12),
     ),
     materials: [
-        Metal(albedo: (x: 0.15, y: 0.16, z: 0.20), roughness: 0.30),  // 0 floor: dark glossy
-        Metal(albedo: (x: 0.95, y: 0.25, z: 0.55), roughness: 0.12),  // 1 bunny: polished rose
-        Metal(albedo: (x: 1.00, y: 0.78, z: 0.34), roughness: 0.08),  // 2 buddha: gold
+        Metal(albedo: Constant((x: 0.15, y: 0.16, z: 0.20)), roughness: 0.30),  // 0 floor: dark glossy
+        Metal(albedo: Constant((x: 0.95, y: 0.25, z: 0.55)), roughness: 0.12),  // 1 bunny: polished rose
+        Metal(albedo: Constant((x: 1.00, y: 0.78, z: 0.34)), roughness: 0.08),  // 2 buddha: gold
         Emissive(emit: (x: 12.0, y: 11.0, z: 9.0)),                   // 3 warm key light
         Emissive(emit: (x: 11.0, y: 1.5,  z: 9.0)),                   // 4 magenta rim
         Emissive(emit: (x: 1.5,  y: 9.0,  z: 11.0)),                  // 5 cyan rim
         Dielectric(ior: 1.5),                                         // 6 glass
-        Metal(albedo: (x: 0.20, y: 0.50, z: 1.00), roughness: 0.08), // 7 blue metal
-        Lambertian(albedo: (x: 0.90, y: 0.15, z: 0.10)),             // 8 red diffuse
-        Lambertian(albedo: (x: 0.10, y: 0.70, z: 0.25)),             // 9 green diffuse
+        Metal(albedo: Constant((x: 0.20, y: 0.50, z: 1.00)), roughness: 0.08), // 7 blue metal
+        Lambertian(albedo: Constant((x: 0.90, y: 0.15, z: 0.10))),             // 8 red diffuse
+        Lambertian(albedo: Constant((x: 0.10, y: 0.70, z: 0.25))),             // 9 green diffuse
     ],
     objects: [
         // The OBJ, split by group into three materials.

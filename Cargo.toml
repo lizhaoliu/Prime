@@ -13,7 +13,7 @@ description = "Prime: a headless, physically based path tracer"
 [workspace.dependencies]
 prime-core = { path = "crates/prime-core" }
 rayon = "1"
-image = { version = "0.25", default-features = false, features = ["png"] }
+image = { version = "0.25", default-features = false, features = ["png", "hdr"] }
 clap = { version = "4", features = ["derive"] }
 rand = { version = "0.8", features = ["small_rng"] }
 serde = { version = "1", features = ["derive"] }

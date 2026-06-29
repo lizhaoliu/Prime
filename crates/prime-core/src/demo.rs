@@ -1,10 +1,12 @@
 //! Built-in scenes, so the renderer runs with zero external assets.
 
 use crate::camera::CameraConfig;
+use crate::env::EnvMap;
 use crate::geometry::{Primitive, Sphere, Triangle};
 use crate::material::Material;
 use crate::math::Vec3;
 use crate::scene::{Background, Scene};
+use crate::texture::Texture;
 use crate::{Color, Float, MaterialId};
 use rand::rngs::SmallRng;
 use rand::{Rng, SeedableRng};
@@ -15,25 +17,48 @@ fn quad(prims: &mut Vec<Primitive>, a: Vec3, b: Vec3, c: Vec3, d: Vec3, m: Mater
     prims.push(Triangle::new(a, c, d, m).into());
 }
 
+/// Add a textured quad with per-corner UVs (so image/checker textures map
+/// across it continuously rather than per-triangle).
+#[allow(clippy::too_many_arguments)]
+fn quad_uv(
+    prims: &mut Vec<Primitive>,
+    a: Vec3,
+    b: Vec3,
+    c: Vec3,
+    d: Vec3,
+    ua: [Float; 2],
+    ub: [Float; 2],
+    uc: [Float; 2],
+    ud: [Float; 2],
+    m: MaterialId,
+) {
+    prims.push(Triangle::new(a, b, c, m).with_uvs([ua, ub, uc]).into());
+    prims.push(Triangle::new(a, c, d, m).with_uvs([ua, uc, ud]).into());
+}
+
 /// The classic Cornell box: a great showcase of global illumination, soft
 /// shadows, and color bleeding. Coordinates follow the canonical 0..555 layout.
 pub fn cornell_box() -> Scene {
     let red = Material::Lambertian {
-        albedo: Color::new(0.65, 0.05, 0.05),
+        albedo: Color::new(0.65, 0.05, 0.05).into(),
+        normal: None,
     };
     let green = Material::Lambertian {
-        albedo: Color::new(0.12, 0.45, 0.15),
+        albedo: Color::new(0.12, 0.45, 0.15).into(),
+        normal: None,
     };
     let white = Material::Lambertian {
-        albedo: Color::new(0.73, 0.73, 0.73),
+        albedo: Color::new(0.73, 0.73, 0.73).into(),
+        normal: None,
     };
     let light = Material::Emissive {
         emit: Color::splat(15.0),
     };
     let glass = Material::Dielectric { ior: 1.5 };
     let metal = Material::Metal {
-        albedo: Color::new(0.8, 0.85, 0.88),
+        albedo: Color::new(0.8, 0.85, 0.88).into(),
         roughness: 0.08,
+        normal: None,
     };
 
     let materials = vec![red, green, white, light, glass, metal];
@@ -128,35 +153,43 @@ pub fn cornell_box() -> Scene {
 /// bleeding. This is the default scene.
 pub fn showcase() -> Scene {
     let red = Material::Lambertian {
-        albedo: Color::new(0.65, 0.05, 0.05),
+        albedo: Color::new(0.65, 0.05, 0.05).into(),
+        normal: None,
     };
     let green = Material::Lambertian {
-        albedo: Color::new(0.12, 0.45, 0.15),
+        albedo: Color::new(0.12, 0.45, 0.15).into(),
+        normal: None,
     };
     let white = Material::Lambertian {
-        albedo: Color::new(0.73, 0.73, 0.73),
+        albedo: Color::new(0.73, 0.73, 0.73).into(),
+        normal: None,
     };
     let light = Material::Emissive {
         emit: Color::splat(18.0),
     };
     let glass = Material::Dielectric { ior: 1.5 };
     let mirror = Material::Metal {
-        albedo: Color::new(0.95, 0.95, 0.97),
+        albedo: Color::new(0.95, 0.95, 0.97).into(),
         roughness: 0.0,
+        normal: None,
     };
     let brushed = Material::Metal {
-        albedo: Color::new(0.8, 0.82, 0.85),
+        albedo: Color::new(0.8, 0.82, 0.85).into(),
         roughness: 0.12,
+        normal: None,
     };
     let gold = Material::Metal {
-        albedo: Color::new(1.0, 0.78, 0.34),
+        albedo: Color::new(1.0, 0.78, 0.34).into(),
         roughness: 0.35,
+        normal: None,
     };
     let teal = Material::Lambertian {
-        albedo: Color::new(0.1, 0.6, 0.6),
+        albedo: Color::new(0.1, 0.6, 0.6).into(),
+        normal: None,
     };
     let orange = Material::Lambertian {
-        albedo: Color::new(0.85, 0.45, 0.1),
+        albedo: Color::new(0.85, 0.45, 0.1).into(),
+        normal: None,
     };
 
     let materials = vec![
@@ -260,15 +293,18 @@ pub fn showcase() -> Scene {
 /// spheres under a sky gradient. Fast to converge; good for smoke tests.
 pub fn spheres() -> Scene {
     let ground = Material::Lambertian {
-        albedo: Color::new(0.5, 0.5, 0.5),
+        albedo: Color::new(0.5, 0.5, 0.5).into(),
+        normal: None,
     };
     let diffuse = Material::Lambertian {
-        albedo: Color::new(0.7, 0.3, 0.3),
+        albedo: Color::new(0.7, 0.3, 0.3).into(),
+        normal: None,
     };
     let glass = Material::Dielectric { ior: 1.5 };
     let metal = Material::Metal {
-        albedo: Color::new(0.8, 0.6, 0.2),
+        albedo: Color::new(0.8, 0.6, 0.2).into(),
         roughness: 0.25,
+        normal: None,
     };
 
     let materials = vec![ground, diffuse, glass, metal];
@@ -299,7 +335,8 @@ pub fn spheres() -> Scene {
 pub fn rtweekend() -> Scene {
     let mut rng = SmallRng::seed_from_u64(2024);
     let mut materials: Vec<Material> = vec![Material::Lambertian {
-        albedo: Color::new(0.5, 0.5, 0.5),
+        albedo: Color::new(0.5, 0.5, 0.5).into(),
+        normal: None,
     }];
     let mut prims: Vec<Primitive> =
         vec![Sphere::new(Vec3::new(0.0, -1000.0, 0.0), 1000.0, 0).into()];
@@ -326,7 +363,10 @@ pub fn rtweekend() -> Scene {
                     rng.gen::<Float>() * rng.gen::<Float>(),
                     rng.gen::<Float>() * rng.gen::<Float>(),
                 );
-                Material::Lambertian { albedo: a }
+                Material::Lambertian {
+                    albedo: a.into(),
+                    normal: None,
+                }
             } else if choose < 0.95 {
                 let a = Color::new(
                     0.5 + 0.5 * rng.gen::<Float>(),
@@ -334,8 +374,9 @@ pub fn rtweekend() -> Scene {
                     0.5 + 0.5 * rng.gen::<Float>(),
                 );
                 Material::Metal {
-                    albedo: a,
+                    albedo: a.into(),
                     roughness: 0.5 * rng.gen::<Float>(),
+                    normal: None,
                 }
             } else {
                 Material::Dielectric { ior: 1.5 }
@@ -352,7 +393,8 @@ pub fn rtweekend() -> Scene {
     );
     push(
         Material::Lambertian {
-            albedo: Color::new(0.4, 0.2, 0.1),
+            albedo: Color::new(0.4, 0.2, 0.1).into(),
+            normal: None,
         },
         Vec3::new(-4.0, 1.0, 0.0),
         1.0,
@@ -360,8 +402,9 @@ pub fn rtweekend() -> Scene {
     );
     push(
         Material::Metal {
-            albedo: Color::new(0.7, 0.6, 0.5),
+            albedo: Color::new(0.7, 0.6, 0.5).into(),
             roughness: 0.0,
+            normal: None,
         },
         Vec3::new(4.0, 1.0, 0.0),
         1.0,
@@ -402,7 +445,8 @@ pub fn studio() -> Scene {
 
     // Floor and a big overhead area light.
     materials.push(Material::Lambertian {
-        albedo: Color::splat(0.55),
+        albedo: Color::splat(0.55).into(),
+        normal: None,
     });
     let floor = 0;
     quad(
@@ -444,8 +488,9 @@ pub fn studio() -> Scene {
             let roughness = c as Float / (COLS - 1) as Float;
             add_sphere(
                 Material::Metal {
-                    albedo: tint,
+                    albedo: tint.into(),
                     roughness,
+                    normal: None,
                 },
                 x_of(c),
                 z,
@@ -465,7 +510,10 @@ pub fn studio() -> Scene {
     for c in 0..COLS {
         let albedo = hsv(c as Float / COLS as Float, 0.7, 0.9);
         add_sphere(
-            Material::Lambertian { albedo },
+            Material::Lambertian {
+                albedo: albedo.into(),
+                normal: None,
+            },
             x_of(c),
             -2.0 * SPACING,
             &mut prims,
@@ -490,6 +538,122 @@ pub fn studio() -> Scene {
             top: Color::new(0.35, 0.4, 0.5),
         },
     )
+}
+
+/// Spheres on a ground plane lit by a procedural sky **environment map** (a
+/// horizon→zenith gradient with a bright sun). Demonstrates importance-sampled
+/// image-based lighting and the soft directional shadows a sun casts — with no
+/// external HDR asset.
+pub fn sky() -> Scene {
+    let ground = Material::Lambertian {
+        albedo: Color::new(0.6, 0.6, 0.62).into(),
+        normal: None,
+    };
+    let red = Material::Lambertian {
+        albedo: Color::new(0.8, 0.25, 0.2).into(),
+        normal: None,
+    };
+    let gold = Material::Metal {
+        albedo: Color::new(1.0, 0.78, 0.34).into(),
+        roughness: 0.12,
+        normal: None,
+    };
+    let glass = Material::Dielectric { ior: 1.5 };
+
+    let materials = vec![ground, red, gold, glass];
+    let prims = vec![
+        Primitive::Sphere(Sphere::new(Vec3::new(0.0, -1000.0, 0.0), 1000.0, 0)),
+        Primitive::Sphere(Sphere::new(Vec3::new(-2.2, 1.0, 0.0), 1.0, 1)),
+        Primitive::Sphere(Sphere::new(Vec3::new(0.0, 1.0, 0.0), 1.0, 2)),
+        Primitive::Sphere(Sphere::new(Vec3::new(2.2, 1.0, 0.0), 1.0, 3)),
+    ];
+
+    let camera = CameraConfig {
+        look_from: Vec3::new(0.0, 1.6, 7.0),
+        look_at: Vec3::new(0.0, 0.7, 0.0),
+        vup: Vec3::new(0.0, 1.0, 0.0),
+        vfov: 38.0,
+        aperture: 0.0,
+        focus_dist: None,
+    };
+
+    let mut scene = Scene::new(materials, prims, camera, Background::default());
+    scene.set_environment(EnvMap::sky(
+        1024,
+        512,
+        Vec3::new(0.3, 0.6, 0.6),     // sun direction (up, toward camera)
+        Color::splat(25.0),           // bright sun
+        0.05,                         // ~3° angular radius (soft shadows)
+        Color::new(0.85, 0.88, 0.95), // horizon
+        Color::new(0.25, 0.45, 0.85), // zenith
+    ));
+    scene
+}
+
+/// A checkerboard floor with checker/metal/glass spheres, lit by a procedural
+/// sky. Demonstrates texture mapping (procedural textures + interpolated UVs).
+pub fn textured() -> Scene {
+    let floor = Material::Lambertian {
+        albedo: Texture::Checker {
+            even: Color::splat(0.9),
+            odd: Color::new(0.12, 0.12, 0.15),
+            scale: 1.0, // UVs are world units below, so 1 check per unit
+        },
+        normal: None,
+    };
+    let ball = Material::Lambertian {
+        albedo: Texture::Checker {
+            even: Color::new(0.85, 0.2, 0.2),
+            odd: Color::new(0.95, 0.85, 0.2),
+            scale: 10.0,
+        },
+        normal: None,
+    };
+    let metal = Material::Metal {
+        albedo: Color::new(0.9, 0.9, 0.95).into(),
+        roughness: 0.05,
+        normal: None,
+    };
+    let glass = Material::Dielectric { ior: 1.5 };
+
+    let materials = vec![floor, ball, metal, glass];
+    let mut prims = Vec::new();
+    quad_uv(
+        &mut prims,
+        Vec3::new(-20.0, 0.0, -20.0),
+        Vec3::new(20.0, 0.0, -20.0),
+        Vec3::new(20.0, 0.0, 20.0),
+        Vec3::new(-20.0, 0.0, 20.0),
+        [-20.0, -20.0],
+        [20.0, -20.0],
+        [20.0, 20.0],
+        [-20.0, 20.0],
+        0,
+    );
+    prims.push(Sphere::new(Vec3::new(-2.2, 1.0, 0.0), 1.0, 1).into());
+    prims.push(Sphere::new(Vec3::new(0.0, 1.0, 0.0), 1.0, 2).into());
+    prims.push(Sphere::new(Vec3::new(2.2, 1.0, 0.0), 1.0, 3).into());
+
+    let camera = CameraConfig {
+        look_from: Vec3::new(0.0, 2.0, 7.5),
+        look_at: Vec3::new(0.0, 0.8, 0.0),
+        vup: Vec3::new(0.0, 1.0, 0.0),
+        vfov: 40.0,
+        aperture: 0.0,
+        focus_dist: None,
+    };
+
+    let mut scene = Scene::new(materials, prims, camera, Background::default());
+    scene.set_environment(EnvMap::sky(
+        1024,
+        512,
+        Vec3::new(0.4, 0.7, 0.4),
+        Color::splat(22.0),
+        0.06,
+        Color::new(0.85, 0.88, 0.95),
+        Color::new(0.25, 0.45, 0.85),
+    ));
+    scene
 }
 
 /// HSV (`h, s, v` in `[0, 1]`) to linear RGB, for the rainbow diffuse row.
@@ -527,5 +691,9 @@ mod tests {
         let studio = studio();
         assert!(studio.primitive_count() > 0);
         assert!(studio.num_lights() > 0);
+        // The sky scene carries an environment map.
+        assert!(sky().environment().is_some());
+        // The textured scene builds (checker floor + spheres).
+        assert!(textured().primitive_count() > 0);
     }
 }

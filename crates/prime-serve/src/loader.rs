@@ -12,6 +12,7 @@ use prime_core::geometry::Primitive;
 use prime_core::material::Material;
 use prime_core::math::Vec3;
 use prime_core::scene::{Background, Scene};
+use prime_core::texture::ImageData;
 use prime_core::{demo, obj, Color, Float};
 
 /// Resolve a scene source into a [`Scene`]. `aspect` is used only to auto-frame
@@ -23,6 +24,8 @@ pub fn resolve(source: &str, aspect: Float) -> Result<Scene> {
         "spheres" => return Ok(demo::spheres()),
         "rtweekend" => return Ok(demo::rtweekend()),
         "studio" => return Ok(demo::studio()),
+        "sky" => return Ok(demo::sky()),
+        "textured" => return Ok(demo::textured()),
         _ => {}
     }
 
@@ -33,19 +36,37 @@ pub fn resolve(source: &str, aspect: Float) -> Result<Scene> {
                 .with_context(|| format!("reading scene file {}", path.display()))?;
             let desc: SceneDesc = ron::from_str(&text).context("parsing RON scene")?;
             let base_dir = path.parent().unwrap_or_else(|| Path::new("."));
-            Ok(desc.build(base_dir).context("building scene")?)
+            Ok(desc
+                .build(base_dir, &mut decode_image)
+                .context("building scene")?)
         }
         Some("obj") => load_obj_scene(path, aspect),
         _ => bail!(
-            "unknown scene '{source}': expected a built-in name (cornell, spheres), \
-             a .ron scene, or a .obj mesh"
+            "unknown scene '{source}': expected a built-in name (showcase, studio, \
+             rtweekend, sky, textured, cornell, spheres), a .ron scene, or a .obj mesh"
         ),
     }
 }
 
+/// Decode an image file into RGB pixels for textures.
+fn decode_image(path: &Path) -> Result<ImageData, String> {
+    let img = image::open(path).map_err(|e| e.to_string())?.into_rgb32f();
+    let (w, h) = img.dimensions();
+    let pixels = img
+        .pixels()
+        .map(|p| Color::new(p.0[0], p.0[1], p.0[2]))
+        .collect();
+    Ok(ImageData {
+        width: w as usize,
+        height: h as usize,
+        pixels,
+    })
+}
+
 fn load_obj_scene(path: &Path, aspect: Float) -> Result<Scene> {
     let material = Material::Lambertian {
-        albedo: Color::new(0.73, 0.73, 0.73),
+        albedo: Color::new(0.73, 0.73, 0.73).into(),
+        normal: None,
     };
     let triangles = obj::load(path, 0, obj::Transform::default())
         .with_context(|| format!("loading OBJ mesh {}", path.display()))?;
