@@ -376,14 +376,35 @@ __device__ void hit_uv(int best, V3 p, const unsigned int* pkind, const float* p
     *vo = bw * u[1] + bu * u[3] + bv * u[5];
 }
 
-// Albedo from the per-material texture descriptor (8 f32: kind, c.xyz, d.xyz,
-// scale). kind 0 = constant color c; kind 1 = checkerboard of c (even) / d (odd).
-__device__ V3 sample_albedo(int mat, float u, float v, const float* albedo_tex) {
+__device__ inline V3 texel_wrap(const float* pool, int off, int w, int h, int x, int y) {
+    int xi = ((x % w) + w) % w, yi = ((y % h) + h) % h;
+    const float* t = &pool[(off + yi * w + xi) * 3];
+    return v3(t[0], t[1], t[2]);
+}
+
+// Albedo from the per-material texture descriptor (8 f32). kind 0 = constant
+// color (c = a[1..4]); kind 1 = checkerboard of c (even) / d (a[4..7]) at scale
+// a[7]; kind 2 = image (a[1] = width, a[2] = height, a[3] = texel offset into
+// `tex_pixels`), bilinearly sampled with wrap-around — matching ImageTexture.
+__device__ V3 sample_albedo(int mat, float u, float v, const float* albedo_tex,
+                            const float* tex_pixels) {
     const float* a = &albedo_tex[mat * 8];
-    if ((int)a[0] == 1) {
+    int kind = (int)a[0];
+    if (kind == 1) {
         long parity = (long)floorf(u * a[7]) + (long)floorf(v * a[7]);
         if ((((parity % 2) + 2) % 2) == 0) return v3(a[1], a[2], a[3]);
         return v3(a[4], a[5], a[6]);
+    }
+    if (kind == 2) {
+        int w = (int)a[1], h = (int)a[2], off = (int)a[3];
+        float fx = u * w - 0.5f, fy = v * h - 0.5f;
+        int x0 = (int)floorf(fx), y0 = (int)floorf(fy);
+        float dx = fx - x0, dy = fy - y0;
+        V3 top = add(scale(texel_wrap(tex_pixels, off, w, h, x0, y0), 1.0f - dx),
+                     scale(texel_wrap(tex_pixels, off, w, h, x0 + 1, y0), dx));
+        V3 bot = add(scale(texel_wrap(tex_pixels, off, w, h, x0, y0 + 1), 1.0f - dx),
+                     scale(texel_wrap(tex_pixels, off, w, h, x0 + 1, y0 + 1), dx));
+        return add(scale(top, 1.0f - dy), scale(bot, dy));
     }
     return v3(a[1], a[2], a[3]);
 }
@@ -393,9 +414,9 @@ extern "C" __global__ void pathtrace(float* out, int W, int H, int spp, int max_
                                      const unsigned int* nmeta, const unsigned int* pkind,
                                      const float* pdata, const float* prim_uv,
                                      const unsigned int* pmat, const float* mats,
-                                     const float* albedo_tex, const unsigned int* light_prims,
-                                     int n_lights, const float* cam, int bg_kind,
-                                     const float* bg) {
+                                     const float* albedo_tex, const float* tex_pixels,
+                                     const unsigned int* light_prims, int n_lights,
+                                     const float* cam, int bg_kind, const float* bg) {
     int px = blockIdx.x * blockDim.x + threadIdx.x;
     int py = blockIdx.y * blockDim.y + threadIdx.y;
     if (px >= W || py >= H) return;
@@ -456,7 +477,7 @@ extern "C" __global__ void pathtrace(float* out, int W, int H, int spp, int max_
             V3 wo = neg(dir);
             float uu, vv;
             hit_uv(best, p, pkind, pdata, prim_uv, &uu, &vv);
-            V3 albedo = sample_albedo(pmat[best], uu, vv, albedo_tex);
+            V3 albedo = sample_albedo(pmat[best], uu, vv, albedo_tex, tex_pixels);
 
             // Next-event estimation (only for non-delta BSDFs).
             if (!is_specular(kind, rough) && n_lights > 0) {
