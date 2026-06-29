@@ -37,6 +37,17 @@ impl ImageTexture {
         }
     }
 
+    pub fn width(&self) -> usize {
+        self.width
+    }
+    pub fn height(&self) -> usize {
+        self.height
+    }
+    /// The decoded pixels (row-major, row 0 = top; linear if sRGB was converted).
+    pub fn pixels(&self) -> &[Color] {
+        &self.pixels
+    }
+
     /// Bilinear lookup with wrap-around addressing. `v = 0` is the top row.
     fn sample(&self, u: Float, v: Float) -> Color {
         let fx = u * self.width as Float - 0.5;

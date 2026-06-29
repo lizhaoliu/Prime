@@ -209,22 +209,24 @@ CUDA_PATH=/usr/local/cuda \
 **Status — Phase C (increment 4):** a GPU **path tracer at near-parity with the
 CPU** — the full material set (Lambertian, **GGX Metal** mirror + rough,
 **Dielectric** glass, emissive), next-event estimation + MIS, and **albedo
-textures** (constant + procedural checkerboard, with UV-interpolated coordinates).
-The kernel mirrors the CPU's BSDFs (Trowbridge-Reitz D, height-correlated Smith
-G, Schlick Fresnel) and integrator, so the GPU image **converges to the CPU
-reference** (verified by `--validate`): full Cornell (glass + mirror) RMSE
-**3.3% → 1.8% → 0.95%** at 256 / 1024 / 4096 spp, and the checkerboard-floor
-scene **1.5% → 0.8%** at 256 / 1024 spp — the 1/√spp decay, i.e. noise, not bias.
-The GPU is **~150× faster than the single-threaded CPU** at equal samples on an
-RTX 5090.
+textures** (constant, procedural checkerboard, and bilinear **image** textures,
+UV-interpolated). It loads built-in scenes, `.ron` scenes (image textures
+resolved), and `.obj` meshes. The kernel mirrors the CPU's BSDFs (Trowbridge-
+Reitz D, height-correlated Smith G, Schlick Fresnel) and integrator, so the GPU
+image **converges to the CPU reference** (verified by `--validate`): full Cornell
+(glass + mirror) RMSE **3.3% → 1.8% → 0.95%** at 256 / 1024 / 4096 spp, the
+checkerboard-floor scene **1.5% → 0.8%**, and an image-textured floor
+**1.4% → 0.7%** at 256 / 1024 spp — the 1/√spp decay, i.e. noise, not bias. The
+GPU is **~150× faster than the single-threaded CPU** at equal samples on an RTX 5090.
 
-Remaining for full parity: image textures + environment/HDRI lighting on the GPU.
+Remaining for full parity: environment/HDRI lighting on the GPU.
 
 <p align="center">
-<img src="docs/renders/gpu_phaseC.png" width="300">
-<img src="docs/renders/gpu_showcase.png" width="300">
-<img src="docs/renders/gpu_checker.png" width="300">
-<br><i>Path-traced on the GPU (RTX 5090): the Cornell box, the material showcase (glass, mirror, GGX metals), and a checkerboard-textured floor — all converged to the CPU reference.</i></p>
+<img src="docs/renders/gpu_phaseC.png" width="230">
+<img src="docs/renders/gpu_showcase.png" width="230">
+<img src="docs/renders/gpu_checker.png" width="230">
+<img src="docs/renders/gpu_image.png" width="230">
+<br><i>Path-traced on the GPU (RTX 5090): the Cornell box, the material showcase (glass, mirror, GGX metals), a checkerboard floor, and an image-textured floor — all converged to the CPU reference.</i></p>
 
 ---
 

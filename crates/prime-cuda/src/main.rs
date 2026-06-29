@@ -2,10 +2,12 @@
 //!
 //! **Phase C (increment 4):** a GPU **path tracer** at near-parity with the CPU —
 //! the full material set (Lambertian, GGX Metal, Dielectric, emissive), NEE +
-//! MIS, and **albedo textures** (constant + procedural checkerboard, UV-mapped).
-//! The kernel reuses the validated Phase-B BVH traversal and mirrors the CPU's
-//! BSDFs + integrator, so the GPU image converges to the CPU reference;
-//! `--validate` renders the same scene on the CPU and reports RMSE.
+//! MIS, and **albedo textures** (constant, procedural checkerboard, and bilinear
+//! **image** textures via UV-interpolated coordinates). Loads built-in scenes,
+//! `.ron` scenes (image textures resolved), and `.obj` meshes. The kernel reuses
+//! the validated Phase-B BVH traversal and mirrors the CPU's BSDFs + integrator,
+//! so the GPU image converges to the CPU reference; `--validate` renders the same
+//! scene on the CPU and reports RMSE. (Remaining for full parity: env lighting.)
 //!
 //! Requires an NVIDIA GPU + CUDA toolkit (this crate is excluded from the
 //! workspace). Build/run with the CUDA path set:
@@ -21,12 +23,13 @@ use cudarc::nvrtc::compile_ptx;
 use prime_core::aabb::Aabb;
 use prime_core::camera::CameraConfig;
 use prime_core::color::{to_srgb8, Tonemap};
+use prime_core::desc::SceneDesc;
 use prime_core::geometry::{Primitive, Sphere, Triangle};
 use prime_core::integrator::{self, RenderSettings};
 use prime_core::material::Material;
 use prime_core::math::Vec3;
 use prime_core::scene::{Background, Scene};
-use prime_core::texture::Texture;
+use prime_core::texture::{ImageData, Texture};
 use prime_core::{demo, obj, Color, Float, MaterialId};
 
 const PATHTRACE_SRC: &str = include_str!("kernels/pathtrace.cu");
@@ -98,7 +101,7 @@ fn gpu_render(scene: &Scene, args: &Args, aspect: Float) -> Result<Vec<u8>> {
     let (w, h) = (args.width, args.height);
     let flat = scene.flatten_bvh();
     let mats = flatten_materials(scene);
-    let albedo_tex = flatten_albedo_tex(scene);
+    let (albedo_tex, tex_pixels) = flatten_albedo_tex(scene);
     let lights = emissive_prims(&flat, &mats);
     let n_lights = lights.len() as i32;
     // clone_htod needs a non-empty slice; the kernel ignores it when n_lights == 0.
@@ -132,6 +135,7 @@ fn gpu_render(scene: &Scene, args: &Args, aspect: Float) -> Result<Vec<u8>> {
     let pmat = stream.clone_htod(&flat.prim_material)?;
     let mats_dev = stream.clone_htod(&mats)?;
     let albedo_dev = stream.clone_htod(&albedo_tex)?;
+    let tex_pixels_dev = stream.clone_htod(&tex_pixels)?;
     let lights_dev = stream.clone_htod(&lights_buf)?;
     let cam = stream.clone_htod(&basis.pack())?;
     let bg = stream.clone_htod(&bg_vals)?;
@@ -163,6 +167,7 @@ fn gpu_render(scene: &Scene, args: &Args, aspect: Float) -> Result<Vec<u8>> {
         .arg(&pmat)
         .arg(&mats_dev)
         .arg(&albedo_dev)
+        .arg(&tex_pixels_dev)
         .arg(&lights_dev)
         .arg(&n_lights)
         .arg(&cam)
@@ -220,16 +225,42 @@ fn load_scene(name: &str) -> Result<Scene> {
         "cornell" => demo::cornell_box(),
         "cornell-diffuse" => diffuse_cornell(),
         "checker" => checker_cornell(),
+        "image" => image_cornell()?,
         "showcase" => demo::showcase(),
         "spheres" => demo::spheres(),
         "rtweekend" => demo::rtweekend(),
         "studio" => demo::studio(),
         "sky" => demo::sky(),
+        other if other.ends_with(".ron") => load_ron(Path::new(other))?,
         other if other.ends_with(".obj") => load_obj(Path::new(other))?,
-        other => {
-            bail!("unknown scene '{other}' (try cornell/showcase/spheres/rtweekend or a .obj)")
-        }
+        other => bail!("unknown scene '{other}' (try cornell/checker/showcase or a .ron/.obj)"),
     })
+}
+
+/// Decode an image file into linear-ish RGB pixels (textures + HDR), matching the
+/// CLI. sRGB→linear for color textures happens later in `Texture::resolve`.
+fn decode_image(path: &Path) -> Result<ImageData, String> {
+    let img = image::open(path).map_err(|e| e.to_string())?.into_rgb32f();
+    let (w, h) = img.dimensions();
+    let pixels = img
+        .pixels()
+        .map(|p| Color::new(p.0[0], p.0[1], p.0[2]))
+        .collect();
+    Ok(ImageData {
+        width: w as usize,
+        height: h as usize,
+        pixels,
+    })
+}
+
+/// Load a RON scene, resolving image textures relative to the scene file.
+fn load_ron(path: &Path) -> Result<Scene> {
+    let text = std::fs::read_to_string(path)
+        .with_context(|| format!("reading scene file {}", path.display()))?;
+    let desc: SceneDesc = ron::from_str(&text).context("parsing RON scene")?;
+    let base_dir = path.parent().unwrap_or_else(|| Path::new("."));
+    desc.build(base_dir, &mut decode_image)
+        .map_err(|e| anyhow::anyhow!("building scene: {e}"))
 }
 
 /// Material table for the GPU: 8 f32/material — kind, albedo.xyz, emit.xyz, param.
@@ -251,27 +282,54 @@ fn flatten_materials(scene: &Scene) -> Vec<f32> {
     v
 }
 
-/// Per-material albedo texture descriptor for the GPU (8 f32 each):
-/// `kind, c.xyz, d.xyz, scale`. kind 0 = constant color `c`; kind 1 = checker of
-/// `c` (even) / `d` (odd) at `scale`. Image textures fall back to a constant
-/// sample for now (GPU image textures are a later increment).
-fn flatten_albedo_tex(scene: &Scene) -> Vec<f32> {
-    fn desc(t: &Texture) -> (f32, Color, Color, f32) {
-        match t {
-            Texture::Constant(c) => (0.0, *c, Color::ZERO, 0.0),
-            Texture::Checker { even, odd, scale } => (1.0, *even, *odd, *scale),
-            Texture::Image { .. } => (0.0, t.sample(0.5, 0.5), Color::ZERO, 0.0),
+/// Per-material albedo texture descriptors (8 f32 each) plus a shared pixel pool
+/// for image textures. Descriptor: `kind` then params. kind 0 = constant color
+/// `c.xyz`; kind 1 = checker `even.xyz / odd.xyz` at `scale`; kind 2 = image
+/// (`width, height, texel-offset` into the returned pool, linear RGB).
+fn flatten_albedo_tex(scene: &Scene) -> (Vec<f32>, Vec<f32>) {
+    let mut desc = Vec::with_capacity(scene.material_count() * 8);
+    let mut pool: Vec<f32> = Vec::new();
+    for i in 0..scene.material_count() {
+        let albedo = match scene.material(i) {
+            Material::Lambertian { albedo, .. } | Material::Metal { albedo, .. } => Some(albedo),
+            _ => None,
+        };
+        match albedo {
+            Some(Texture::Constant(c)) => {
+                desc.extend_from_slice(&[0.0, c.x, c.y, c.z, 0.0, 0.0, 0.0, 0.0])
+            }
+            Some(Texture::Checker { even, odd, scale }) => {
+                desc.extend_from_slice(&[1.0, even.x, even.y, even.z, odd.x, odd.y, odd.z, *scale])
+            }
+            Some(Texture::Image {
+                data: Some(img), ..
+            }) => {
+                let off = (pool.len() / 3) as f32;
+                for px in img.pixels() {
+                    pool.extend_from_slice(&[px.x, px.y, px.z]);
+                }
+                desc.extend_from_slice(&[
+                    2.0,
+                    img.width() as f32,
+                    img.height() as f32,
+                    off,
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0,
+                ]);
+            }
+            other => {
+                // Unresolved image or non-textured material: constant fallback.
+                let c = other.map_or(Color::ZERO, |t| t.sample(0.5, 0.5));
+                desc.extend_from_slice(&[0.0, c.x, c.y, c.z, 0.0, 0.0, 0.0, 0.0]);
+            }
         }
     }
-    let mut v = Vec::with_capacity(scene.material_count() * 8);
-    for i in 0..scene.material_count() {
-        let (kind, c, d, scale) = match scene.material(i) {
-            Material::Lambertian { albedo, .. } | Material::Metal { albedo, .. } => desc(albedo),
-            _ => (0.0, Color::ZERO, Color::ZERO, 0.0),
-        };
-        v.extend_from_slice(&[kind, c.x, c.y, c.z, d.x, d.y, d.z, scale]);
+    if pool.is_empty() {
+        pool.extend_from_slice(&[0.0, 0.0, 0.0]); // clone_htod needs non-empty
     }
-    v
+    (desc, pool)
 }
 
 /// Indices (in flattened order) of emissive primitives — the GPU light list for
@@ -497,6 +555,118 @@ fn checker_cornell() -> Scene {
         focus_dist: None,
     };
     Scene::new(materials, prims, camera, Background::Solid(Color::ZERO))
+}
+
+/// A Cornell box whose floor is an image texture (a committed render), for
+/// validating GPU image textures against the CPU. The image is resolved (decoded)
+/// here, just as a RON/glTF loader would.
+fn image_cornell() -> Result<Scene> {
+    let mut floor = Material::Lambertian {
+        albedo: Texture::Image {
+            path: "docs/renders/sky.png".into(),
+            srgb: true,
+            data: None,
+        },
+        normal: None,
+    };
+    floor
+        .resolve_textures(Path::new("."), &mut decode_image)
+        .map_err(|e| anyhow::anyhow!("resolving floor texture: {e}"))?;
+
+    let materials = vec![
+        Material::Lambertian {
+            albedo: Color::new(0.65, 0.05, 0.05).into(),
+            normal: None,
+        }, // 0 red
+        Material::Lambertian {
+            albedo: Color::new(0.12, 0.45, 0.15).into(),
+            normal: None,
+        }, // 1 green
+        Material::Lambertian {
+            albedo: Color::new(0.73, 0.73, 0.73).into(),
+            normal: None,
+        }, // 2 white
+        Material::Emissive {
+            emit: Color::splat(15.0),
+        }, // 3 light
+        floor, // 4 image
+    ];
+    const RED: MaterialId = 0;
+    const GREEN: MaterialId = 1;
+    const WHITE: MaterialId = 2;
+    const LIGHT: MaterialId = 3;
+    const IMAGE: MaterialId = 4;
+    let p = Vec3::new;
+
+    let mut prims = Vec::new();
+    {
+        let mut quad = |a, b, c, d, m| {
+            prims.push(Primitive::from(Triangle::new(a, b, c, m)));
+            prims.push(Primitive::from(Triangle::new(a, c, d, m)));
+        };
+        quad(
+            p(555.0, 0.0, 0.0),
+            p(555.0, 555.0, 0.0),
+            p(555.0, 555.0, 555.0),
+            p(555.0, 0.0, 555.0),
+            GREEN,
+        );
+        quad(
+            p(0.0, 0.0, 0.0),
+            p(0.0, 0.0, 555.0),
+            p(0.0, 555.0, 555.0),
+            p(0.0, 555.0, 0.0),
+            RED,
+        );
+        quad(
+            p(0.0, 555.0, 0.0),
+            p(0.0, 555.0, 555.0),
+            p(555.0, 555.0, 555.0),
+            p(555.0, 555.0, 0.0),
+            WHITE,
+        );
+        quad(
+            p(0.0, 0.0, 555.0),
+            p(555.0, 0.0, 555.0),
+            p(555.0, 555.0, 555.0),
+            p(0.0, 555.0, 555.0),
+            WHITE,
+        );
+        quad(
+            p(213.0, 554.0, 227.0),
+            p(343.0, 554.0, 227.0),
+            p(343.0, 554.0, 332.0),
+            p(213.0, 554.0, 332.0),
+            LIGHT,
+        );
+    }
+    let (f0, f1, f2, f3) = (
+        p(0.0, 0.0, 0.0),
+        p(555.0, 0.0, 0.0),
+        p(555.0, 0.0, 555.0),
+        p(0.0, 0.0, 555.0),
+    );
+    prims.push(Primitive::from(
+        Triangle::new(f0, f1, f2, IMAGE).with_uvs([[0.0, 0.0], [1.0, 0.0], [1.0, 1.0]]),
+    ));
+    prims.push(Primitive::from(
+        Triangle::new(f0, f2, f3, IMAGE).with_uvs([[0.0, 0.0], [1.0, 1.0], [0.0, 1.0]]),
+    ));
+
+    let camera = CameraConfig {
+        look_from: Vec3::new(278.0, 278.0, -800.0),
+        look_at: Vec3::new(278.0, 278.0, 0.0),
+        vup: Vec3::new(0.0, 1.0, 0.0),
+        vfov: 40.0,
+        aperture: 0.0,
+        focus_dist: None,
+    };
+    Ok(Scene::new(
+        materials,
+        prims,
+        camera,
+        Background::Solid(Color::ZERO),
+    ))
 }
 
 /// Load a bare OBJ mesh and frame a camera around its bounds.

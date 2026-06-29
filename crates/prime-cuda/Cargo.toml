@@ -24,9 +24,10 @@ cudarc = { version = "0.19", default-features = false, features = [
     "std",
     "dynamic-loading",
 ] }
-image = { version = "0.25", default-features = false, features = ["png"] }
+image = { version = "0.25", default-features = false, features = ["png", "jpeg", "hdr"] }
 anyhow = "1"
 clap = { version = "4", features = ["derive"] }
+ron = "0.8"
 
 [profile.release]
 opt-level = 3
