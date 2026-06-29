@@ -211,7 +211,8 @@ fn validate(scene: &Scene, args: &Args, gpu: &[u8]) {
 
 fn load_scene(name: &str) -> Result<Scene> {
     Ok(match name {
-        "cornell" => diffuse_cornell(),
+        "cornell" => demo::cornell_box(),
+        "cornell-diffuse" => diffuse_cornell(),
         "showcase" => demo::showcase(),
         "spheres" => demo::spheres(),
         "rtweekend" => demo::rtweekend(),
