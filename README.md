@@ -79,6 +79,8 @@ crates/
   prime-core/   # the renderer as a pure library (no windowing, no image codec)
   prime-cli/    # the `prime` binary: argument parsing, PNG output, progress bar
   prime-serve/  # the `prime-serve` binary: an interactive web viewer
+  prime-cuda/   # the `prime-gpu` binary: experimental CUDA renderer (excluded
+                # from the workspace; needs an NVIDIA GPU + CUDA toolkit)
 ```
 
 Both front-ends are thin shells over `prime-core`. The library knows nothing
@@ -184,6 +186,32 @@ channel; handlers only read the latest published frame under a mutex. The
 renderer never locks on its hot path, and data races are structurally
 impossible. Endpoints: `GET /` (page), `GET /frame.png`, `GET /status`,
 `POST /camera`, `POST /settings`, `POST /scene`.
+
+---
+
+## GPU renderer (experimental)
+
+An in-progress CUDA backend (`prime-cuda` → the `prime-gpu` binary) that runs the
+renderer on an NVIDIA GPU. Kernels are compiled at runtime with NVRTC (via
+[`cudarc`](https://crates.io/crates/cudarc)) — no build-time `nvcc` step — and
+the result is read back and written to a PNG, so it is fully headless and its
+output can be diffed against the CPU renderer (the reference).
+
+It needs an NVIDIA GPU + CUDA toolkit, so it is **excluded from the Cargo
+workspace and CI**. Build and run it explicitly:
+
+```bash
+CUDA_PATH=/usr/local/cuda \
+  cargo run --manifest-path crates/prime-cuda/Cargo.toml --release -- \
+  --output out/gpu.png --width 800 --height 600
+```
+
+**Status — Phase A:** one primary ray per pixel against uploaded spheres, shaded
+with a directional light + sky (no path tracing yet). This proves the end-to-end
+GPU pipeline. Next: flat scene buffers + GPU BVH traversal, then the full path
+tracer on the GPU.
+
+<p align="center"><img src="docs/renders/gpu_phaseA.png" width="480"><br><i>First light on the GPU (RTX 5090): 800×600 in ~0.15&nbsp;ms.</i></p>
 
 ---
 

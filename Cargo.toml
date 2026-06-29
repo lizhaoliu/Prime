@@ -1,6 +1,10 @@
 [workspace]
 resolver = "2"
 members = ["crates/prime-core", "crates/prime-cli", "crates/prime-serve"]
+# prime-cuda is an opt-in GPU renderer that requires an NVIDIA GPU + CUDA toolkit,
+# so it is excluded from the default workspace (and from CI, which has no GPU).
+# Build it explicitly: cargo build --manifest-path crates/prime-cuda/Cargo.toml
+exclude = ["crates/prime-cuda"]
 
 [workspace.package]
 version = "0.1.0"

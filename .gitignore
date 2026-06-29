@@ -12,3 +12,6 @@ Cargo.lock.orig
 # Editor / OS
 .DS_Store
 *.swp
+
+# prime-cuda has its own (excluded) build dir
+/crates/prime-cuda/target

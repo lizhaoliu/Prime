@@ -1,0 +1,32 @@
+# Experimental GPU renderer. NOT part of the Cargo workspace (see the root
+# Cargo.toml `exclude`) because it requires an NVIDIA GPU + CUDA toolkit at build
+# and run time, which CI does not have. Build it explicitly:
+#   cargo build --manifest-path crates/prime-cuda/Cargo.toml --release
+[package]
+name = "prime-cuda"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.96"
+license = "MIT"
+authors = ["lizhaoliu <lizhaoliu@gmail.com>"]
+description = "Experimental CUDA (GPU) renderer for Prime — requires an NVIDIA GPU + CUDA toolkit"
+
+[[bin]]
+name = "prime-gpu"
+path = "src/main.rs"
+
+[dependencies]
+prime-core = { path = "../prime-core" }
+cudarc = { version = "0.19", default-features = false, features = [
+    "cuda-version-from-build-system",
+    "driver",
+    "nvrtc",
+    "std",
+    "dynamic-loading",
+] }
+image = { version = "0.25", default-features = false, features = ["png"] }
+anyhow = "1"
+clap = { version = "4", features = ["derive"] }
+
+[profile.release]
+opt-level = 3
