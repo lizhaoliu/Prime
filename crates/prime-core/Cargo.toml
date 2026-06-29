@@ -21,3 +21,8 @@ serde = ["dep:serde"]
 [dev-dependencies]
 # Used to exercise SceneDesc serialization round-trips.
 ron.workspace = true
+criterion = "0.5"
+
+[[bench]]
+name = "render"
+harness = false
