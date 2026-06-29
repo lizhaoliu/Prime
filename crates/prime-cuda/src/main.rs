@@ -1,12 +1,11 @@
 //! `prime-gpu` — experimental CUDA front-end for Prime.
 //!
-//! **Phase C (increment 2):** a GPU **path tracer** with next-event estimation
-//! and multiple importance sampling — Lambertian + emissive, Russian roulette,
-//! many samples accumulated on the device. The kernel reuses the (validated)
-//! Phase-B BVH traversal and adds shading + direct light sampling. Both the GPU
-//! and CPU are unbiased estimators of the same rendering equation, so the GPU
-//! image converges to the CPU reference; `--validate` renders the same scene on
-//! the CPU and reports RMSE (≈0.9% at 1024 spp on the diffuse Cornell box).
+//! **Phase C (increment 4):** a GPU **path tracer** at near-parity with the CPU —
+//! the full material set (Lambertian, GGX Metal, Dielectric, emissive), NEE +
+//! MIS, and **albedo textures** (constant + procedural checkerboard, UV-mapped).
+//! The kernel reuses the validated Phase-B BVH traversal and mirrors the CPU's
+//! BSDFs + integrator, so the GPU image converges to the CPU reference;
+//! `--validate` renders the same scene on the CPU and reports RMSE.
 //!
 //! Requires an NVIDIA GPU + CUDA toolkit (this crate is excluded from the
 //! workspace). Build/run with the CUDA path set:
@@ -27,6 +26,7 @@ use prime_core::integrator::{self, RenderSettings};
 use prime_core::material::Material;
 use prime_core::math::Vec3;
 use prime_core::scene::{Background, Scene};
+use prime_core::texture::Texture;
 use prime_core::{demo, obj, Color, Float, MaterialId};
 
 const PATHTRACE_SRC: &str = include_str!("kernels/pathtrace.cu");
@@ -38,7 +38,8 @@ const PATHTRACE_SRC: &str = include_str!("kernels/pathtrace.cu");
     about = "Experimental CUDA path tracer for Prime"
 )]
 struct Args {
-    /// Scene: `cornell` (diffuse), a built-in demo name, or a `.obj` mesh.
+    /// Scene: `cornell`, `checker`, `cornell-diffuse`, a built-in demo name
+    /// (showcase/spheres/rtweekend/studio/sky), or a `.obj` mesh.
     #[arg(default_value = "cornell")]
     scene: String,
     /// Output PNG path.
@@ -97,6 +98,7 @@ fn gpu_render(scene: &Scene, args: &Args, aspect: Float) -> Result<Vec<u8>> {
     let (w, h) = (args.width, args.height);
     let flat = scene.flatten_bvh();
     let mats = flatten_materials(scene);
+    let albedo_tex = flatten_albedo_tex(scene);
     let lights = emissive_prims(&flat, &mats);
     let n_lights = lights.len() as i32;
     // clone_htod needs a non-empty slice; the kernel ignores it when n_lights == 0.
@@ -126,8 +128,10 @@ fn gpu_render(scene: &Scene, args: &Args, aspect: Float) -> Result<Vec<u8>> {
     let nmeta = stream.clone_htod(&flat.node_meta)?;
     let pkind = stream.clone_htod(&flat.prim_kind)?;
     let pdata = stream.clone_htod(&flat.prim_data)?;
+    let prim_uv = stream.clone_htod(&flat.prim_uv)?;
     let pmat = stream.clone_htod(&flat.prim_material)?;
     let mats_dev = stream.clone_htod(&mats)?;
+    let albedo_dev = stream.clone_htod(&albedo_tex)?;
     let lights_dev = stream.clone_htod(&lights_buf)?;
     let cam = stream.clone_htod(&basis.pack())?;
     let bg = stream.clone_htod(&bg_vals)?;
@@ -155,8 +159,10 @@ fn gpu_render(scene: &Scene, args: &Args, aspect: Float) -> Result<Vec<u8>> {
         .arg(&nmeta)
         .arg(&pkind)
         .arg(&pdata)
+        .arg(&prim_uv)
         .arg(&pmat)
         .arg(&mats_dev)
+        .arg(&albedo_dev)
         .arg(&lights_dev)
         .arg(&n_lights)
         .arg(&cam)
@@ -213,6 +219,7 @@ fn load_scene(name: &str) -> Result<Scene> {
     Ok(match name {
         "cornell" => demo::cornell_box(),
         "cornell-diffuse" => diffuse_cornell(),
+        "checker" => checker_cornell(),
         "showcase" => demo::showcase(),
         "spheres" => demo::spheres(),
         "rtweekend" => demo::rtweekend(),
@@ -240,6 +247,29 @@ fn flatten_materials(scene: &Scene) -> Vec<f32> {
             Material::Dielectric { ior } => (3.0, Color::ONE, Color::ZERO, *ior),
         };
         v.extend_from_slice(&[kind, alb.x, alb.y, alb.z, emit.x, emit.y, emit.z, param]);
+    }
+    v
+}
+
+/// Per-material albedo texture descriptor for the GPU (8 f32 each):
+/// `kind, c.xyz, d.xyz, scale`. kind 0 = constant color `c`; kind 1 = checker of
+/// `c` (even) / `d` (odd) at `scale`. Image textures fall back to a constant
+/// sample for now (GPU image textures are a later increment).
+fn flatten_albedo_tex(scene: &Scene) -> Vec<f32> {
+    fn desc(t: &Texture) -> (f32, Color, Color, f32) {
+        match t {
+            Texture::Constant(c) => (0.0, *c, Color::ZERO, 0.0),
+            Texture::Checker { even, odd, scale } => (1.0, *even, *odd, *scale),
+            Texture::Image { .. } => (0.0, t.sample(0.5, 0.5), Color::ZERO, 0.0),
+        }
+    }
+    let mut v = Vec::with_capacity(scene.material_count() * 8);
+    for i in 0..scene.material_count() {
+        let (kind, c, d, scale) = match scene.material(i) {
+            Material::Lambertian { albedo, .. } | Material::Metal { albedo, .. } => desc(albedo),
+            _ => (0.0, Color::ZERO, Color::ZERO, 0.0),
+        };
+        v.extend_from_slice(&[kind, c.x, c.y, c.z, d.x, d.y, d.z, scale]);
     }
     v
 }
@@ -349,6 +379,113 @@ fn diffuse_cornell() -> Scene {
         p(370.0, 90.0, 350.0),
         90.0,
         BLUE,
+    )));
+
+    let camera = CameraConfig {
+        look_from: Vec3::new(278.0, 278.0, -800.0),
+        look_at: Vec3::new(278.0, 278.0, 0.0),
+        vup: Vec3::new(0.0, 1.0, 0.0),
+        vfov: 40.0,
+        aperture: 0.0,
+        focus_dist: None,
+    };
+    Scene::new(materials, prims, camera, Background::Solid(Color::ZERO))
+}
+
+/// A Cornell box with a UV-mapped checkerboard floor, for validating GPU
+/// textures against the CPU.
+fn checker_cornell() -> Scene {
+    let materials = vec![
+        Material::Lambertian {
+            albedo: Color::new(0.65, 0.05, 0.05).into(),
+            normal: None,
+        }, // 0 red
+        Material::Lambertian {
+            albedo: Color::new(0.12, 0.45, 0.15).into(),
+            normal: None,
+        }, // 1 green
+        Material::Lambertian {
+            albedo: Color::new(0.73, 0.73, 0.73).into(),
+            normal: None,
+        }, // 2 white
+        Material::Emissive {
+            emit: Color::splat(15.0),
+        }, // 3 light
+        Material::Lambertian {
+            albedo: Texture::Checker {
+                even: Color::new(0.9, 0.9, 0.9),
+                odd: Color::new(0.1, 0.1, 0.1),
+                scale: 6.0,
+            },
+            normal: None,
+        }, // 4 checker
+    ];
+    const RED: MaterialId = 0;
+    const GREEN: MaterialId = 1;
+    const WHITE: MaterialId = 2;
+    const LIGHT: MaterialId = 3;
+    const CHECKER: MaterialId = 4;
+    let p = Vec3::new;
+
+    let mut prims = Vec::new();
+    {
+        let mut quad = |a, b, c, d, m| {
+            prims.push(Primitive::from(Triangle::new(a, b, c, m)));
+            prims.push(Primitive::from(Triangle::new(a, c, d, m)));
+        };
+        quad(
+            p(555.0, 0.0, 0.0),
+            p(555.0, 555.0, 0.0),
+            p(555.0, 555.0, 555.0),
+            p(555.0, 0.0, 555.0),
+            GREEN,
+        );
+        quad(
+            p(0.0, 0.0, 0.0),
+            p(0.0, 0.0, 555.0),
+            p(0.0, 555.0, 555.0),
+            p(0.0, 555.0, 0.0),
+            RED,
+        );
+        quad(
+            p(0.0, 555.0, 0.0),
+            p(0.0, 555.0, 555.0),
+            p(555.0, 555.0, 555.0),
+            p(555.0, 555.0, 0.0),
+            WHITE,
+        );
+        quad(
+            p(0.0, 0.0, 555.0),
+            p(555.0, 0.0, 555.0),
+            p(555.0, 555.0, 555.0),
+            p(0.0, 555.0, 555.0),
+            WHITE,
+        );
+        quad(
+            p(213.0, 554.0, 227.0),
+            p(343.0, 554.0, 227.0),
+            p(343.0, 554.0, 332.0),
+            p(213.0, 554.0, 332.0),
+            LIGHT,
+        );
+    }
+    // Checkerboard floor, UV-mapped across the whole quad.
+    let (f0, f1, f2, f3) = (
+        p(0.0, 0.0, 0.0),
+        p(555.0, 0.0, 0.0),
+        p(555.0, 0.0, 555.0),
+        p(0.0, 0.0, 555.0),
+    );
+    prims.push(Primitive::from(
+        Triangle::new(f0, f1, f2, CHECKER).with_uvs([[0.0, 0.0], [1.0, 0.0], [1.0, 1.0]]),
+    ));
+    prims.push(Primitive::from(
+        Triangle::new(f0, f2, f3, CHECKER).with_uvs([[0.0, 0.0], [1.0, 1.0], [0.0, 1.0]]),
+    ));
+    prims.push(Primitive::from(Sphere::new(
+        p(278.0, 120.0, 290.0),
+        120.0,
+        WHITE,
     )));
 
     let camera = CameraConfig {
