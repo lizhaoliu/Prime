@@ -1,17 +1,15 @@
-// Phase C (increment 1) GPU path tracer: Lambertian + emissive, unidirectional
-// path tracing with Russian roulette, many samples per pixel accumulated on the
-// device. It reuses the Phase-B BVH traversal, so geometry is already validated;
-// here we add shading. Output is linear HDR (host tonemaps).
+// Phase C (increment 2) GPU path tracer: Lambertian + emissive with
+// next-event estimation (NEE) and multiple importance sampling (MIS), matching
+// the CPU integrator's structure (power heuristic, area-measure light pdf). This
+// dramatically lowers noise versus the increment-1 pure path tracer.
 //
-// Sampling is plain white noise (per-pixel/per-sample PCG), not the CPU's QMC —
-// but both are unbiased estimators of the same rendering equation, so the GPU
-// image converges to the CPU reference (validated by RMSE on the host).
+// Sampling is plain white noise (per-pixel/per-sample PCG); the GPU image still
+// converges to the CPU reference (validated by RMSE on the host), now much
+// faster per sample thanks to NEE.
 //
-// Buffers: see prime_core::bvh::FlatBvh (nbounds/nmeta/pkind/pdata/pmat) plus a
-// material table `mats` (8 f32/material: kind, albedo.xyz, emit.xyz, param) and
-// the camera frame `cam` (12 f32). Material kinds: 0 = Lambertian, 1 = Metal,
-// 2 = Emissive, 3 = Dielectric. Increment 1 shades 0 and 2; 1 and 3 are treated
-// as diffuse for now (handled exactly in the next increment).
+// Buffers: FlatBvh (nbounds/nmeta/pkind/pdata/pmat) + material table `mats`
+// (8 f32/material: kind, albedo.xyz, emit.xyz, param) + `light_prims` (indices
+// of emissive primitives) + camera frame `cam` (12 f32) + background `bg`.
 
 struct V3 {
     float x, y, z;
@@ -28,33 +26,41 @@ __device__ inline V3 sub(V3 a, V3 b) { return v3(a.x - b.x, a.y - b.y, a.z - b.z
 __device__ inline V3 scale(V3 a, float s) { return v3(a.x * s, a.y * s, a.z * s); }
 __device__ inline V3 mulv(V3 a, V3 b) { return v3(a.x * b.x, a.y * b.y, a.z * b.z); }
 __device__ inline float dot(V3 a, V3 b) { return a.x * b.x + a.y * b.y + a.z * b.z; }
+__device__ inline float length(V3 a) { return sqrtf(dot(a, a)); }
 __device__ inline V3 cross(V3 a, V3 b) {
     return v3(a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x);
 }
 __device__ inline V3 normalize(V3 a) {
-    float l = sqrtf(dot(a, a));
+    float l = length(a);
     return l > 0.0f ? scale(a, 1.0f / l) : a;
 }
 
-// --- PCG random number generator -------------------------------------------
+#define INV_PI 0.3183098862f
+#define TWO_PI 6.2831853072f
+
 __device__ inline unsigned int pcg(unsigned int& state) {
     state = state * 747796405u + 2891336453u;
     unsigned int word = ((state >> ((state >> 28u) + 4u)) ^ state) * 277803737u;
     return (word >> 22u) ^ word;
 }
 __device__ inline float randf(unsigned int& state) {
-    return (pcg(state) >> 8) * (1.0f / 16777216.0f); // [0, 1)
+    return (pcg(state) >> 8) * (1.0f / 16777216.0f);
 }
 
-// Cosine-weighted hemisphere direction around `n`.
 __device__ inline V3 cosine_dir(V3 n, float r1, float r2) {
-    float phi = 6.2831853f * r1;
+    float phi = TWO_PI * r1;
     float r = sqrtf(r2);
     float x = r * cosf(phi), y = r * sinf(phi), z = sqrtf(fmaxf(0.0f, 1.0f - r2));
     V3 a = fabsf(n.x) > 0.9f ? v3(0.0f, 1.0f, 0.0f) : v3(1.0f, 0.0f, 0.0f);
     V3 t = normalize(cross(a, n));
     V3 b = cross(n, t);
     return normalize(add(add(scale(t, x), scale(b, y)), scale(n, z)));
+}
+
+__device__ inline float power_heuristic(float a, float b) {
+    float a2 = a * a, b2 = b * b;
+    float d = a2 + b2;
+    return d > 0.0f ? a2 / d : 0.0f;
 }
 
 __device__ inline bool aabb_hit(const float* b, V3 o, V3 invd, float tmin, float tmax) {
@@ -103,7 +109,6 @@ __device__ inline float hit_tri(const float* d, V3 o, V3 dir, float tmin, float 
     return t;
 }
 
-// Closest hit over the BVH; returns the primitive index (or -1) and writes `t`.
 __device__ int closest_hit(V3 ro, V3 dir, float tmin, float* t_out, const float* nbounds,
                            const unsigned int* nmeta, const unsigned int* pkind,
                            const float* pdata) {
@@ -143,6 +148,15 @@ __device__ int closest_hit(V3 ro, V3 dir, float tmin, float* t_out, const float*
     return best;
 }
 
+// Shadow query: is anything within [tmin, tmax)? Delegates to the validated
+// closest-hit traversal (a dedicated any-hit traversal is a later optimization).
+__device__ bool occluded(V3 ro, V3 dir, float tmin, float tmax, const float* nbounds,
+                         const unsigned int* nmeta, const unsigned int* pkind, const float* pdata) {
+    float t;
+    int best = closest_hit(ro, dir, tmin, &t, nbounds, nmeta, pkind, pdata);
+    return best >= 0 && t < tmax;
+}
+
 __device__ inline V3 normal_at(int best, V3 p, V3 dir, const unsigned int* pkind,
                                const float* pdata) {
     const float* d = &pdata[best * 9];
@@ -157,6 +171,42 @@ __device__ inline V3 normal_at(int best, V3 p, V3 dir, const unsigned int* pkind
     return n;
 }
 
+__device__ inline float prim_area(int pi, const unsigned int* pkind, const float* pdata) {
+    const float* d = &pdata[pi * 9];
+    if (pkind[pi] == 0) {
+        float r = d[3];
+        return 4.0f * 3.14159265f * r * r;
+    }
+    V3 v0 = v3(d[0], d[1], d[2]), v1 = v3(d[3], d[4], d[5]), v2 = v3(d[6], d[7], d[8]);
+    return 0.5f * length(cross(sub(v1, v0), sub(v2, v0)));
+}
+
+// Uniformly sample a point on primitive `pi`; writes point, surface normal, area.
+__device__ void sample_prim(int pi, float r1, float r2, const unsigned int* pkind,
+                            const float* pdata, V3* q, V3* nl, float* area) {
+    const float* d = &pdata[pi * 9];
+    if (pkind[pi] == 0) {
+        float z = 1.0f - 2.0f * r1;
+        float rr = sqrtf(fmaxf(0.0f, 1.0f - z * z));
+        float phi = TWO_PI * r2;
+        V3 dn = v3(rr * cosf(phi), rr * sinf(phi), z);
+        float r = d[3];
+        *q = add(v3(d[0], d[1], d[2]), scale(dn, r));
+        *nl = dn;
+        *area = 4.0f * 3.14159265f * r * r;
+    } else {
+        V3 v0 = v3(d[0], d[1], d[2]), v1 = v3(d[3], d[4], d[5]), v2 = v3(d[6], d[7], d[8]);
+        V3 e1 = sub(v1, v0), e2 = sub(v2, v0);
+        float su = sqrtf(r1);
+        float b1 = 1.0f - su, b2 = r2 * su;
+        *q = add(v0, add(scale(e1, b1), scale(e2, b2)));
+        V3 cr = cross(e1, e2);
+        float l = length(cr);
+        *nl = scale(cr, 1.0f / fmaxf(l, 1e-12f));
+        *area = 0.5f * l;
+    }
+}
+
 __device__ inline V3 background(V3 dir, int bg_kind, const float* bg) {
     if (bg_kind == 0) return v3(bg[0], bg[1], bg[2]);
     float tt = 0.5f * (dir.y + 1.0f);
@@ -167,7 +217,8 @@ extern "C" __global__ void pathtrace(float* out, int W, int H, int spp, int max_
                                      unsigned int seed, const float* nbounds,
                                      const unsigned int* nmeta, const unsigned int* pkind,
                                      const float* pdata, const unsigned int* pmat,
-                                     const float* mats, const float* cam, int bg_kind,
+                                     const float* mats, const unsigned int* light_prims,
+                                     int n_lights, const float* cam, int bg_kind,
                                      const float* bg) {
     int px = blockIdx.x * blockDim.x + threadIdx.x;
     int py = blockIdx.y * blockDim.y + threadIdx.y;
@@ -191,31 +242,85 @@ extern "C" __global__ void pathtrace(float* out, int W, int H, int spp, int max_
         V3 ro = origin;
         V3 thr = v3(1.0f, 1.0f, 1.0f);
         V3 L = v3(0.0f, 0.0f, 0.0f);
+        float prev_pdf = 0.0f;
+        bool specular = true; // first hit on a light counts at full weight
 
         for (int depth = 0; depth < max_depth; depth++) {
-            float th;
-            int best = closest_hit(ro, dir, 1e-3f, &th, nbounds, nmeta, pkind, pdata);
+            float t_hit;
+            int best = closest_hit(ro, dir, 1e-3f, &t_hit, nbounds, nmeta, pkind, pdata);
             if (best < 0) {
                 L = add(L, mulv(thr, background(dir, bg_kind, bg)));
                 break;
             }
             const float* m = &mats[pmat[best] * 8];
-            int kind = (int)m[0];
             V3 emit = v3(m[4], m[5], m[6]);
-            if (emit.x > 0.0f || emit.y > 0.0f || emit.z > 0.0f) L = add(L, mulv(thr, emit));
-            if (kind == 2) break; // emissive: stop the path
+            V3 p = add(ro, scale(dir, t_hit));
 
-            V3 p = add(ro, scale(dir, th));
+            if (emit.x > 0.0f || emit.y > 0.0f || emit.z > 0.0f) {
+                // Hit an emitter: weight against the light-sampling strategy (MIS).
+                if (specular || n_lights == 0) {
+                    L = add(L, mulv(thr, emit));
+                } else {
+                    V3 n = normal_at(best, p, dir, pkind, pdata);
+                    float area = prim_area(best, pkind, pdata);
+                    float cosl = fabsf(dot(n, dir));
+                    float lpdf =
+                        (cosl > 1e-6f && area > 0.0f) ? (t_hit * t_hit) / (n_lights * area * cosl)
+                                                      : 0.0f;
+                    float w = (lpdf > 0.0f) ? power_heuristic(prev_pdf, lpdf) : 1.0f;
+                    L = add(L, scale(mulv(thr, emit), w));
+                }
+                break; // emitter does not scatter
+            }
+
+            // Lambertian surface.
             V3 n = normal_at(best, p, dir, pkind, pdata);
-            thr = mulv(thr, v3(m[1], m[2], m[3])); // albedo
+            V3 albedo = v3(m[1], m[2], m[3]);
 
+            // Next-event estimation: sample a light directly.
+            if (n_lights > 0) {
+                int li = (int)(randf(state) * n_lights);
+                if (li >= n_lights) li = n_lights - 1;
+                int lp = (int)light_prims[li];
+                V3 q, nl;
+                float area;
+                sample_prim(lp, randf(state), randf(state), pkind, pdata, &q, &nl, &area);
+                const float* lm = &mats[pmat[lp] * 8];
+                V3 le = v3(lm[4], lm[5], lm[6]);
+                V3 to = sub(q, p);
+                float dist2 = dot(to, to);
+                float dist = sqrtf(dist2);
+                V3 wi = scale(to, 1.0f / dist);
+                float coss = dot(n, wi);
+                float cosl = fabsf(dot(nl, wi));
+                if (coss > 0.0f && cosl > 1e-6f && area > 0.0f) {
+                    float lpdf = dist2 / (n_lights * area * cosl);
+                    // Shadow ray from p (skip self via tmin) stopping just short of
+                    // the light, matching the CPU. Offsetting the origin instead
+                    // would shorten the ray and make the light self-occlude.
+                    if (lpdf > 0.0f &&
+                        !occluded(p, wi, 1e-3f, dist * (1.0f - 1e-3f), nbounds, nmeta, pkind,
+                                  pdata)) {
+                        float bpdf = coss * INV_PI;
+                        float w = power_heuristic(lpdf, bpdf);
+                        float k = INV_PI * coss * w / lpdf;
+                        L = add(L, scale(mulv(mulv(thr, albedo), le), k));
+                    }
+                }
+            }
+
+            // BSDF bounce (cosine-weighted Lambertian).
+            thr = mulv(thr, albedo);
             if (depth >= 3) {
                 float q = fmaxf(thr.x, fmaxf(thr.y, thr.z));
                 if (randf(state) > q) break;
                 thr = scale(thr, 1.0f / fmaxf(q, 1e-4f));
             }
-            ro = add(p, scale(n, 1e-4f));
-            dir = cosine_dir(n, randf(state), randf(state));
+            ro = add(p, scale(n, 1e-3f));
+            V3 nd = cosine_dir(n, randf(state), randf(state));
+            prev_pdf = fmaxf(dot(n, nd), 0.0f) * INV_PI;
+            specular = false;
+            dir = nd;
         }
         sum = add(sum, L);
     }

@@ -206,19 +206,19 @@ CUDA_PATH=/usr/local/cuda \
   cornell --samples 1024 --output out/gpu.png --validate
 ```
 
-**Status — Phase C (increment 1):** a GPU **path tracer**. The scene's BVH,
-primitives, and material table are uploaded; the kernel reuses the validated
-Phase-B traversal and adds shading — Lambertian + emissive, unidirectional path
-tracing with Russian roulette, many samples accumulated on the device. The GPU
-uses plain white-noise sampling (not the CPU's QMC/NEE), but both are unbiased
-estimators of the same rendering equation, so the GPU image **converges to the
-CPU reference**: on the diffuse Cornell box, `--validate` reports RMSE falling
-**6.2% → 4.2% → 2.1%** at 512 / 1024 / 4096 spp (the textbook 1/√spp decay —
-noise, not bias). And it's **~160× faster than the single-threaded CPU** at equal
-samples (16k spp at 800×800 in ~2.7 s on an RTX 5090).
+**Status — Phase C (increment 2):** a GPU **path tracer** with **next-event
+estimation + MIS**. The scene's BVH, primitives, material table, and light list
+are uploaded; the kernel reuses the validated Phase-B traversal and adds shading
++ direct light sampling (Lambertian + emissive, Russian roulette). The GPU uses
+plain white-noise sampling (not the CPU's QMC), but both are unbiased estimators
+of the same rendering equation, so the GPU image **converges to the CPU
+reference**: on the diffuse Cornell box, `--validate` reports RMSE falling
+**2.6% → 1.5% → 0.9%** at 64 / 256 / 1024 spp (the 1/√spp decay — noise, not
+bias; NEE reaches at 256 spp what the pure path tracer needed ~4k spp for). And
+it's **~150× faster than the single-threaded CPU** at equal samples on an RTX 5090.
 
-Next increments: next-event estimation + MIS (much less noise), GGX metal &
-dielectric, then textures + environment lighting.
+Next increments: GGX metal & dielectric (so the full Cornell renders), then
+textures + environment lighting.
 
 <p align="center"><img src="docs/renders/gpu_phaseC.png" width="480"><br><i>Path-traced on the GPU (RTX 5090): the diffuse Cornell box, converged to the CPU reference.</i></p>
 
