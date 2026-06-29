@@ -90,6 +90,15 @@ struct Args {
     /// Rotate the environment map about the vertical axis (degrees).
     #[arg(long, default_value_t = 0.0)]
     env_rotation: Float,
+
+    /// Lens aperture for depth of field (0 = pinhole). Overrides the scene's
+    /// camera; larger values blur more.
+    #[arg(long)]
+    aperture: Option<Float>,
+
+    /// Focus distance for depth of field (defaults to the look-at distance).
+    #[arg(long)]
+    focus_dist: Option<Float>,
 }
 
 #[derive(Copy, Clone, Debug, ValueEnum)]
@@ -120,6 +129,14 @@ fn main() -> Result<()> {
     let aspect = args.width as Float / args.height as Float;
     let mut scene = load_scene(&args.scene, aspect)
         .with_context(|| format!("loading scene '{}'", args.scene))?;
+
+    // Optional camera overrides (e.g. depth of field on an auto-framed glTF).
+    if let Some(aperture) = args.aperture {
+        scene.camera.aperture = aperture;
+    }
+    if let Some(focus) = args.focus_dist {
+        scene.camera.focus_dist = Some(focus);
+    }
 
     if let Some(env_path) = &args.env {
         let env = load_env(env_path, args.env_intensity, args.env_rotation.to_radians())
