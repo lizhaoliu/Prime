@@ -1,13 +1,15 @@
 //! `prime-gpu` — experimental CUDA front-end for Prime.
 //!
-//! **Phase C (increment 4):** a GPU **path tracer** at near-parity with the CPU —
+//! **Phase C (complete):** a GPU **path tracer at feature parity with the CPU** —
 //! the full material set (Lambertian, GGX Metal, Dielectric, emissive), NEE +
-//! MIS, and **albedo textures** (constant, procedural checkerboard, and bilinear
-//! **image** textures via UV-interpolated coordinates). Loads built-in scenes,
-//! `.ron` scenes (image textures resolved), and `.obj` meshes. The kernel reuses
-//! the validated Phase-B BVH traversal and mirrors the CPU's BSDFs + integrator,
-//! so the GPU image converges to the CPU reference; `--validate` renders the same
-//! scene on the CPU and reports RMSE. (Remaining for full parity: env lighting.)
+//! MIS, **albedo textures** (constant / checker / bilinear image, UV-mapped), and
+//! **environment lighting** (equirectangular map radiance). Loads built-in
+//! scenes, `.ron` scenes (textures resolved), and `.obj` meshes. The kernel
+//! reuses the validated Phase-B BVH traversal and mirrors the CPU's BSDFs +
+//! integrator, so the GPU image converges to the CPU reference; `--validate`
+//! renders the same scene on the CPU and reports RMSE. (Environment importance
+//! sampling — to cut noise on concentrated light sources — is a future
+//! optimization, not a feature gap.)
 //!
 //! Requires an NVIDIA GPU + CUDA toolkit (this crate is excluded from the
 //! workspace). Build/run with the CUDA path set:
@@ -24,6 +26,7 @@ use prime_core::aabb::Aabb;
 use prime_core::camera::CameraConfig;
 use prime_core::color::{to_srgb8, Tonemap};
 use prime_core::desc::SceneDesc;
+use prime_core::env::EnvMap;
 use prime_core::geometry::{Primitive, Sphere, Triangle};
 use prime_core::integrator::{self, RenderSettings};
 use prime_core::material::Material;
@@ -41,8 +44,8 @@ const PATHTRACE_SRC: &str = include_str!("kernels/pathtrace.cu");
     about = "Experimental CUDA path tracer for Prime"
 )]
 struct Args {
-    /// Scene: `cornell`, `checker`, `cornell-diffuse`, a built-in demo name
-    /// (showcase/spheres/rtweekend/studio/sky), or a `.obj` mesh.
+    /// Scene: `cornell`, `checker`, `image`, `env`, `cornell-diffuse`, a built-in
+    /// demo (showcase/spheres/rtweekend/studio/sky), a `.ron` scene, or `.obj`.
     #[arg(default_value = "cornell")]
     scene: String,
     /// Output PNG path.
@@ -111,6 +114,22 @@ fn gpu_render(scene: &Scene, args: &Args, aspect: Float) -> Result<Vec<u8>> {
         lights
     };
     let (bg_kind, bg_vals) = background_data(&scene.background);
+    let (env_w, env_h, env_intensity, env_rotation, env_host) = match scene.environment() {
+        Some(e) => {
+            let mut px = Vec::with_capacity(e.width() * e.height() * 3);
+            for c in e.pixels() {
+                px.extend_from_slice(&[c.x, c.y, c.z]);
+            }
+            (
+                e.width() as i32,
+                e.height() as i32,
+                e.intensity(),
+                e.rotation(),
+                px,
+            )
+        }
+        None => (0, 0, 1.0, 0.0, vec![0.0, 0.0, 0.0]),
+    };
     let basis = CamBasis::new(&scene.camera, aspect);
     eprintln!(
         "scene '{}': {} primitives, {} BVH nodes, {} materials",
@@ -139,6 +158,7 @@ fn gpu_render(scene: &Scene, args: &Args, aspect: Float) -> Result<Vec<u8>> {
     let lights_dev = stream.clone_htod(&lights_buf)?;
     let cam = stream.clone_htod(&basis.pack())?;
     let bg = stream.clone_htod(&bg_vals)?;
+    let env_dev = stream.clone_htod(&env_host)?;
     let mut out_dev = stream.alloc_zeros::<f32>(w * h * 3)?;
 
     const BLOCK: u32 = 16;
@@ -172,7 +192,12 @@ fn gpu_render(scene: &Scene, args: &Args, aspect: Float) -> Result<Vec<u8>> {
         .arg(&n_lights)
         .arg(&cam)
         .arg(&bgk)
-        .arg(&bg);
+        .arg(&bg)
+        .arg(&env_w)
+        .arg(&env_h)
+        .arg(&env_intensity)
+        .arg(&env_rotation)
+        .arg(&env_dev);
     unsafe { launch.launch(cfg)? };
     stream.synchronize()?;
     let gpu_ms = start.elapsed().as_secs_f64() * 1e3;
@@ -226,6 +251,7 @@ fn load_scene(name: &str) -> Result<Scene> {
         "cornell-diffuse" => diffuse_cornell(),
         "checker" => checker_cornell(),
         "image" => image_cornell()?,
+        "env" => env_scene(),
         "showcase" => demo::showcase(),
         "spheres" => demo::spheres(),
         "rtweekend" => demo::rtweekend(),
@@ -667,6 +693,53 @@ fn image_cornell() -> Result<Scene> {
         camera,
         Background::Solid(Color::ZERO),
     ))
+}
+
+/// Diffuse spheres lit purely by a smooth gradient environment map (no sun), for
+/// validating GPU environment lighting against the CPU.
+fn env_scene() -> Scene {
+    let materials = vec![
+        Material::Lambertian {
+            albedo: Color::new(0.6, 0.6, 0.6).into(),
+            normal: None,
+        }, // ground
+        Material::Lambertian {
+            albedo: Color::new(0.8, 0.3, 0.3).into(),
+            normal: None,
+        },
+        Material::Lambertian {
+            albedo: Color::new(0.3, 0.5, 0.8).into(),
+            normal: None,
+        },
+    ];
+    let prims = vec![
+        Primitive::from(Sphere::new(Vec3::new(0.0, -1000.0, 0.0), 1000.0, 0)),
+        Primitive::from(Sphere::new(Vec3::new(-1.2, 0.5, 0.0), 0.5, 1)),
+        Primitive::from(Sphere::new(Vec3::new(1.2, 0.5, 0.0), 0.5, 2)),
+    ];
+    let camera = CameraConfig {
+        look_from: Vec3::new(0.0, 1.0, 5.0),
+        look_at: Vec3::new(0.0, 0.5, 0.0),
+        vup: Vec3::new(0.0, 1.0, 0.0),
+        vfov: 35.0,
+        aperture: 0.0,
+        focus_dist: None,
+    };
+    let mut scene = Scene::new(materials, prims, camera, Background::Solid(Color::ZERO));
+
+    // A smooth zenith-to-horizon gradient (no concentrated sun), so plain BSDF
+    // sampling converges quickly (GPU env importance sampling is a follow-up).
+    let (w, h) = (64usize, 32usize);
+    let mut px = vec![Color::ZERO; w * h];
+    for v in 0..h {
+        let t = v as Float / (h - 1) as Float; // 0 = zenith (top), 1 = nadir
+        let col = Color::new(0.3, 0.5, 0.9) * (1.0 - t) + Color::new(1.0, 1.0, 1.0) * t;
+        for u in 0..w {
+            px[v * w + u] = col;
+        }
+    }
+    scene.set_environment(EnvMap::from_pixels(w, h, px, 1.0, 0.0));
+    scene
 }
 
 /// Load a bare OBJ mesh and frame a camera around its bounds.

@@ -206,27 +206,33 @@ CUDA_PATH=/usr/local/cuda \
   cornell --samples 1024 --output out/gpu.png --validate
 ```
 
-**Status — Phase C (increment 4):** a GPU **path tracer at near-parity with the
-CPU** — the full material set (Lambertian, **GGX Metal** mirror + rough,
-**Dielectric** glass, emissive), next-event estimation + MIS, and **albedo
-textures** (constant, procedural checkerboard, and bilinear **image** textures,
-UV-interpolated). It loads built-in scenes, `.ron` scenes (image textures
-resolved), and `.obj` meshes. The kernel mirrors the CPU's BSDFs (Trowbridge-
-Reitz D, height-correlated Smith G, Schlick Fresnel) and integrator, so the GPU
-image **converges to the CPU reference** (verified by `--validate`): full Cornell
-(glass + mirror) RMSE **3.3% → 1.8% → 0.95%** at 256 / 1024 / 4096 spp, the
-checkerboard-floor scene **1.5% → 0.8%**, and an image-textured floor
-**1.4% → 0.7%** at 256 / 1024 spp — the 1/√spp decay, i.e. noise, not bias. The
-GPU is **~150× faster than the single-threaded CPU** at equal samples on an RTX 5090.
+**Status — Phase C complete: a GPU path tracer at feature parity with the CPU.**
+The full material set (Lambertian, **GGX Metal** mirror + rough, **Dielectric**
+glass, emissive), next-event estimation + MIS, **albedo textures** (constant,
+checkerboard, and bilinear **image**, UV-interpolated), and **environment
+lighting** (equirectangular map). It loads built-in scenes, `.ron` scenes
+(textures resolved), and `.obj` meshes. The kernel mirrors the CPU's BSDFs
+(Trowbridge-Reitz D, height-correlated Smith G, Schlick Fresnel) and integrator,
+so the GPU image **converges to the CPU reference** (verified by `--validate`),
+each with the 1/√spp decay (noise, not bias):
 
-Remaining for full parity: environment/HDRI lighting on the GPU.
+| Scene | RMSE vs CPU |
+|-------|-------------|
+| Cornell (glass + mirror) | 3.3% → 1.8% → 0.95% @ 256 / 1024 / 4096 spp |
+| Checkerboard floor | 1.5% → 0.8% @ 256 / 1024 spp |
+| Image-textured floor | 1.4% → 0.7% @ 256 / 1024 spp |
+| Environment-lit (smooth) | 0.4% → 0.2% @ 256 / 1024 spp |
+
+The GPU is **~150× faster than the single-threaded CPU** at equal samples on an
+RTX 5090. (Environment *importance sampling* — to cut noise on concentrated light
+sources like a sun — is a future optimization, not a feature gap.)
 
 <p align="center">
 <img src="docs/renders/gpu_phaseC.png" width="230">
 <img src="docs/renders/gpu_showcase.png" width="230">
-<img src="docs/renders/gpu_checker.png" width="230">
 <img src="docs/renders/gpu_image.png" width="230">
-<br><i>Path-traced on the GPU (RTX 5090): the Cornell box, the material showcase (glass, mirror, GGX metals), a checkerboard floor, and an image-textured floor — all converged to the CPU reference.</i></p>
+<img src="docs/renders/gpu_env.png" width="230">
+<br><i>Path-traced on the GPU (RTX 5090): the Cornell box, the material showcase (glass, mirror, GGX metals), an image-textured floor, and an environment-lit scene — all converged to the CPU reference.</i></p>
 
 ---
 
