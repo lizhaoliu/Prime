@@ -17,6 +17,7 @@ path = "src/main.rs"
 
 [dependencies]
 prime-core = { path = "../prime-core" }
+prime-gltf = { path = "../prime-gltf" }
 cudarc = { version = "0.19", default-features = false, features = [
     "cuda-version-from-build-system",
     "driver",

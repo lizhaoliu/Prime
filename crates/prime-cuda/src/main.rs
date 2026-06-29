@@ -258,8 +258,13 @@ fn load_scene(name: &str) -> Result<Scene> {
         "studio" => demo::studio(),
         "sky" => demo::sky(),
         other if other.ends_with(".ron") => load_ron(Path::new(other))?,
+        other if other.ends_with(".gltf") || other.ends_with(".glb") => {
+            prime_gltf::load(other).map_err(|e| anyhow::anyhow!("loading glTF: {e}"))?
+        }
         other if other.ends_with(".obj") => load_obj(Path::new(other))?,
-        other => bail!("unknown scene '{other}' (try cornell/checker/showcase or a .ron/.obj)"),
+        other => {
+            bail!("unknown scene '{other}' (try cornell/checker/image/env or a .ron/.gltf/.obj)")
+        }
     })
 }
 

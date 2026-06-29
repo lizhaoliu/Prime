@@ -199,9 +199,12 @@ fn load_scene(source: &str, aspect: Float) -> Result<Scene> {
     match path.extension().and_then(|e| e.to_str()) {
         Some("ron") => load_ron_scene(path),
         Some("obj") => load_obj_scene(path, aspect),
+        Some("gltf") | Some("glb") => {
+            prime_gltf::load(path).with_context(|| format!("loading glTF {}", path.display()))
+        }
         _ => bail!(
             "unknown scene '{source}': expected a built-in name (showcase, studio, \
-             rtweekend, sky, textured, cornell, spheres), a .ron scene, or a .obj mesh"
+             rtweekend, sky, textured, cornell, spheres), a .ron/.gltf/.glb scene, or a .obj mesh"
         ),
     }
 }
