@@ -41,12 +41,15 @@ fn quad_uv(
 pub fn cornell_box() -> Scene {
     let red = Material::Lambertian {
         albedo: Color::new(0.65, 0.05, 0.05).into(),
+        normal: None,
     };
     let green = Material::Lambertian {
         albedo: Color::new(0.12, 0.45, 0.15).into(),
+        normal: None,
     };
     let white = Material::Lambertian {
         albedo: Color::new(0.73, 0.73, 0.73).into(),
+        normal: None,
     };
     let light = Material::Emissive {
         emit: Color::splat(15.0),
@@ -55,6 +58,7 @@ pub fn cornell_box() -> Scene {
     let metal = Material::Metal {
         albedo: Color::new(0.8, 0.85, 0.88).into(),
         roughness: 0.08,
+        normal: None,
     };
 
     let materials = vec![red, green, white, light, glass, metal];
@@ -150,12 +154,15 @@ pub fn cornell_box() -> Scene {
 pub fn showcase() -> Scene {
     let red = Material::Lambertian {
         albedo: Color::new(0.65, 0.05, 0.05).into(),
+        normal: None,
     };
     let green = Material::Lambertian {
         albedo: Color::new(0.12, 0.45, 0.15).into(),
+        normal: None,
     };
     let white = Material::Lambertian {
         albedo: Color::new(0.73, 0.73, 0.73).into(),
+        normal: None,
     };
     let light = Material::Emissive {
         emit: Color::splat(18.0),
@@ -164,20 +171,25 @@ pub fn showcase() -> Scene {
     let mirror = Material::Metal {
         albedo: Color::new(0.95, 0.95, 0.97).into(),
         roughness: 0.0,
+        normal: None,
     };
     let brushed = Material::Metal {
         albedo: Color::new(0.8, 0.82, 0.85).into(),
         roughness: 0.12,
+        normal: None,
     };
     let gold = Material::Metal {
         albedo: Color::new(1.0, 0.78, 0.34).into(),
         roughness: 0.35,
+        normal: None,
     };
     let teal = Material::Lambertian {
         albedo: Color::new(0.1, 0.6, 0.6).into(),
+        normal: None,
     };
     let orange = Material::Lambertian {
         albedo: Color::new(0.85, 0.45, 0.1).into(),
+        normal: None,
     };
 
     let materials = vec![
@@ -282,14 +294,17 @@ pub fn showcase() -> Scene {
 pub fn spheres() -> Scene {
     let ground = Material::Lambertian {
         albedo: Color::new(0.5, 0.5, 0.5).into(),
+        normal: None,
     };
     let diffuse = Material::Lambertian {
         albedo: Color::new(0.7, 0.3, 0.3).into(),
+        normal: None,
     };
     let glass = Material::Dielectric { ior: 1.5 };
     let metal = Material::Metal {
         albedo: Color::new(0.8, 0.6, 0.2).into(),
         roughness: 0.25,
+        normal: None,
     };
 
     let materials = vec![ground, diffuse, glass, metal];
@@ -321,6 +336,7 @@ pub fn rtweekend() -> Scene {
     let mut rng = SmallRng::seed_from_u64(2024);
     let mut materials: Vec<Material> = vec![Material::Lambertian {
         albedo: Color::new(0.5, 0.5, 0.5).into(),
+        normal: None,
     }];
     let mut prims: Vec<Primitive> =
         vec![Sphere::new(Vec3::new(0.0, -1000.0, 0.0), 1000.0, 0).into()];
@@ -347,7 +363,10 @@ pub fn rtweekend() -> Scene {
                     rng.gen::<Float>() * rng.gen::<Float>(),
                     rng.gen::<Float>() * rng.gen::<Float>(),
                 );
-                Material::Lambertian { albedo: a.into() }
+                Material::Lambertian {
+                    albedo: a.into(),
+                    normal: None,
+                }
             } else if choose < 0.95 {
                 let a = Color::new(
                     0.5 + 0.5 * rng.gen::<Float>(),
@@ -357,6 +376,7 @@ pub fn rtweekend() -> Scene {
                 Material::Metal {
                     albedo: a.into(),
                     roughness: 0.5 * rng.gen::<Float>(),
+                    normal: None,
                 }
             } else {
                 Material::Dielectric { ior: 1.5 }
@@ -374,6 +394,7 @@ pub fn rtweekend() -> Scene {
     push(
         Material::Lambertian {
             albedo: Color::new(0.4, 0.2, 0.1).into(),
+            normal: None,
         },
         Vec3::new(-4.0, 1.0, 0.0),
         1.0,
@@ -383,6 +404,7 @@ pub fn rtweekend() -> Scene {
         Material::Metal {
             albedo: Color::new(0.7, 0.6, 0.5).into(),
             roughness: 0.0,
+            normal: None,
         },
         Vec3::new(4.0, 1.0, 0.0),
         1.0,
@@ -424,6 +446,7 @@ pub fn studio() -> Scene {
     // Floor and a big overhead area light.
     materials.push(Material::Lambertian {
         albedo: Color::splat(0.55).into(),
+        normal: None,
     });
     let floor = 0;
     quad(
@@ -467,6 +490,7 @@ pub fn studio() -> Scene {
                 Material::Metal {
                     albedo: tint.into(),
                     roughness,
+                    normal: None,
                 },
                 x_of(c),
                 z,
@@ -488,6 +512,7 @@ pub fn studio() -> Scene {
         add_sphere(
             Material::Lambertian {
                 albedo: albedo.into(),
+                normal: None,
             },
             x_of(c),
             -2.0 * SPACING,
@@ -522,13 +547,16 @@ pub fn studio() -> Scene {
 pub fn sky() -> Scene {
     let ground = Material::Lambertian {
         albedo: Color::new(0.6, 0.6, 0.62).into(),
+        normal: None,
     };
     let red = Material::Lambertian {
         albedo: Color::new(0.8, 0.25, 0.2).into(),
+        normal: None,
     };
     let gold = Material::Metal {
         albedo: Color::new(1.0, 0.78, 0.34).into(),
         roughness: 0.12,
+        normal: None,
     };
     let glass = Material::Dielectric { ior: 1.5 };
 
@@ -571,6 +599,7 @@ pub fn textured() -> Scene {
             odd: Color::new(0.12, 0.12, 0.15),
             scale: 1.0, // UVs are world units below, so 1 check per unit
         },
+        normal: None,
     };
     let ball = Material::Lambertian {
         albedo: Texture::Checker {
@@ -578,10 +607,12 @@ pub fn textured() -> Scene {
             odd: Color::new(0.95, 0.85, 0.2),
             scale: 10.0,
         },
+        normal: None,
     };
     let metal = Material::Metal {
         albedo: Color::new(0.9, 0.9, 0.95).into(),
         roughness: 0.05,
+        normal: None,
     };
     let glass = Material::Dielectric { ior: 1.5 };
 

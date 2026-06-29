@@ -12,6 +12,10 @@ pub struct HitRecord {
     pub p: Vec3,
     /// Shading normal, always oriented against the incoming ray.
     pub normal: Vec3,
+    /// Surface tangent (ideally aligned with the +U texture direction), used to
+    /// build the frame for normal mapping. Defaults to an arbitrary tangent;
+    /// primitives override it with a UV-aligned one when they can.
+    pub tangent: Vec3,
     /// Whether the ray hit the outward-facing side of the surface.
     pub front_face: bool,
     /// Surface texture coordinates.
@@ -50,6 +54,7 @@ impl HitRecord {
             t,
             p,
             normal,
+            tangent: fallback_tangent(normal),
             front_face,
             u,
             v,
@@ -57,4 +62,16 @@ impl HitRecord {
             material,
         }
     }
+}
+
+/// An arbitrary unit tangent perpendicular to `n` (used when a primitive has no
+/// UV-aligned tangent).
+#[inline]
+pub fn fallback_tangent(n: Vec3) -> Vec3 {
+    let a = if n.x.abs() > 0.9 {
+        Vec3::new(0.0, 1.0, 0.0)
+    } else {
+        Vec3::new(1.0, 0.0, 0.0)
+    };
+    n.cross(a).normalize()
 }

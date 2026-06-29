@@ -66,6 +66,7 @@ fn decode_image(path: &Path) -> Result<ImageData, String> {
 fn load_obj_scene(path: &Path, aspect: Float) -> Result<Scene> {
     let material = Material::Lambertian {
         albedo: Color::new(0.73, 0.73, 0.73).into(),
+        normal: None,
     };
     let triangles = obj::load(path, 0, obj::Transform::default())
         .with_context(|| format!("loading OBJ mesh {}", path.display()))?;

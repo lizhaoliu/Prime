@@ -76,7 +76,7 @@ hit          intersection record (point, oriented normal, uv, material id)
 material     sealed BSDF enum: Lambertian / GGX Metal / Dielectric / Emissive
 sampler      low-discrepancy sampling: Owen-scrambled Sobol (Burley 2020)
 env          image-based lighting: equirect HDR env map, importance-sampled
-texture      constant / checker / image albedo textures (bilinear, sRGB)
+texture      constant / checker / image textures (bilinear, sRGB); normal maps
 camera       thin-lens pinhole camera (look-at, fov, optional defocus)
 scene        material table + BVH + light list + camera config + background
 integrator   parallel path tracer: next-event estimation + MIS, quasi-Monte
@@ -177,11 +177,13 @@ See [`assets/demo.ron`](assets/demo.ron) for a complete example:
     camera: ( look_from: (x: 0.0, y: 1.4, z: 6.5), look_at: (x: 0.0, y: 0.7, z: 0.0),
               vup: (x: 0.0, y: 1.0, z: 0.0), vfov: 45.0, aperture: 0.05, focus_dist: Some(6.5) ),
     background: Gradient( bottom: (x: 1.0, y: 1.0, z: 1.0), top: (x: 0.5, y: 0.7, z: 1.0) ),
-    // A material's albedo is a Texture: Constant, Checker, or Image (a file).
+    // A material's albedo is a Texture: Constant, Checker, or Image. A
+    // Lambertian/Metal may also carry a tangent-space `normal` map (srgb: false).
     materials: [
         Lambertian(albedo: Constant((x: 0.5, y: 0.5, z: 0.5))),
         Lambertian(albedo: Checker(even: (x: 0.9, y: 0.9, z: 0.9), odd: (x: 0.1, y: 0.1, z: 0.1), scale: 8.0)),
         Lambertian(albedo: Image(path: "wood.png", srgb: true)),
+        Lambertian(albedo: Image(path: "brick.png", srgb: true), normal: Some(Image(path: "brick_n.png", srgb: false))),
         Metal(albedo: Constant((x: 0.85, y: 0.85, z: 0.88)), roughness: 0.1),
         Dielectric(ior: 1.5),
         Emissive(emit: (x: 8.0, y: 6.5, z: 5.0)),

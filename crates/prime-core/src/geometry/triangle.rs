@@ -18,6 +18,9 @@ pub struct Triangle {
     pub normals: Option<[Vec3; 3]>,
     /// Optional per-vertex texture coordinates `(u, v)`.
     pub uvs: Option<[[Float; 2]; 3]>,
+    /// World-space tangent (aligned with +U), computed from UVs. `None` if the
+    /// triangle has no texture coordinates.
+    pub tangent: Option<Vec3>,
     pub material: MaterialId,
     /// Precomputed surface area (for light sampling).
     area: Float,
@@ -32,6 +35,7 @@ impl Triangle {
             v2,
             normals: None,
             uvs: None,
+            tangent: None,
             material,
             area,
         }
@@ -61,6 +65,18 @@ impl Triangle {
 
     pub fn with_uvs(mut self, uvs: [[Float; 2]; 3]) -> Self {
         self.uvs = Some(uvs);
+        // Tangent aligned with the +U texture direction (Lengyel's method).
+        let e1 = self.v1 - self.v0;
+        let e2 = self.v2 - self.v0;
+        let (du1, dv1) = (uvs[1][0] - uvs[0][0], uvs[1][1] - uvs[0][1]);
+        let (du2, dv2) = (uvs[2][0] - uvs[0][0], uvs[2][1] - uvs[0][1]);
+        let det = du1 * dv2 - du2 * dv1;
+        self.tangent = if det.abs() > 1e-8 {
+            let t = (e1 * dv2 - e2 * dv1) * (1.0 / det);
+            Some(t.normalize_or(self.geometric_normal()))
+        } else {
+            None
+        };
         self
     }
 
@@ -114,16 +130,12 @@ impl Triangle {
         };
 
         let p = ray.at(t);
-        Some(HitRecord::with_face_normal(
-            ray,
-            t,
-            p,
-            outward,
-            tu,
-            tv,
-            self.area,
-            self.material,
-        ))
+        let mut hit =
+            HitRecord::with_face_normal(ray, t, p, outward, tu, tv, self.area, self.material);
+        if let Some(tangent) = self.tangent {
+            hit.tangent = tangent;
+        }
+        Some(hit)
     }
 
     pub fn aabb(&self) -> Aabb {

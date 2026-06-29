@@ -36,10 +36,20 @@ const MIRROR_ROUGHNESS: Float = 0.02;
 #[derive(Clone, Debug)]
 pub enum Material {
     /// Ideal diffuse reflector (cosine-weighted importance sampled).
-    Lambertian { albedo: Texture },
+    Lambertian {
+        albedo: Texture,
+        /// Optional tangent-space normal map (use `srgb: false` for these).
+        #[cfg_attr(feature = "serde", serde(default))]
+        normal: Option<Texture>,
+    },
     /// GGX microfacet conductor. `roughness` in `[0, 1]`: 0 is a perfect
     /// mirror, higher values are rougher (more blurred reflections).
-    Metal { albedo: Texture, roughness: Float },
+    Metal {
+        albedo: Texture,
+        roughness: Float,
+        #[cfg_attr(feature = "serde", serde(default))]
+        normal: Option<Texture>,
+    },
     /// Smooth dielectric (glass/water) with refraction + Fresnel reflection.
     Dielectric { ior: Float },
     /// Light source: emits radiance, does not scatter.
@@ -82,11 +92,20 @@ impl Material {
         }
     }
 
+    /// The material's tangent-space normal map, if any.
+    #[inline]
+    pub fn normal_map(&self) -> Option<&Texture> {
+        match self {
+            Material::Lambertian { normal, .. } | Material::Metal { normal, .. } => normal.as_ref(),
+            _ => None,
+        }
+    }
+
     /// Importance-sample an outgoing direction, or `None` if absorbed.
     pub fn sample(&self, wo: Vec3, hit: &HitRecord, sampler: &mut Sampler) -> Option<BsdfSample> {
         let n = hit.normal;
         match self {
-            Material::Lambertian { albedo } => {
+            Material::Lambertian { albedo, .. } => {
                 let mut wi = cosine_weighted_hemisphere(sampler, n);
                 if wi.is_near_zero() {
                     wi = n;
@@ -104,7 +123,9 @@ impl Material {
                 })
             }
 
-            Material::Metal { albedo, roughness } => {
+            Material::Metal {
+                albedo, roughness, ..
+            } => {
                 let roughness = *roughness;
                 if roughness <= MIRROR_ROUGHNESS {
                     // Perfect mirror: a delta BSDF.
@@ -176,14 +197,16 @@ impl Material {
     pub fn eval(&self, wo: Vec3, wi: Vec3, hit: &HitRecord) -> Color {
         let n = hit.normal;
         match self {
-            Material::Lambertian { albedo } => {
+            Material::Lambertian { albedo, .. } => {
                 if wi.dot(n) > 0.0 && wo.dot(n) > 0.0 {
                     albedo.sample(hit.u, hit.v) * FRAC_1_PI
                 } else {
                     Color::ZERO
                 }
             }
-            Material::Metal { albedo, roughness } => {
+            Material::Metal {
+                albedo, roughness, ..
+            } => {
                 let roughness = *roughness;
                 if roughness <= MIRROR_ROUGHNESS {
                     return Color::ZERO;
@@ -245,12 +268,34 @@ impl Material {
     where
         F: FnMut(&Path) -> Result<ImageData, String>,
     {
-        match self {
-            Material::Lambertian { albedo } => albedo.resolve(base_dir, decoder),
-            Material::Metal { albedo, .. } => albedo.resolve(base_dir, decoder),
-            _ => Ok(()),
+        let (albedo, normal) = match self {
+            Material::Lambertian { albedo, normal } => (Some(albedo), normal.as_mut()),
+            Material::Metal { albedo, normal, .. } => (Some(albedo), normal.as_mut()),
+            _ => (None, None),
+        };
+        if let Some(a) = albedo {
+            a.resolve(base_dir, decoder)?;
         }
+        if let Some(n) = normal {
+            n.resolve(base_dir, decoder)?;
+        }
+        Ok(())
     }
+}
+
+/// Perturb the shading normal at `hit` using a tangent-space normal map.
+///
+/// The map encodes a unit normal in `[0, 1]³` (so it should be loaded *linear*,
+/// i.e. `srgb: false`). We build a TBN frame from the hit's normal and tangent
+/// and rotate the decoded normal into world space.
+pub fn apply_normal_map(hit: &HitRecord, normal_map: &Texture) -> Vec3 {
+    let n = hit.normal;
+    // Orthonormalize the tangent against n (Gram-Schmidt).
+    let t = (hit.tangent - n * hit.tangent.dot(n)).normalize_or(crate::hit::fallback_tangent(n));
+    let b = n.cross(t);
+    let c = normal_map.sample(hit.u, hit.v);
+    let m = Vec3::new(c.x * 2.0 - 1.0, c.y * 2.0 - 1.0, c.z * 2.0 - 1.0);
+    (t * m.x + b * m.y + n * m.z).normalize_or(n)
 }
 
 // --- GGX microfacet helpers -------------------------------------------------
@@ -340,6 +385,7 @@ mod tests {
             t: 1.0,
             p: Vec3::ZERO,
             normal: Vec3::new(0.0, 1.0, 0.0),
+            tangent: Vec3::new(1.0, 0.0, 0.0),
             front_face,
             u: 0.0,
             v: 0.0,
@@ -354,6 +400,7 @@ mod tests {
         let albedo = Color::new(0.5, 0.4, 0.3);
         let m = Material::Lambertian {
             albedo: albedo.into(),
+            normal: None,
         };
         let hit = flat_hit(true);
         let wo = Vec3::new(0.0, 1.0, 0.0);
@@ -385,6 +432,7 @@ mod tests {
         let m = Material::Metal {
             albedo: Color::ONE.into(),
             roughness: 0.0,
+            normal: None,
         };
         assert!(m.is_specular());
         let wo = Vec3::new(-1.0, 1.0, 0.0).normalize();
@@ -402,6 +450,7 @@ mod tests {
         let m = Material::Metal {
             albedo: Color::ONE.into(),
             roughness: 0.3,
+            normal: None,
         };
         assert!(!m.is_specular());
         let hit = flat_hit(true);
@@ -435,5 +484,26 @@ mod tests {
             .unwrap();
         assert!(s.specular);
         assert_eq!(s.f, Color::ONE);
+    }
+
+    #[test]
+    fn normal_map_flat_is_identity_and_tilts() {
+        let hit = flat_hit(true); // normal (0,1,0), tangent (1,0,0)
+                                  // A flat map (0.5,0.5,1.0) decodes to (0,0,1): no change.
+        let flat = Texture::Constant(Color::new(0.5, 0.5, 1.0));
+        assert!((apply_normal_map(&hit, &flat) - hit.normal).length() < 1e-5);
+
+        // A map leaning toward +U tilts the shading normal toward the tangent.
+        let tilt = Texture::Constant(Color::new(0.85, 0.5, 1.0));
+        let n = apply_normal_map(&hit, &tilt);
+        assert!(
+            n.dot(hit.tangent) > 0.1,
+            "normal should tilt toward +tangent"
+        );
+        assert!(n.dot(hit.normal) > 0.0, "normal should still face outward");
+        assert!(
+            (n.length() - 1.0).abs() < 1e-5,
+            "perturbed normal must be unit"
+        );
     }
 }

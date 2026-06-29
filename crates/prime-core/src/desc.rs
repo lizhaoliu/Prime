@@ -194,6 +194,7 @@ mod tests {
             background: Background::default(),
             materials: vec![Material::Lambertian {
                 albedo: Color::new(0.5, 0.5, 0.5).into(),
+                normal: None,
             }],
             objects: vec![ObjectDesc::Sphere {
                 center: Vec3::new(0.0, 0.0, -1.0),
@@ -214,6 +215,7 @@ mod tests {
             background: Background::default(),
             materials: vec![Material::Lambertian {
                 albedo: Color::ONE.into(),
+                normal: None,
             }],
             objects: vec![ObjectDesc::Sphere {
                 center: Vec3::ZERO,

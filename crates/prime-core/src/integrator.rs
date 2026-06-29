@@ -271,7 +271,7 @@ fn radiance(scene: &Scene, mut ray: Ray, max_depth: usize, sampler: &mut Sampler
     let mut prev_bsdf_pdf = 0.0;
 
     for depth in 0..max_depth {
-        let Some(hit) = scene.hit(&ray, T_MIN, Float::INFINITY) else {
+        let Some(mut hit) = scene.hit(&ray, T_MIN, Float::INFINITY) else {
             // Ray escaped. If an importance-sampled environment is present,
             // MIS-weight its radiance against the env-sampling pdf; otherwise
             // take the (non-sampled) background at full weight.
@@ -289,6 +289,11 @@ fn radiance(scene: &Scene, mut ray: Ray, max_depth: usize, sampler: &mut Sampler
         };
 
         let material = scene.material(hit.material);
+
+        // Apply a normal map (if any) before shading.
+        if let Some(nm) = material.normal_map() {
+            hit.normal = crate::material::apply_normal_map(&hit, nm);
+        }
 
         // Emission at the hit. If we arrived here by BSDF sampling from a
         // non-specular vertex, MIS-weight it against direct light sampling.

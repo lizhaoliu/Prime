@@ -252,6 +252,7 @@ fn load_env(path: &Path, intensity: Float, rotation_radians: Float) -> Result<En
 fn load_obj_scene(path: &Path, aspect: Float) -> Result<Scene> {
     let material = Material::Lambertian {
         albedo: Color::new(0.73, 0.73, 0.73).into(),
+        normal: None,
     };
     let triangles = obj::load(path, 0, obj::Transform::default())
         .with_context(|| format!("loading OBJ mesh {}", path.display()))?;
