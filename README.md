@@ -152,6 +152,8 @@ SCENE                     built-in (showcase, studio, rtweekend, sky, textured,
     --env <FILE.hdr>      equirectangular HDR environment (image-based lighting)
     --env-intensity <F>   scale env radiance                    [default: 1.0]
     --env-rotation <DEG>  spin the env about the vertical axis  [default: 0]
+    --aperture <F>        lens aperture for depth of field      [default: scene]
+    --focus-dist <F>      focus distance                        [default: look-at]
 ```
 
 ---
@@ -247,17 +249,23 @@ glTF metallic-roughness materials onto Prime's BSDFs, and decodes base-color
 textures. Prime's material model is intentionally small, so the mapping is an
 approximation (base color + metallic/roughness/emissive *factors* and the
 base-color *texture*; metallic-roughness/normal/emissive maps and transmission
-are not represented). Models are lit by a neutral sky gradient and auto-framed.
+are not represented). Models are auto-framed; pair them with an HDRI environment
+(`--env sky.hdr`) and depth of field (`--aperture`) for a finished look:
 
-The renders below are the [Khronos sample
+```bash
+prime DamagedHelmet.glb --env kloofendal.hdr --aperture 0.045 -s 1024 --tonemap reinhard
+```
+
+The renders below are [Khronos sample
 models](https://github.com/KhronosGroup/glTF-Sample-Models) (Damaged Helmet,
-Duck), path-traced on the GPU and validated against the CPU (RMSE 0.5–0.9% at
-256 spp). Sample assets aren't bundled — point Prime at your own `.glb`.
+Duck) under a [Poly Haven](https://polyhaven.com) HDRI with depth of field. (glTF
+also renders on the GPU, validated against the CPU at RMSE 0.5–0.9% @ 256 spp.)
+Sample assets aren't bundled — point Prime at your own files.
 
 <p align="center">
 <img src="docs/renders/gltf_helmet.png" width="340">
 <img src="docs/renders/gltf_duck.png" width="290">
-<br><i>glTF models path-traced on the GPU (RTX 5090): Damaged Helmet and Duck.</i></p>
+<br><i>glTF models (Damaged Helmet, Duck) under an HDRI environment with depth of field.</i></p>
 
 ---
 
