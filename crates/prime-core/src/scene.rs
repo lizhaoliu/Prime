@@ -179,6 +179,12 @@ impl Scene {
         self.bvh.hit(ray, t_min, t_max)
     }
 
+    /// Flatten the scene's BVH into GPU-upload-ready arrays (see
+    /// [`crate::bvh::FlatBvh`]).
+    pub fn flatten_bvh(&self) -> crate::bvh::FlatBvh {
+        self.bvh.flatten()
+    }
+
     pub fn primitive_count(&self) -> usize {
         self.bvh.len()
     }

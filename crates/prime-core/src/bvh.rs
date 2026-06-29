@@ -49,6 +49,28 @@ pub struct Bvh {
     prims: Vec<Primitive>,
 }
 
+/// A flattened, backend-agnostic view of the BVH and its (reordered) primitives,
+/// laid out as plain numeric arrays ready to upload to a GPU. The node and
+/// primitive ordering matches the CPU traversal exactly, so a GPU traversal over
+/// these buffers produces identical hits.
+pub struct FlatBvh {
+    /// 6 floats per node: `min.xyz`, `max.xyz`.
+    pub node_bounds: Vec<f32>,
+    /// 3 u32 per node: `offset`, `n_prims`, `axis`. A leaf has `n_prims > 0` and
+    /// `offset` = first primitive index; an interior node has `n_prims == 0`,
+    /// `offset` = second-child node index (first child = node index + 1).
+    pub node_meta: Vec<u32>,
+    /// 1 u32 per primitive: `0` = sphere, `1` = triangle.
+    pub prim_kind: Vec<u32>,
+    /// 9 floats per primitive. Sphere: `cx, cy, cz, radius, 0, 0, 0, 0, 0`.
+    /// Triangle: `v0.xyz, v1.xyz, v2.xyz`.
+    pub prim_data: Vec<f32>,
+    /// 1 u32 per primitive: its material index.
+    pub prim_material: Vec<u32>,
+    pub node_count: usize,
+    pub prim_count: usize,
+}
+
 impl Default for Bucket {
     fn default() -> Self {
         Bucket {
@@ -101,6 +123,51 @@ impl Bvh {
     /// World-space bounds of the whole scene (root node bounds).
     pub fn bounds(&self) -> Aabb {
         self.nodes.first().map_or(Aabb::EMPTY, |n| n.bbox)
+    }
+
+    /// Flatten the tree and its primitives into upload-ready numeric arrays
+    /// (see [`FlatBvh`]). Used by the GPU backend; the layout mirrors the CPU
+    /// traversal so results match.
+    pub fn flatten(&self) -> FlatBvh {
+        let mut node_bounds = Vec::with_capacity(self.nodes.len() * 6);
+        let mut node_meta = Vec::with_capacity(self.nodes.len() * 3);
+        for n in &self.nodes {
+            let (lo, hi) = (n.bbox.min, n.bbox.max);
+            node_bounds.extend_from_slice(&[lo.x, lo.y, lo.z, hi.x, hi.y, hi.z]);
+            node_meta.extend_from_slice(&[n.offset, n.n_prims, n.axis as u32]);
+        }
+
+        let mut prim_kind = Vec::with_capacity(self.prims.len());
+        let mut prim_data = Vec::with_capacity(self.prims.len() * 9);
+        let mut prim_material = Vec::with_capacity(self.prims.len());
+        for p in &self.prims {
+            match p {
+                Primitive::Sphere(s) => {
+                    prim_kind.push(0);
+                    prim_data.extend_from_slice(&[
+                        s.center.x, s.center.y, s.center.z, s.radius, 0.0, 0.0, 0.0, 0.0, 0.0,
+                    ]);
+                    prim_material.push(s.material as u32);
+                }
+                Primitive::Triangle(t) => {
+                    prim_kind.push(1);
+                    prim_data.extend_from_slice(&[
+                        t.v0.x, t.v0.y, t.v0.z, t.v1.x, t.v1.y, t.v1.z, t.v2.x, t.v2.y, t.v2.z,
+                    ]);
+                    prim_material.push(t.material as u32);
+                }
+            }
+        }
+
+        FlatBvh {
+            node_bounds,
+            node_meta,
+            prim_kind,
+            prim_data,
+            prim_material,
+            node_count: self.nodes.len(),
+            prim_count: self.prims.len(),
+        }
     }
 
     /// Closest intersection within `[t_min, t_max]`, or `None`.
@@ -420,6 +487,41 @@ mod tests {
                 }
                 (None, None) => {}
                 _ => panic!("hit/miss disagreement between BVH and brute force"),
+            }
+        }
+    }
+
+    #[test]
+    fn flatten_is_self_consistent() {
+        let mut prims = vec![Primitive::Sphere(Sphere::new(Vec3::ZERO, 1.0, 0))];
+        for i in 0..10 {
+            let x = i as Float;
+            prims.push(Primitive::Triangle(crate::geometry::Triangle::new(
+                Vec3::new(x, 0.0, 0.0),
+                Vec3::new(x + 1.0, 0.0, 0.0),
+                Vec3::new(x, 1.0, 0.0),
+                1,
+            )));
+        }
+        let n = prims.len();
+        let flat = Bvh::build(prims).flatten();
+
+        assert_eq!(flat.prim_count, n);
+        assert_eq!(flat.node_bounds.len(), flat.node_count * 6);
+        assert_eq!(flat.node_meta.len(), flat.node_count * 3);
+        assert_eq!(flat.prim_kind.len(), n);
+        assert_eq!(flat.prim_data.len(), n * 9);
+        assert_eq!(flat.prim_material.len(), n);
+        // Every leaf's primitive range stays in bounds.
+        for node in 0..flat.node_count {
+            let (offset, n_prims) = (flat.node_meta[node * 3], flat.node_meta[node * 3 + 1]);
+            if n_prims > 0 {
+                assert!((offset + n_prims) as usize <= n, "leaf range out of bounds");
+            } else {
+                assert!(
+                    (offset as usize) < flat.node_count,
+                    "child index out of bounds"
+                );
             }
         }
     }

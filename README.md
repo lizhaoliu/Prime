@@ -203,15 +203,21 @@ workspace and CI**. Build and run it explicitly:
 ```bash
 CUDA_PATH=/usr/local/cuda \
   cargo run --manifest-path crates/prime-cuda/Cargo.toml --release -- \
-  --output out/gpu.png --width 800 --height 600
+  cornell --output out/gpu.png --width 800 --height 600
 ```
 
-**Status — Phase A:** one primary ray per pixel against uploaded spheres, shaded
-with a directional light + sky (no path tracing yet). This proves the end-to-end
-GPU pipeline. Next: flat scene buffers + GPU BVH traversal, then the full path
-tracer on the GPU.
+**Status — Phase B:** the scene's BVH and primitives are flattened
+([`Bvh::flatten`]) and uploaded, and an iterative BVH-traversal kernel does
+primary-ray visibility (any built-in scene or a `.obj` mesh). Because the kernel
+mirrors the CPU `Bvh::hit` exactly, the per-pixel hit distance is **validated
+against the CPU renderer** — e.g. *100.0% pixel agreement on the 170k-triangle
+mesh* (cornell/showcase agree to ~99.98%, the rest being silhouette pixels where
+float rounding flips a hit/miss at an edge). The 170k-triangle scene traces at
+800×600 in well under a millisecond on an RTX 5090. Output below is a normal
+visualization. Next (Phase C): the full path tracer — materials, NEE/MIS,
+sampling, textures, environment — converged to the CPU reference.
 
-<p align="center"><img src="docs/renders/gpu_phaseA.png" width="480"><br><i>First light on the GPU (RTX 5090): 800×600 in ~0.15&nbsp;ms.</i></p>
+<p align="center"><img src="docs/renders/gpu_phaseB.png" width="480"><br><i>GPU BVH traversal (RTX 5090): Cornell-box surface normals, validated pixel-wise against the CPU.</i></p>
 
 ---
 
