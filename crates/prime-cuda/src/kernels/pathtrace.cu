@@ -438,8 +438,8 @@ __device__ V3 sample_albedo(int mat, float u, float v, const float* albedo_tex,
     return v3(a[1], a[2], a[3]);
 }
 
-extern "C" __global__ void pathtrace(float* out, int W, int H, int spp, int max_depth,
-                                     unsigned int seed, const float* nbounds,
+extern "C" __global__ void pathtrace(float* accum, int W, int H, int spp, int sample_base,
+                                     int max_depth, unsigned int seed, const float* nbounds,
                                      const unsigned int* nmeta, const unsigned int* pkind,
                                      const float* pdata, const float* prim_uv,
                                      const unsigned int* pmat, const float* mats,
@@ -456,18 +456,28 @@ extern "C" __global__ void pathtrace(float* out, int W, int H, int spp, int max_
     V3 lower_left = v3(cam[3], cam[4], cam[5]);
     V3 horizontal = v3(cam[6], cam[7], cam[8]);
     V3 vertical = v3(cam[9], cam[10], cam[11]);
+    V3 lens_u = v3(cam[12], cam[13], cam[14]);
+    V3 lens_v = v3(cam[15], cam[16], cam[17]);
+    float lens_radius = cam[18];
 
-    unsigned int state = (px * 1973u) ^ (py * 9277u) ^ (seed * 26699u);
+    unsigned int state =
+        (px * 1973u) ^ (py * 9277u) ^ ((seed + (unsigned int)sample_base) * 26699u);
     state |= 1u;
     pcg(state);
 
     V3 sum = v3(0.0f, 0.0f, 0.0f);
     for (int s = 0; s < spp; s++) {
-        float u = (px + randf(state)) / (float)W;
-        float t = (H - 1 - py + randf(state)) / (float)H;
-        V3 dir =
-            normalize(sub(add(add(lower_left, scale(horizontal, u)), scale(vertical, t)), origin));
+        float su = (px + randf(state)) / (float)W;
+        float tv = (H - 1 - py + randf(state)) / (float)H;
+        V3 target = add(add(lower_left, scale(horizontal, su)), scale(vertical, tv));
         V3 ro = origin;
+        if (lens_radius > 0.0f) {
+            // Thin-lens depth of field: jitter the origin over the lens disk.
+            float a = TWO_PI * randf(state);
+            float r = lens_radius * sqrtf(randf(state));
+            ro = add(origin, add(scale(lens_u, r * cosf(a)), scale(lens_v, r * sinf(a))));
+        }
+        V3 dir = normalize(sub(target, ro));
         V3 thr = v3(1.0f, 1.0f, 1.0f);
         V3 L = v3(0.0f, 0.0f, 0.0f);
         float prev_pdf = 0.0f;
@@ -565,9 +575,10 @@ extern "C" __global__ void pathtrace(float* out, int W, int H, int spp, int max_
         sum = add(sum, L);
     }
 
-    sum = scale(sum, 1.0f / (float)spp);
+    // Accumulate this pass's total radiance; the host divides by the running
+    // sample count (so passes refine the same image progressively).
     int ci = (py * W + px) * 3;
-    out[ci + 0] = sum.x;
-    out[ci + 1] = sum.y;
-    out[ci + 2] = sum.z;
+    accum[ci + 0] += sum.x;
+    accum[ci + 1] += sum.y;
+    accum[ci + 2] += sum.z;
 }

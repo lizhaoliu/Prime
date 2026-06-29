@@ -69,6 +69,12 @@ struct Args {
     /// Also render the scene on the CPU and report the RMSE between them.
     #[arg(long)]
     validate: bool,
+    /// Lens aperture for depth of field (0 = pinhole). Overrides the scene camera.
+    #[arg(long)]
+    aperture: Option<Float>,
+    /// Focus distance (defaults to the look-at distance).
+    #[arg(long)]
+    focus_dist: Option<Float>,
 }
 
 fn main() -> Result<()> {
@@ -76,8 +82,14 @@ fn main() -> Result<()> {
     let (w, h) = (args.width, args.height);
     let aspect = w as Float / h as Float;
 
-    let scene =
+    let mut scene =
         load_scene(&args.scene).with_context(|| format!("loading scene '{}'", args.scene))?;
+    if let Some(a) = args.aperture {
+        scene.camera.aperture = a;
+    }
+    if let Some(f) = args.focus_dist {
+        scene.camera.focus_dist = Some(f);
+    }
     let bytes = gpu_render(&scene, &args, aspect)?;
 
     if let Some(dir) = args.output.parent() {
@@ -168,6 +180,7 @@ fn gpu_render(scene: &Scene, args: &Args, aspect: Float) -> Result<Vec<u8>> {
         shared_mem_bytes: 0,
     };
     let (wi, hi, spp, depth) = (w as i32, h as i32, args.samples as i32, args.depth as i32);
+    let sample_base = 0i32;
     let bgk = bg_kind;
     let seed = args.seed;
     let start = std::time::Instant::now();
@@ -177,6 +190,7 @@ fn gpu_render(scene: &Scene, args: &Args, aspect: Float) -> Result<Vec<u8>> {
         .arg(&wi)
         .arg(&hi)
         .arg(&spp)
+        .arg(&sample_base)
         .arg(&depth)
         .arg(&seed)
         .arg(&nbounds)
@@ -207,9 +221,11 @@ fn gpu_render(scene: &Scene, args: &Args, aspect: Float) -> Result<Vec<u8>> {
     );
 
     let linear = stream.clone_dtoh(&out_dev)?;
+    let inv = 1.0 / args.samples as Float; // accum holds the sum over `samples`
     let mut bytes = vec![0u8; w * h * 3];
     for (px, chunk) in linear.chunks_exact(3).enumerate() {
-        let rgb = to_srgb8(Vec3::new(chunk[0], chunk[1], chunk[2]), Tonemap::Clamp, 2.2);
+        let c = Vec3::new(chunk[0], chunk[1], chunk[2]) * inv;
+        let rgb = to_srgb8(c, Tonemap::Clamp, 2.2);
         bytes[px * 3..px * 3 + 3].copy_from_slice(&rgb);
     }
     Ok(bytes)
@@ -770,13 +786,17 @@ fn load_obj(path: &Path) -> Result<Scene> {
     Ok(Scene::new(materials, prims, camera, Background::default()))
 }
 
-/// A pinhole camera frame matching `prime_core::Camera` (for `aperture = 0`),
-/// packed as `[origin, lower_left, horizontal, vertical]`.
+/// A thin-lens camera frame matching `prime_core::Camera`, packed as
+/// `[origin, lower_left, horizontal, vertical, lens_u, lens_v, lens_radius]`
+/// (19 floats). `aperture = 0` collapses to a pinhole.
 struct CamBasis {
     origin: Vec3,
     lower_left: Vec3,
     horizontal: Vec3,
     vertical: Vec3,
+    u: Vec3,
+    v: Vec3,
+    lens_radius: Float,
 }
 
 impl CamBasis {
@@ -788,24 +808,33 @@ impl CamBasis {
         let w = (cfg.look_from - cfg.look_at).normalize();
         let u = cfg.vup.cross(w).normalize();
         let v = w.cross(u);
-        let horizontal = u * viewport_w;
-        let vertical = v * viewport_h;
-        let lower_left = cfg.look_from - horizontal * 0.5 - vertical * 0.5 - w;
+        let focus_dist = cfg
+            .focus_dist
+            .unwrap_or_else(|| (cfg.look_from - cfg.look_at).length());
+        let horizontal = u * (viewport_w * focus_dist);
+        let vertical = v * (viewport_h * focus_dist);
+        let lower_left = cfg.look_from - horizontal * 0.5 - vertical * 0.5 - w * focus_dist;
         CamBasis {
             origin: cfg.look_from,
             lower_left,
             horizontal,
             vertical,
+            u,
+            v,
+            lens_radius: cfg.aperture / 2.0,
         }
     }
 
     fn pack(&self) -> Vec<f32> {
         let g = |p: Vec3| [p.x, p.y, p.z];
         [
-            g(self.origin),
-            g(self.lower_left),
-            g(self.horizontal),
-            g(self.vertical),
+            g(self.origin).as_slice(),
+            &g(self.lower_left),
+            &g(self.horizontal),
+            &g(self.vertical),
+            &g(self.u),
+            &g(self.v),
+            &[self.lens_radius],
         ]
         .concat()
     }
