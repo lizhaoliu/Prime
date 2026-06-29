@@ -28,6 +28,27 @@ prime cornell -o cornell.png --width 800 --height 800 --samples 256
 
 ---
 
+## Gallery
+
+All rendered by Prime itself (built-in scenes; commands above).
+
+<table>
+<tr>
+<td align="center" width="50%"><img src="docs/renders/showcase.png" width="400"><br><b>showcase</b> — glass, mirror &amp; GGX metals under one area light (default)</td>
+<td align="center" width="50%"><img src="docs/renders/rtweekend.png" width="400"><br><b>rtweekend</b> — ~485 random spheres (diffuse / metal / glass)</td>
+</tr>
+<tr>
+<td align="center"><img src="docs/renders/studio.png" width="400"><br><b>studio</b> — GGX roughness sweep, plus glass &amp; diffuse rows</td>
+<td align="center"><img src="docs/renders/sky.png" width="400"><br><b>sky</b> — procedural-sky image-based lighting with a sun</td>
+</tr>
+<tr>
+<td align="center"><img src="docs/renders/bunny_buddha.png" width="400"><br><b>bunny + buddha</b> — OBJ meshes, per-group materials, colored area lights</td>
+<td align="center"><img src="docs/renders/cornell.png" width="400"><br><b>cornell</b> — the classic global-illumination box</td>
+</tr>
+</table>
+
+---
+
 ## Why this exists / what changed
 
 Prime began as a ~5,700-line Java 1.7 renderer with a Swing + JOGL (OpenGL)
