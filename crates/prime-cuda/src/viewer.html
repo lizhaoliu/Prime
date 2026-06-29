@@ -1,0 +1,55 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Prime — GPU viewer</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #0d0f12; color: #cdd3da;
+               font: 13px/1.4 system-ui, sans-serif; }
+  #wrap { display: flex; align-items: center; justify-content: center; height: 100%; }
+  #v { max-width: 96vw; max-height: 92vh; image-rendering: auto; cursor: grab;
+       box-shadow: 0 8px 40px #000a; border-radius: 4px; }
+  #v:active { cursor: grabbing; }
+  #hud { position: fixed; top: 10px; left: 12px; padding: 6px 10px; background: #0008;
+         border-radius: 6px; font-variant-numeric: tabular-nums; }
+  #hud b { color: #7fd0ff; }
+  #help { position: fixed; bottom: 10px; left: 12px; color: #7b828c; }
+</style>
+</head>
+<body>
+<div id="hud"><b id="spp">0</b> / <span id="tgt">0</span> spp</div>
+<div id="help">drag to orbit · scroll to zoom</div>
+<div id="wrap"><img id="v" draggable="false"></div>
+<script>
+const img = document.getElementById('v');
+const spp = document.getElementById('spp');
+const tgt = document.getElementById('tgt');
+let drag = false, lx = 0, ly = 0;
+
+function refresh() { img.src = '/frame.png?' + Date.now(); }
+async function status() {
+  try { const j = await (await fetch('/status')).json();
+        spp.textContent = j.samples; tgt.textContent = j.target; } catch (e) {}
+}
+function camera(dyaw, dpitch, zoom) {
+  fetch('/camera', { method: 'POST', body: JSON.stringify({ dyaw, dpitch, zoom }) });
+}
+
+img.addEventListener('mousedown', e => { drag = true; lx = e.clientX; ly = e.clientY; });
+window.addEventListener('mouseup', () => drag = false);
+window.addEventListener('mousemove', e => {
+  if (!drag) return;
+  const dx = e.clientX - lx, dy = e.clientY - ly; lx = e.clientX; ly = e.clientY;
+  camera(-dx * 0.006, dy * 0.006, 1.0);
+});
+img.addEventListener('wheel', e => {
+  e.preventDefault();
+  camera(0, 0, e.deltaY > 0 ? 1.1 : 0.9);
+}, { passive: false });
+
+setInterval(refresh, 200);
+setInterval(status, 250);
+refresh(); status();
+</script>
+</body>
+</html>
