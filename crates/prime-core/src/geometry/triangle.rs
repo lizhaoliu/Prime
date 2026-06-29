@@ -16,6 +16,8 @@ pub struct Triangle {
     /// Optional smooth shading normals at each vertex; falls back to the flat
     /// geometric normal when absent.
     pub normals: Option<[Vec3; 3]>,
+    /// Optional per-vertex texture coordinates `(u, v)`.
+    pub uvs: Option<[[Float; 2]; 3]>,
     pub material: MaterialId,
     /// Precomputed surface area (for light sampling).
     area: Float,
@@ -29,6 +31,7 @@ impl Triangle {
             v1,
             v2,
             normals: None,
+            uvs: None,
             material,
             area,
         }
@@ -53,6 +56,11 @@ impl Triangle {
 
     pub fn with_normals(mut self, normals: [Vec3; 3]) -> Self {
         self.normals = Some(normals);
+        self
+    }
+
+    pub fn with_uvs(mut self, uvs: [[Float; 2]; 3]) -> Self {
+        self.uvs = Some(uvs);
         self
     }
 
@@ -95,14 +103,24 @@ impl Triangle {
             None => self.geometric_normal(),
         };
 
+        // Texture coordinates: interpolate per-vertex UVs if present, else fall
+        // back to the barycentric coordinates.
+        let (tu, tv) = match self.uvs {
+            Some([a, b, c]) => (
+                w * a[0] + u * b[0] + v * c[0],
+                w * a[1] + u * b[1] + v * c[1],
+            ),
+            None => (u, v),
+        };
+
         let p = ray.at(t);
         Some(HitRecord::with_face_normal(
             ray,
             t,
             p,
             outward,
-            u,
-            v,
+            tu,
+            tv,
             self.area,
             self.material,
         ))

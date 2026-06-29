@@ -12,6 +12,7 @@ use crate::material::Material;
 use crate::math::Vec3;
 use crate::obj::{self, ObjError, Transform};
 use crate::scene::{Background, Scene};
+use crate::texture::ImageData;
 use crate::{Float, MaterialId};
 use serde::{Deserialize, Serialize};
 use std::path::Path;
@@ -24,6 +25,8 @@ pub enum SceneError {
     BadMaterial { index: usize, count: usize },
     #[error("scene defines no materials")]
     NoMaterials,
+    #[error("texture error: {0}")]
+    Texture(String),
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -100,11 +103,21 @@ impl From<TransformDesc> for Transform {
 }
 
 impl SceneDesc {
-    /// Build a runnable [`Scene`]. Mesh paths are resolved relative to
-    /// `base_dir` (typically the directory containing the scene file).
-    pub fn build(self, base_dir: &Path) -> Result<Scene, SceneError> {
+    /// Build a runnable [`Scene`]. Mesh paths and image textures are resolved
+    /// relative to `base_dir` (typically the directory containing the scene
+    /// file); `decoder` decodes image files into pixels (kept out of the
+    /// codec-free core).
+    pub fn build<F>(mut self, base_dir: &Path, decoder: &mut F) -> Result<Scene, SceneError>
+    where
+        F: FnMut(&Path) -> Result<ImageData, String>,
+    {
         if self.materials.is_empty() {
             return Err(SceneError::NoMaterials);
+        }
+        // Resolve any image textures up front.
+        for m in &mut self.materials {
+            m.resolve_textures(base_dir, decoder)
+                .map_err(SceneError::Texture)?;
         }
         let count = self.materials.len();
         let check = |index: MaterialId| -> Result<MaterialId, SceneError> {
@@ -169,13 +182,18 @@ mod tests {
     use super::*;
     use crate::Color;
 
+    /// A decoder that should never be called (the test scenes use no images).
+    fn no_decoder(_: &Path) -> Result<ImageData, String> {
+        Err("no image textures expected".into())
+    }
+
     #[test]
     fn round_trips_through_ron() {
         let desc = SceneDesc {
             camera: CameraConfig::default(),
             background: Background::default(),
             materials: vec![Material::Lambertian {
-                albedo: Color::new(0.5, 0.5, 0.5),
+                albedo: Color::new(0.5, 0.5, 0.5).into(),
             }],
             objects: vec![ObjectDesc::Sphere {
                 center: Vec3::new(0.0, 0.0, -1.0),
@@ -185,7 +203,7 @@ mod tests {
         };
         let text = ron::ser::to_string(&desc).unwrap();
         let back: SceneDesc = ron::from_str(&text).unwrap();
-        let scene = back.build(Path::new(".")).unwrap();
+        let scene = back.build(Path::new("."), &mut no_decoder).unwrap();
         assert_eq!(scene.primitive_count(), 1);
     }
 
@@ -194,7 +212,9 @@ mod tests {
         let desc = SceneDesc {
             camera: CameraConfig::default(),
             background: Background::default(),
-            materials: vec![Material::Lambertian { albedo: Color::ONE }],
+            materials: vec![Material::Lambertian {
+                albedo: Color::ONE.into(),
+            }],
             objects: vec![ObjectDesc::Sphere {
                 center: Vec3::ZERO,
                 radius: 1.0,
@@ -202,7 +222,7 @@ mod tests {
             }],
         };
         assert!(matches!(
-            desc.build(Path::new(".")),
+            desc.build(Path::new("."), &mut no_decoder),
             Err(SceneError::BadMaterial { index: 5, count: 1 })
         ));
     }

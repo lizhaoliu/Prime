@@ -23,21 +23,23 @@ use crate::hit::HitRecord;
 use crate::math::sampling::cosine_weighted_hemisphere;
 use crate::math::{Onb, Vec3};
 use crate::sampler::Sampler;
+use crate::texture::{ImageData, Texture};
 use crate::{Color, Float};
 use std::f32::consts::{FRAC_1_PI, PI};
+use std::path::Path;
 
 /// Below this roughness a [`Material::Metal`] is treated as a perfect mirror
 /// (a delta BSDF), avoiding the numerical spike of a near-singular GGX lobe.
 const MIRROR_ROUGHNESS: Float = 0.02;
 
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Debug)]
 pub enum Material {
     /// Ideal diffuse reflector (cosine-weighted importance sampled).
-    Lambertian { albedo: Color },
+    Lambertian { albedo: Texture },
     /// GGX microfacet conductor. `roughness` in `[0, 1]`: 0 is a perfect
     /// mirror, higher values are rougher (more blurred reflections).
-    Metal { albedo: Color, roughness: Float },
+    Metal { albedo: Texture, roughness: Float },
     /// Smooth dielectric (glass/water) with refraction + Fresnel reflection.
     Dielectric { ior: Float },
     /// Light source: emits radiance, does not scatter.
@@ -83,7 +85,7 @@ impl Material {
     /// Importance-sample an outgoing direction, or `None` if absorbed.
     pub fn sample(&self, wo: Vec3, hit: &HitRecord, sampler: &mut Sampler) -> Option<BsdfSample> {
         let n = hit.normal;
-        match *self {
+        match self {
             Material::Lambertian { albedo } => {
                 let mut wi = cosine_weighted_hemisphere(sampler, n);
                 if wi.is_near_zero() {
@@ -96,13 +98,14 @@ impl Material {
                 }
                 Some(BsdfSample {
                     wi,
-                    f: albedo * FRAC_1_PI,
+                    f: albedo.sample(hit.u, hit.v) * FRAC_1_PI,
                     pdf: cos * FRAC_1_PI,
                     specular: false,
                 })
             }
 
             Material::Metal { albedo, roughness } => {
+                let roughness = *roughness;
                 if roughness <= MIRROR_ROUGHNESS {
                     // Perfect mirror: a delta BSDF.
                     let wi = (-wo).reflect(n);
@@ -111,7 +114,7 @@ impl Material {
                     }
                     return Some(BsdfSample {
                         wi: wi.normalize(),
-                        f: albedo,
+                        f: albedo.sample(hit.u, hit.v),
                         pdf: 1.0,
                         specular: true,
                     });
@@ -143,6 +146,7 @@ impl Material {
             }
 
             Material::Dielectric { ior } => {
+                let ior = *ior;
                 let eta_ratio = if hit.front_face { 1.0 / ior } else { ior };
                 let incoming = -wo; // == ray.dir
                 let cos_theta = wo.dot(n).min(1.0);
@@ -171,15 +175,16 @@ impl Material {
     /// contribution is a delta handled by [`Material::sample`]).
     pub fn eval(&self, wo: Vec3, wi: Vec3, hit: &HitRecord) -> Color {
         let n = hit.normal;
-        match *self {
+        match self {
             Material::Lambertian { albedo } => {
                 if wi.dot(n) > 0.0 && wo.dot(n) > 0.0 {
-                    albedo * FRAC_1_PI
+                    albedo.sample(hit.u, hit.v) * FRAC_1_PI
                 } else {
                     Color::ZERO
                 }
             }
             Material::Metal { albedo, roughness } => {
+                let roughness = *roughness;
                 if roughness <= MIRROR_ROUGHNESS {
                     return Color::ZERO;
                 }
@@ -194,7 +199,7 @@ impl Material {
                 let a2 = ggx_alpha(roughness).powi(2);
                 let d = ggx_d(nh, a2);
                 let g = smith_g2(no, nl, a2);
-                let fr = fresnel_schlick(vh, albedo);
+                let fr = fresnel_schlick(vh, albedo.sample(hit.u, hit.v));
                 fr * (d * g / (4.0 * no * nl))
             }
             _ => Color::ZERO,
@@ -205,7 +210,7 @@ impl Material {
     /// specular materials.
     pub fn pdf(&self, wo: Vec3, wi: Vec3, hit: &HitRecord) -> Float {
         let n = hit.normal;
-        match *self {
+        match self {
             Material::Lambertian { .. } => {
                 let cos = wi.dot(n);
                 if cos > 0.0 {
@@ -215,6 +220,7 @@ impl Material {
                 }
             }
             Material::Metal { roughness, .. } => {
+                let roughness = *roughness;
                 if roughness <= MIRROR_ROUGHNESS {
                     return 0.0;
                 }
@@ -230,6 +236,19 @@ impl Material {
                 ggx_d(nh, a2) * smith_g1(no, a2) / (4.0 * no)
             }
             _ => 0.0,
+        }
+    }
+
+    /// Resolve any image textures (via a front-end decoder) relative to
+    /// `base_dir`. No-op for procedural/constant parameters.
+    pub fn resolve_textures<F>(&mut self, base_dir: &Path, decoder: &mut F) -> Result<(), String>
+    where
+        F: FnMut(&Path) -> Result<ImageData, String>,
+    {
+        match self {
+            Material::Lambertian { albedo } => albedo.resolve(base_dir, decoder),
+            Material::Metal { albedo, .. } => albedo.resolve(base_dir, decoder),
+            _ => Ok(()),
         }
     }
 }
@@ -333,7 +352,9 @@ mod tests {
     fn lambertian_sample_eval_pdf_are_consistent() {
         let mut sampler = Sampler::random(1);
         let albedo = Color::new(0.5, 0.4, 0.3);
-        let m = Material::Lambertian { albedo };
+        let m = Material::Lambertian {
+            albedo: albedo.into(),
+        };
         let hit = flat_hit(true);
         let wo = Vec3::new(0.0, 1.0, 0.0);
         for _ in 0..1000 {
@@ -362,7 +383,7 @@ mod tests {
     fn mirror_metal_reflects_and_is_specular() {
         let mut sampler = Sampler::random(3);
         let m = Material::Metal {
-            albedo: Color::ONE,
+            albedo: Color::ONE.into(),
             roughness: 0.0,
         };
         assert!(m.is_specular());
@@ -379,7 +400,7 @@ mod tests {
         // G2/G1 <= 1, so the directional albedo must not exceed ~1.
         let mut sampler = Sampler::random(7);
         let m = Material::Metal {
-            albedo: Color::ONE,
+            albedo: Color::ONE.into(),
             roughness: 0.3,
         };
         assert!(!m.is_specular());

@@ -42,6 +42,7 @@ pub mod obj;
 pub mod ray;
 pub mod sampler;
 pub mod scene;
+pub mod texture;
 
 #[cfg(feature = "serde")]
 pub mod desc;
