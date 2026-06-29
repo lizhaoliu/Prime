@@ -11,9 +11,19 @@ license = "MIT"
 authors = ["lizhaoliu <lizhaoliu@gmail.com>"]
 description = "Experimental CUDA (GPU) renderer for Prime — requires an NVIDIA GPU + CUDA toolkit"
 
+[lib]
+name = "prime_cuda"
+path = "src/lib.rs"
+
+# The headless renderer CLI.
 [[bin]]
 name = "prime-gpu"
 path = "src/main.rs"
+
+# The interactive web viewer.
+[[bin]]
+name = "prime-gpu-serve"
+path = "src/serve.rs"
 
 [dependencies]
 prime-core = { path = "../prime-core" }
@@ -29,6 +39,8 @@ image = { version = "0.25", default-features = false, features = ["png", "jpeg",
 anyhow = "1"
 clap = { version = "4", features = ["derive"] }
 ron = "0.8"
+tiny_http = "0.12"
+serde_json = "1"
 
 [profile.release]
 opt-level = 3

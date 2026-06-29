@@ -81,8 +81,9 @@ crates/
   prime-cli/    # the `prime` binary: argument parsing, PNG output, progress bar
   prime-serve/  # the `prime-serve` binary: an interactive web viewer
   prime-gltf/   # glTF / GLB scene loader (meshes + PBR materials + textures)
-  prime-cuda/   # the `prime-gpu` binary: experimental CUDA renderer (excluded
-                # from the workspace; needs an NVIDIA GPU + CUDA toolkit)
+  prime-cuda/   # CUDA renderer lib + two binaries — `prime-gpu` (headless) and
+                # `prime-gpu-serve` (interactive viewer). Excluded from the
+                # workspace; needs an NVIDIA GPU + CUDA toolkit.
 ```
 
 Both front-ends are thin shells over `prime-core`. The library knows nothing
@@ -205,10 +206,23 @@ It needs an NVIDIA GPU + CUDA toolkit, so it is **excluded from the Cargo
 workspace and CI**. Build and run it explicitly:
 
 ```bash
-CUDA_PATH=/usr/local/cuda \
-  cargo run --manifest-path crates/prime-cuda/Cargo.toml --release -- \
-  cornell --samples 1024 --output out/gpu.png --validate
+# Headless render:
+CUDA_PATH=/usr/local/cuda cargo run --manifest-path crates/prime-cuda/Cargo.toml \
+  --release --bin prime-gpu -- cornell --samples 1024 -o out/gpu.png --validate
+
+# Interactive viewer — drag to orbit, scroll to zoom, refines while idle:
+CUDA_PATH=/usr/local/cuda cargo run --manifest-path crates/prime-cuda/Cargo.toml \
+  --release --bin prime-gpu-serve -- cornell   # then open http://127.0.0.1:8080
 ```
+
+### Interactive viewer
+
+`prime-gpu-serve` path-traces **progressively on the GPU**: a background thread
+accumulates samples into a persistent buffer and streams the refining image to
+the browser; every camera move (drag to orbit, scroll to zoom) restarts
+accumulation. On an RTX 5090 each pass is sub-millisecond, so it converges in
+real time. Same architecture as the CPU `prime-serve`, with the CUDA renderer in
+place of the integrator.
 
 **Status — Phase C complete: a GPU path tracer at feature parity with the CPU.**
 The full material set (Lambertian, **GGX Metal** mirror + rough, **Dielectric**
