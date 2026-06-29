@@ -348,11 +348,52 @@ __device__ inline V3 background(V3 dir, int bg_kind, const float* bg) {
     return add(scale(v3(bg[0], bg[1], bg[2]), 1.0f - tt), scale(v3(bg[3], bg[4], bg[5]), tt));
 }
 
+// Texture coordinates at the hit: analytic for spheres, barycentric-interpolated
+// per-vertex UVs for triangles (matching the CPU's Triangle::hit).
+__device__ void hit_uv(int best, V3 p, const unsigned int* pkind, const float* pdata,
+                       const float* prim_uv, float* uo, float* vo) {
+    if (pkind[best] == 0) {
+        const float* d = &pdata[best * 9];
+        V3 o = scale(sub(p, v3(d[0], d[1], d[2])), 1.0f / d[3]);
+        float theta = acosf(clampf(-o.y, -1.0f, 1.0f));
+        float phi = atan2f(-o.z, o.x) + PI;
+        *uo = phi / TWO_PI;
+        *vo = theta / PI;
+        return;
+    }
+    const float* dv = &pdata[best * 9];
+    V3 v0 = v3(dv[0], dv[1], dv[2]), v1 = v3(dv[3], dv[4], dv[5]), v2 = v3(dv[6], dv[7], dv[8]);
+    V3 e1 = sub(v1, v0), e2 = sub(v2, v0), ep = sub(p, v0);
+    float d11 = dot(e1, e1), d12 = dot(e1, e2), d22 = dot(e2, e2);
+    float dp1 = dot(ep, e1), dp2 = dot(ep, e2);
+    float denom = d11 * d22 - d12 * d12;
+    float inv = denom != 0.0f ? 1.0f / denom : 0.0f;
+    float bu = (d22 * dp1 - d12 * dp2) * inv; // weight of v1
+    float bv = (d11 * dp2 - d12 * dp1) * inv; // weight of v2
+    float bw = 1.0f - bu - bv;                // weight of v0
+    const float* u = &prim_uv[best * 6];
+    *uo = bw * u[0] + bu * u[2] + bv * u[4];
+    *vo = bw * u[1] + bu * u[3] + bv * u[5];
+}
+
+// Albedo from the per-material texture descriptor (8 f32: kind, c.xyz, d.xyz,
+// scale). kind 0 = constant color c; kind 1 = checkerboard of c (even) / d (odd).
+__device__ V3 sample_albedo(int mat, float u, float v, const float* albedo_tex) {
+    const float* a = &albedo_tex[mat * 8];
+    if ((int)a[0] == 1) {
+        long parity = (long)floorf(u * a[7]) + (long)floorf(v * a[7]);
+        if ((((parity % 2) + 2) % 2) == 0) return v3(a[1], a[2], a[3]);
+        return v3(a[4], a[5], a[6]);
+    }
+    return v3(a[1], a[2], a[3]);
+}
+
 extern "C" __global__ void pathtrace(float* out, int W, int H, int spp, int max_depth,
                                      unsigned int seed, const float* nbounds,
                                      const unsigned int* nmeta, const unsigned int* pkind,
-                                     const float* pdata, const unsigned int* pmat,
-                                     const float* mats, const unsigned int* light_prims,
+                                     const float* pdata, const float* prim_uv,
+                                     const unsigned int* pmat, const float* mats,
+                                     const float* albedo_tex, const unsigned int* light_prims,
                                      int n_lights, const float* cam, int bg_kind,
                                      const float* bg) {
     int px = blockIdx.x * blockDim.x + threadIdx.x;
@@ -409,11 +450,13 @@ extern "C" __global__ void pathtrace(float* out, int W, int H, int spp, int max_
             }
 
             float rough = m[7]; // roughness (Metal) or ior (Dielectric)
-            V3 albedo = v3(m[1], m[2], m[3]);
             V3 outward = geom_normal(best, p, pkind, pdata);
             int front = dot(dir, outward) < 0.0f;
             V3 n = front ? outward : neg(outward);
             V3 wo = neg(dir);
+            float uu, vv;
+            hit_uv(best, p, pkind, pdata, prim_uv, &uu, &vv);
+            V3 albedo = sample_albedo(pmat[best], uu, vv, albedo_tex);
 
             // Next-event estimation (only for non-delta BSDFs).
             if (!is_specular(kind, rough) && n_lights > 0) {

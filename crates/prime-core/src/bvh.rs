@@ -65,6 +65,11 @@ pub struct FlatBvh {
     /// 9 floats per primitive. Sphere: `cx, cy, cz, radius, 0, 0, 0, 0, 0`.
     /// Triangle: `v0.xyz, v1.xyz, v2.xyz`.
     pub prim_data: Vec<f32>,
+    /// 6 floats per primitive: the 3 per-vertex `(u, v)` texture coordinates of a
+    /// triangle. Triangles without UVs use `[0,0, 1,0, 0,1]` so barycentric
+    /// interpolation reproduces the bare barycentric coords (matching the CPU
+    /// fallback). Unused for spheres (their UVs are analytic).
+    pub prim_uv: Vec<f32>,
     /// 1 u32 per primitive: its material index.
     pub prim_material: Vec<u32>,
     pub node_count: usize,
@@ -139,6 +144,7 @@ impl Bvh {
 
         let mut prim_kind = Vec::with_capacity(self.prims.len());
         let mut prim_data = Vec::with_capacity(self.prims.len() * 9);
+        let mut prim_uv = Vec::with_capacity(self.prims.len() * 6);
         let mut prim_material = Vec::with_capacity(self.prims.len());
         for p in &self.prims {
             match p {
@@ -147,6 +153,7 @@ impl Bvh {
                     prim_data.extend_from_slice(&[
                         s.center.x, s.center.y, s.center.z, s.radius, 0.0, 0.0, 0.0, 0.0, 0.0,
                     ]);
+                    prim_uv.extend_from_slice(&[0.0; 6]);
                     prim_material.push(s.material as u32);
                 }
                 Primitive::Triangle(t) => {
@@ -154,6 +161,14 @@ impl Bvh {
                     prim_data.extend_from_slice(&[
                         t.v0.x, t.v0.y, t.v0.z, t.v1.x, t.v1.y, t.v1.z, t.v2.x, t.v2.y, t.v2.z,
                     ]);
+                    match t.uvs {
+                        Some([a, b, c]) => {
+                            prim_uv.extend_from_slice(&[a[0], a[1], b[0], b[1], c[0], c[1]])
+                        }
+                        // Sentinel: interpolating these reproduces the barycentric
+                        // (u, v), matching the CPU's no-UV fallback.
+                        None => prim_uv.extend_from_slice(&[0.0, 0.0, 1.0, 0.0, 0.0, 1.0]),
+                    }
                     prim_material.push(t.material as u32);
                 }
             }
@@ -164,6 +179,7 @@ impl Bvh {
             node_meta,
             prim_kind,
             prim_data,
+            prim_uv,
             prim_material,
             node_count: self.nodes.len(),
             prim_count: self.prims.len(),
@@ -511,6 +527,7 @@ mod tests {
         assert_eq!(flat.node_meta.len(), flat.node_count * 3);
         assert_eq!(flat.prim_kind.len(), n);
         assert_eq!(flat.prim_data.len(), n * 9);
+        assert_eq!(flat.prim_uv.len(), n * 6);
         assert_eq!(flat.prim_material.len(), n);
         // Every leaf's primitive range stays in bounds.
         for node in 0..flat.node_count {
