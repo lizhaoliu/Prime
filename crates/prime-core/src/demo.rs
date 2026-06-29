@@ -1,6 +1,7 @@
 //! Built-in scenes, so the renderer runs with zero external assets.
 
 use crate::camera::CameraConfig;
+use crate::env::EnvMap;
 use crate::geometry::{Primitive, Sphere, Triangle};
 use crate::material::Material;
 use crate::math::Vec3;
@@ -492,6 +493,53 @@ pub fn studio() -> Scene {
     )
 }
 
+/// Spheres on a ground plane lit by a procedural sky **environment map** (a
+/// horizon→zenith gradient with a bright sun). Demonstrates importance-sampled
+/// image-based lighting and the soft directional shadows a sun casts — with no
+/// external HDR asset.
+pub fn sky() -> Scene {
+    let ground = Material::Lambertian {
+        albedo: Color::new(0.6, 0.6, 0.62),
+    };
+    let red = Material::Lambertian {
+        albedo: Color::new(0.8, 0.25, 0.2),
+    };
+    let gold = Material::Metal {
+        albedo: Color::new(1.0, 0.78, 0.34),
+        roughness: 0.12,
+    };
+    let glass = Material::Dielectric { ior: 1.5 };
+
+    let materials = vec![ground, red, gold, glass];
+    let prims = vec![
+        Primitive::Sphere(Sphere::new(Vec3::new(0.0, -1000.0, 0.0), 1000.0, 0)),
+        Primitive::Sphere(Sphere::new(Vec3::new(-2.2, 1.0, 0.0), 1.0, 1)),
+        Primitive::Sphere(Sphere::new(Vec3::new(0.0, 1.0, 0.0), 1.0, 2)),
+        Primitive::Sphere(Sphere::new(Vec3::new(2.2, 1.0, 0.0), 1.0, 3)),
+    ];
+
+    let camera = CameraConfig {
+        look_from: Vec3::new(0.0, 1.6, 7.0),
+        look_at: Vec3::new(0.0, 0.7, 0.0),
+        vup: Vec3::new(0.0, 1.0, 0.0),
+        vfov: 38.0,
+        aperture: 0.0,
+        focus_dist: None,
+    };
+
+    let mut scene = Scene::new(materials, prims, camera, Background::default());
+    scene.set_environment(EnvMap::sky(
+        1024,
+        512,
+        Vec3::new(0.3, 0.6, 0.6),     // sun direction (up, toward camera)
+        Color::splat(25.0),           // bright sun
+        0.05,                         // ~3° angular radius (soft shadows)
+        Color::new(0.85, 0.88, 0.95), // horizon
+        Color::new(0.25, 0.45, 0.85), // zenith
+    ));
+    scene
+}
+
 /// HSV (`h, s, v` in `[0, 1]`) to linear RGB, for the rainbow diffuse row.
 fn hsv(h: Float, s: Float, v: Float) -> Color {
     let h6 = h.fract() * 6.0;
@@ -527,5 +575,7 @@ mod tests {
         let studio = studio();
         assert!(studio.primitive_count() > 0);
         assert!(studio.num_lights() > 0);
+        // The sky scene carries an environment map.
+        assert!(sky().environment().is_some());
     }
 }

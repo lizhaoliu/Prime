@@ -31,6 +31,7 @@ pub mod bvh;
 pub mod camera;
 pub mod color;
 pub mod demo;
+pub mod env;
 pub mod framebuffer;
 pub mod geometry;
 pub mod hit;
@@ -51,6 +52,7 @@ pub use math::Vec3;
 pub mod prelude {
     pub use crate::camera::CameraConfig;
     pub use crate::color::Tonemap;
+    pub use crate::env::EnvMap;
     pub use crate::geometry::{Primitive, Sphere, Triangle};
     pub use crate::integrator::{render, render_to_srgb, ProgressiveRenderer, RenderSettings};
     pub use crate::material::Material;

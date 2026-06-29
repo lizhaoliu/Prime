@@ -23,6 +23,7 @@ pub fn resolve(source: &str, aspect: Float) -> Result<Scene> {
         "spheres" => return Ok(demo::spheres()),
         "rtweekend" => return Ok(demo::rtweekend()),
         "studio" => return Ok(demo::studio()),
+        "sky" => return Ok(demo::sky()),
         _ => {}
     }
 

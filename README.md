@@ -16,6 +16,8 @@ prime cornell -o cornell.png --width 800 --height 800 --samples 256
 | Material showcase — glass, mirror, GGX metals, diffuse (default) | `prime showcase` |
 | Material studio — area-lit GGX roughness sweep + glass/diffuse | `prime studio` |
 | "Ray Tracing in One Weekend" — ~485 random spheres | `prime rtweekend` |
+| Procedural-sky IBL with a sun (directional shadows) | `prime sky` |
+| Any scene under an HDR environment | `prime studio --env sky.hdr` |
 | Cornell box (global illumination) | `prime cornell` |
 | Sphere field under a sky (defocus blur) | `prime spheres` |
 | Vibrant bunny + buddha (per-group materials, colored lights) | `prime assets/bunny_buddha.ron` |
@@ -72,6 +74,7 @@ bvh          binned-SAH bounding volume hierarchy, iterative traversal
 hit          intersection record (point, oriented normal, uv, material id)
 material     sealed BSDF enum: Lambertian / GGX Metal / Dielectric / Emissive
 sampler      low-discrepancy sampling: Owen-scrambled Sobol (Burley 2020)
+env          image-based lighting: equirect HDR env map, importance-sampled
 camera       thin-lens pinhole camera (look-at, fov, optional defocus)
 scene        material table + BVH + light list + camera config + background
 integrator   parallel path tracer: next-event estimation + MIS, quasi-Monte
@@ -80,7 +83,7 @@ framebuffer  linear HDR pixel buffer -> sRGB bytes
 color        tonemapping (clamp / Reinhard) + gamma
 obj          Wavefront OBJ loader (no UI dependency)
 desc         serializable `SceneDesc` (RON) -> `Scene`
-demo         built-in scenes: showcase, studio, rtweekend, Cornell, spheres
+demo         built-in scenes: showcase, studio, rtweekend, sky, Cornell, spheres
 ```
 
 ### Pipeline
@@ -119,6 +122,9 @@ SCENE                     built-in (showcase, studio, rtweekend, cornell,
     --gamma <F>           display gamma                        [default: 2.2]
     --clamp <F>           firefly clamp; 0 disables (unbiased) [default: 0]
     --no-qmc              use white-noise instead of QMC sampling
+    --env <FILE.hdr>      equirectangular HDR environment (image-based lighting)
+    --env-intensity <F>   scale env radiance                    [default: 1.0]
+    --env-rotation <DEG>  spin the env about the vertical axis  [default: 0]
 ```
 
 ---

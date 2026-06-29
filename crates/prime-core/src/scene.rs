@@ -3,6 +3,7 @@
 
 use crate::bvh::Bvh;
 use crate::camera::CameraConfig;
+use crate::env::EnvMap;
 use crate::geometry::Primitive;
 use crate::hit::HitRecord;
 use crate::material::Material;
@@ -64,6 +65,7 @@ pub struct Scene {
     materials: Vec<Material>,
     bvh: Bvh,
     lights: Vec<Light>,
+    env: Option<EnvMap>,
     pub camera: CameraConfig,
     pub background: Background,
 }
@@ -93,9 +95,22 @@ impl Scene {
             materials,
             bvh: Bvh::build(primitives),
             lights,
+            env: None,
             camera,
             background,
         }
+    }
+
+    /// Attach an environment map (image-based lighting). Replaces the
+    /// [`Background`] for escaped rays and is importance-sampled by the
+    /// integrator.
+    pub fn set_environment(&mut self, env: EnvMap) {
+        self.env = Some(env);
+    }
+
+    /// The environment map, if one is attached.
+    pub fn environment(&self) -> Option<&EnvMap> {
+        self.env.as_ref()
     }
 
     pub fn num_lights(&self) -> usize {
