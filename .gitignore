@@ -6,7 +6,8 @@ Cargo.lock.orig
 # Render output
 /out
 *.png
-!legacy-java/**/*.png
+# ...except the committed README gallery
+!docs/renders/*.png
 
 # Editor / OS
 .DS_Store
