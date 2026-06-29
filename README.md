@@ -24,6 +24,7 @@ prime cornell -o cornell.png --width 800 --height 800 --samples 256
 | Vibrant bunny + buddha (per-group materials, colored lights) | `prime assets/bunny_buddha.ron` |
 | Custom scene from a file | `prime myscene.ron` |
 | A bare mesh, auto-framed | `prime model.obj` |
+| A glTF / GLB model (PBR materials + textures) | `prime model.glb` |
 | **Interactive viewer in the browser** | `prime-serve` → open http://127.0.0.1:8080 |
 
 ---
@@ -79,6 +80,7 @@ crates/
   prime-core/   # the renderer as a pure library (no windowing, no image codec)
   prime-cli/    # the `prime` binary: argument parsing, PNG output, progress bar
   prime-serve/  # the `prime-serve` binary: an interactive web viewer
+  prime-gltf/   # glTF / GLB scene loader (meshes + PBR materials + textures)
   prime-cuda/   # the `prime-gpu` binary: experimental CUDA renderer (excluded
                 # from the workspace; needs an NVIDIA GPU + CUDA toolkit)
 ```
@@ -233,6 +235,29 @@ sources like a sun — is a future optimization, not a feature gap.)
 <img src="docs/renders/gpu_image.png" width="230">
 <img src="docs/renders/gpu_env.png" width="230">
 <br><i>Path-traced on the GPU (RTX 5090): the Cornell box, the material showcase (glass, mirror, GGX metals), an image-textured floor, and an environment-lit scene — all converged to the CPU reference.</i></p>
+
+---
+
+## glTF / GLB models
+
+Prime loads `.gltf`/`.glb` scenes via the `prime-gltf` crate — on **both** the CPU
+(`prime model.glb`) and the GPU (`prime-gpu model.glb`). It walks the node graph
+(composing transforms), reads triangle meshes (positions, normals, UVs), maps
+glTF metallic-roughness materials onto Prime's BSDFs, and decodes base-color
+textures. Prime's material model is intentionally small, so the mapping is an
+approximation (base color + metallic/roughness/emissive *factors* and the
+base-color *texture*; metallic-roughness/normal/emissive maps and transmission
+are not represented). Models are lit by a neutral sky gradient and auto-framed.
+
+The renders below are the [Khronos sample
+models](https://github.com/KhronosGroup/glTF-Sample-Models) (Damaged Helmet,
+Duck), path-traced on the GPU and validated against the CPU (RMSE 0.5–0.9% at
+256 spp). Sample assets aren't bundled — point Prime at your own `.glb`.
+
+<p align="center">
+<img src="docs/renders/gltf_helmet.png" width="340">
+<img src="docs/renders/gltf_duck.png" width="290">
+<br><i>glTF models path-traced on the GPU (RTX 5090): Damaged Helmet and Duck.</i></p>
 
 ---
 
