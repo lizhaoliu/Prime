@@ -203,21 +203,24 @@ workspace and CI**. Build and run it explicitly:
 ```bash
 CUDA_PATH=/usr/local/cuda \
   cargo run --manifest-path crates/prime-cuda/Cargo.toml --release -- \
-  cornell --output out/gpu.png --width 800 --height 600
+  cornell --samples 1024 --output out/gpu.png --validate
 ```
 
-**Status — Phase B:** the scene's BVH and primitives are flattened
-([`Bvh::flatten`]) and uploaded, and an iterative BVH-traversal kernel does
-primary-ray visibility (any built-in scene or a `.obj` mesh). Because the kernel
-mirrors the CPU `Bvh::hit` exactly, the per-pixel hit distance is **validated
-against the CPU renderer** — e.g. *100.0% pixel agreement on the 170k-triangle
-mesh* (cornell/showcase agree to ~99.98%, the rest being silhouette pixels where
-float rounding flips a hit/miss at an edge). The 170k-triangle scene traces at
-800×600 in well under a millisecond on an RTX 5090. Output below is a normal
-visualization. Next (Phase C): the full path tracer — materials, NEE/MIS,
-sampling, textures, environment — converged to the CPU reference.
+**Status — Phase C (increment 1):** a GPU **path tracer**. The scene's BVH,
+primitives, and material table are uploaded; the kernel reuses the validated
+Phase-B traversal and adds shading — Lambertian + emissive, unidirectional path
+tracing with Russian roulette, many samples accumulated on the device. The GPU
+uses plain white-noise sampling (not the CPU's QMC/NEE), but both are unbiased
+estimators of the same rendering equation, so the GPU image **converges to the
+CPU reference**: on the diffuse Cornell box, `--validate` reports RMSE falling
+**6.2% → 4.2% → 2.1%** at 512 / 1024 / 4096 spp (the textbook 1/√spp decay —
+noise, not bias). And it's **~160× faster than the single-threaded CPU** at equal
+samples (16k spp at 800×800 in ~2.7 s on an RTX 5090).
 
-<p align="center"><img src="docs/renders/gpu_phaseB.png" width="480"><br><i>GPU BVH traversal (RTX 5090): Cornell-box surface normals, validated pixel-wise against the CPU.</i></p>
+Next increments: next-event estimation + MIS (much less noise), GGX metal &
+dielectric, then textures + environment lighting.
+
+<p align="center"><img src="docs/renders/gpu_phaseC.png" width="480"><br><i>Path-traced on the GPU (RTX 5090): the diffuse Cornell box, converged to the CPU reference.</i></p>
 
 ---
 
